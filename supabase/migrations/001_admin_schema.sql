@@ -46,17 +46,14 @@ ALTER TABLE ad_locations
   ADD COLUMN IF NOT EXISTS icon_url text;
 
 -- 1-5. reports: 관리자 신고 처리 워크플로우 컬럼 추가
+-- 앱 기존 컬럼: reporter_id, target_type, target_id, reason, detail, created_at
 ALTER TABLE reports
-  ADD COLUMN IF NOT EXISTS reported_id uuid REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS matching_id uuid REFERENCES matchings(id),
-  ADD COLUMN IF NOT EXISTS evidence text,
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT '처리 대기',
   ADD COLUMN IF NOT EXISTS admin_note text,
   ADD COLUMN IF NOT EXISTS processed_at timestamptz,
   ADD COLUMN IF NOT EXISTS processed_by uuid;
 
--- reports 외래 키 이름 지정 (관리자 코드에서 조인에 사용)
--- reporter_id FK가 없으면 추가
+-- reporter_id FK 이름 지정 (관리자 코드에서 조인에 사용)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -66,18 +63,6 @@ BEGIN
     ALTER TABLE reports
       ADD CONSTRAINT reports_reporter_id_fkey
       FOREIGN KEY (reporter_id) REFERENCES users(id);
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'reports_reported_id_fkey'
-  ) THEN
-    ALTER TABLE reports
-      ADD CONSTRAINT reports_reported_id_fkey
-      FOREIGN KEY (reported_id) REFERENCES users(id);
   END IF;
 END $$;
 
@@ -170,7 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_matchings_recruitment_status ON matchings(recruit
 CREATE INDEX IF NOT EXISTS idx_matchings_created_at ON matchings(created_at);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_reporter_id ON reports(reporter_id);
-CREATE INDEX IF NOT EXISTS idx_reports_reported_id ON reports(reported_id);
+CREATE INDEX IF NOT EXISTS idx_reports_target ON reports(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_advertisements_type ON advertisements(type);
 CREATE INDEX IF NOT EXISTS idx_advertisements_status ON advertisements(status);
 CREATE INDEX IF NOT EXISTS idx_push_notifications_created_at ON push_notifications(created_at);

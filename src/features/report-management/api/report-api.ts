@@ -21,8 +21,7 @@ export async function fetchReports(
     .select(
       `
       *,
-      reporter:users!reports_reporter_id_fkey(nickname),
-      reported:users!reports_reported_id_fkey(nickname)
+      reporter:users!reports_reporter_id_fkey(nickname)
     `,
       { count: "exact" }
     );
@@ -44,13 +43,15 @@ export async function fetchReports(
     throw new Error(`신고 목록 조회 실패: ${error.message}`);
   }
 
-  // 조인 데이터 매핑
   const reports: Report[] = (data ?? []).map((item) => {
     const row = item as Record<string, unknown>;
     return {
       ...(row as unknown as Report),
       reporter_nickname: (row.reporter as { nickname: string } | null)?.nickname,
-      reported_nickname: (row.reported as { nickname: string } | null)?.nickname,
+      target_label: buildTargetLabel(
+        row.target_type as string,
+        row.target_id as string
+      ),
     };
   });
 
@@ -60,17 +61,22 @@ export async function fetchReports(
   };
 }
 
+export interface ReportDetail {
+  report: Report;
+  reporterInfo: Record<string, unknown> | null;
+  targetContent: string | null;
+}
+
 export async function fetchReportById(
   supabase: SupabaseClient,
   reportId: string
-): Promise<Report> {
+): Promise<ReportDetail> {
   const { data, error } = await supabase
     .from("reports")
     .select(
       `
       *,
-      reporter:users!reports_reporter_id_fkey(nickname, real_name, profile_image_url),
-      reported:users!reports_reported_id_fkey(nickname, real_name, profile_image_url, battiket_score, is_active)
+      reporter:users!reports_reporter_id_fkey(id, nickname, real_name, profile_image_url)
     `
     )
     .eq("id", reportId)
@@ -81,10 +87,51 @@ export async function fetchReportById(
   }
 
   const row = data as Record<string, unknown>;
-  return {
+  const targetType = row.target_type as string;
+  const targetId = row.target_id as string;
+
+  // 신고 대상 콘텐츠 조회
+  let targetContent: string | null = null;
+
+  if (targetType === "게시글") {
+    const { data: post } = await supabase
+      .from("community_posts")
+      .select("title, content")
+      .eq("id", targetId)
+      .single();
+    if (post) {
+      targetContent = `${post.title}\n${post.content}`;
+    }
+  } else if (targetType === "댓글") {
+    const { data: comment } = await supabase
+      .from("comments")
+      .select("content")
+      .eq("id", targetId)
+      .single();
+    if (comment) {
+      targetContent = comment.content;
+    }
+  } else if (targetType === "사용자") {
+    const { data: user } = await supabase
+      .from("users")
+      .select("nickname, battiket_score, is_active")
+      .eq("id", targetId)
+      .single();
+    if (user) {
+      targetContent = `${user.nickname} (배티켓: ${user.battiket_score}, 상태: ${user.is_active ? "정상" : "정지"})`;
+    }
+  }
+
+  const report: Report = {
     ...(row as unknown as Report),
     reporter_nickname: (row.reporter as { nickname: string } | null)?.nickname,
-    reported_nickname: (row.reported as { nickname: string } | null)?.nickname,
+    target_label: buildTargetLabel(targetType, targetId),
+  };
+
+  return {
+    report,
+    reporterInfo: row.reporter as Record<string, unknown> | null,
+    targetContent,
   };
 }
 
@@ -109,22 +156,27 @@ export async function processReport(
     throw new Error(`신고 처리 실패: ${error.message}`);
   }
 
-  // 정지 처리인 경우 유저 비활성화
+  // 정지 처리 + 사용자 신고인 경우 유저 비활성화
   if (result === "정지") {
     const { data: report } = await supabase
       .from("reports")
-      .select("reported_id")
+      .select("target_type, target_id")
       .eq("id", reportId)
       .single();
 
-    if (report) {
+    if (report && report.target_type === "사용자") {
       await supabase
         .from("users")
         .update({
           is_active: false,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", report.reported_id);
+        .eq("id", report.target_id);
     }
   }
+}
+
+function buildTargetLabel(targetType: string, targetId: string): string {
+  const shortId = targetId?.slice(0, 8) ?? "";
+  return `${targetType} (${shortId}...)`;
 }

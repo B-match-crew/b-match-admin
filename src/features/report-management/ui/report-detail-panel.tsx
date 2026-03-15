@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { fetchReportById } from "../api/report-api";
+import { fetchReportById, type ReportDetail } from "../api/report-api";
 import type { Report } from "@/src/entities/report/types";
 import {
   Sheet,
@@ -21,7 +21,7 @@ import {
   Flag,
   Calendar,
   FileText,
-  Image,
+  Target,
 } from "lucide-react";
 
 interface ReportDetailPanelProps {
@@ -40,7 +40,7 @@ export function ReportDetailPanel({
   const supabase = useSupabase();
   const [report, setReport] = useState<Report | null>(null);
   const [reporterInfo, setReporterInfo] = useState<Record<string, unknown> | null>(null);
-  const [reportedInfo, setReportedInfo] = useState<Record<string, unknown> | null>(null);
+  const [targetContent, setTargetContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -49,28 +49,10 @@ export function ReportDetailPanel({
     const loadReport = async () => {
       setIsLoading(true);
       try {
-        // 신고 상세 + 관련 유저 정보 조회
-        const { data, error } = await supabase
-          .from("reports")
-          .select(
-            `
-            *,
-            reporter:users!reports_reporter_id_fkey(id, nickname, real_name, profile_image_url),
-            reported:users!reports_reported_id_fkey(id, nickname, real_name, profile_image_url, battiket_score, is_active)
-          `
-          )
-          .eq("id", reportId)
-          .single();
-
-        if (error) throw error;
-
-        setReport({
-          ...data,
-          reporter_nickname: data.reporter?.nickname,
-          reported_nickname: data.reported?.nickname,
-        } as Report);
-        setReporterInfo(data.reporter as Record<string, unknown>);
-        setReportedInfo(data.reported as Record<string, unknown>);
+        const result = await fetchReportById(supabase, reportId);
+        setReport(result.report);
+        setReporterInfo(result.reporterInfo);
+        setTargetContent(result.targetContent);
       } catch (error) {
         console.error("신고 상세 조회 실패:", error);
       } finally {
@@ -120,30 +102,25 @@ export function ReportDetailPanel({
 
             <Separator />
 
-            {/* 피신고자 정보 */}
+            {/* 신고 대상 */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold flex items-center gap-2">
-                <UserIcon className="h-4 w-4" />
-                피신고자
+                <Target className="h-4 w-4" />
+                신고 대상
               </h4>
-              <UserInfoCard
-                nickname={(reportedInfo?.nickname as string) ?? "-"}
-                realName={(reportedInfo?.real_name as string) ?? "-"}
-                profileImage={reportedInfo?.profile_image_url as string | null}
-              />
-              {reportedInfo && (
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                  <span>
-                    배티켓: <strong>{reportedInfo.battiket_score as number}</strong>
-                  </span>
-                  <span>
-                    상태:{" "}
-                    <StatusBadge
-                      status={(reportedInfo.is_active as boolean) ? "정상" : "정지"}
-                    />
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={report.target_type} />
+                  <span className="text-xs text-muted-foreground">
+                    {report.target_id}
                   </span>
                 </div>
-              )}
+                {targetContent && (
+                  <p className="text-sm whitespace-pre-wrap bg-muted rounded-md p-2">
+                    {targetContent}
+                  </p>
+                )}
+              </div>
             </div>
 
             <Separator />
@@ -159,15 +136,12 @@ export function ReportDetailPanel({
               </p>
             </div>
 
-            {/* 증거 */}
-            {report.evidence && (
+            {/* 상세 내용 */}
+            {report.detail && (
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Image className="h-4 w-4" />
-                  증거 자료
-                </h4>
+                <h4 className="text-sm font-semibold">상세 내용</h4>
                 <p className="text-sm whitespace-pre-wrap rounded-lg bg-muted p-3">
-                  {report.evidence}
+                  {report.detail}
                 </p>
               </div>
             )}

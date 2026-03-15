@@ -34,14 +34,14 @@ const actionOptions: {
   {
     value: "경고",
     label: "경고",
-    description: "피신고자에게 경고 조치를 합니다",
+    description: "신고 대상에 대해 경고 조치를 합니다",
     icon: <Shield className="h-5 w-5" />,
     color: "border-orange-300 bg-orange-50 text-orange-700",
   },
   {
     value: "정지",
     label: "정지",
-    description: "피신고자의 계정을 정지합니다",
+    description: "사용자 신고 시 해당 계정을 정지합니다",
     icon: <ShieldOff className="h-5 w-5" />,
     color: "border-red-300 bg-red-50 text-red-700",
   },
@@ -90,10 +90,7 @@ export function ReportActionDialog({
         <DialogHeader>
           <DialogTitle>신고 처리</DialogTitle>
           <DialogDescription>
-            <span className="font-semibold">
-              {report?.reported_nickname}
-            </span>{" "}
-            님에 대한 신고를 처리합니다
+            {report?.target_label ?? "신고 대상"}에 대한 신고를 처리합니다
           </DialogDescription>
         </DialogHeader>
 

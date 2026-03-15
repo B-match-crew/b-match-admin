@@ -111,7 +111,7 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>신고자</TableHead>
-                  <TableHead>피신고자</TableHead>
+                  <TableHead>대상 유형</TableHead>
                   <TableHead>사유</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead>접수일</TableHead>
@@ -127,7 +127,7 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
                     <TableCell className="font-medium">
                       {report.reporter_nickname ?? "-"}
                     </TableCell>
-                    <TableCell>{report.reported_nickname ?? "-"}</TableCell>
+                    <TableCell>{report.target_label ?? report.target_type}</TableCell>
                     <TableCell className="max-w-[250px]">
                       {truncateText(report.reason, 40)}
                     </TableCell>
