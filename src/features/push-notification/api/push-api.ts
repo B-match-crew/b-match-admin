@@ -23,7 +23,7 @@ export async function fetchPushHistory(
   const to = from + limit - 1;
 
   const { data, count, error } = await supabase
-    .from("notifications")
+    .from("push_notifications")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -41,7 +41,7 @@ export async function sendPushNotification(
   payload: SendPushPayload
 ): Promise<PushNotification> {
   const { data, error } = await supabase
-    .from("notifications")
+    .from("push_notifications")
     .insert({
       title: payload.title,
       body: payload.body,
