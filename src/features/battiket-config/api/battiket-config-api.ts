@@ -1,48 +1,35 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BattiketConfig } from "@/src/entities/battiket/types";
+import type { AppConfig } from "@/src/entities/config/types";
+
+// v3.0: 배티켓 관련 설정은 app_config 테이블의 key-value로 저장
+export type BattiketConfigMap = Record<string, string>;
 
 export async function fetchBattiketConfig(
   supabase: SupabaseClient
-): Promise<BattiketConfig | null> {
+): Promise<BattiketConfigMap> {
   const { data, error } = await supabase
-    .from("battiket_config")
+    .from("app_config")
     .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .single();
+    .like("key", "batticket.%");
 
-  if (error) {
-    if (error.code === "PGRST116") return null;
-    throw error;
+  if (error) throw error;
+
+  const configMap: BattiketConfigMap = {};
+  for (const item of (data ?? []) as AppConfig[]) {
+    configMap[item.key] = item.value;
   }
-
-  return data as BattiketConfig;
+  return configMap;
 }
 
 export async function updateBattiketConfig(
   supabase: SupabaseClient,
-  config: Partial<BattiketConfig> & { id: string }
-): Promise<BattiketConfig> {
-  const { data, error } = await supabase
-    .from("battiket_config")
-    .update({
-      guest_to_host_best: config.guest_to_host_best,
-      guest_to_host_normal: config.guest_to_host_normal,
-      guest_to_host_bad: config.guest_to_host_bad,
-      host_to_guest_best: config.host_to_guest_best,
-      host_to_guest_normal: config.host_to_guest_normal,
-      host_to_guest_bad: config.host_to_guest_bad,
-      no_payment_penalty: config.no_payment_penalty,
-      no_show_penalty: config.no_show_penalty,
-      host_cancel_penalty: config.host_cancel_penalty,
-      host_abandon_penalty: config.host_abandon_penalty,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", config.id)
-    .select()
-    .single();
+  key: string,
+  value: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_config")
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq("key", key);
 
   if (error) throw error;
-
-  return data as BattiketConfig;
 }

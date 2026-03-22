@@ -40,7 +40,7 @@ export function StatsGrid() {
       />
       <StatsCard
         title="진행 중 매칭"
-        value={formatNumber(stats.activeMatchings)}
+        value={formatNumber(stats.activeMatches)}
         icon={Swords}
       />
       <StatsCard
