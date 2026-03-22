@@ -1,12 +1,16 @@
+// v3.0 스키마 기준: public.push_notifications (관리자 전용)
+export type PushStatus = 'PENDING' | 'SENT' | 'FAILED';
+export type PushTarget = 'all' | 'hosts' | 'custom';
+
 export interface PushNotification {
-  id: string;
+  id: number;
   title: string;
   body: string;
-  target: "all" | "hosts" | "custom";
+  target: PushTarget;
   target_ids: string[] | null;
   scheduled_at: string | null;
   sent_at: string | null;
-  sent_by: string;
-  status: "대기" | "발송됨" | "실패";
+  sent_by: string | null;
+  status: PushStatus;
   created_at: string;
 }

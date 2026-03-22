@@ -1,17 +1,18 @@
+// v3.0 스키마 기준: public.reports
+export type ReportTargetType = 'POST' | 'COMMENT' | 'MATCH' | 'HOST_NOSHOW';
+export type ReportStatus = 'PENDING' | 'RESOLVED' | 'REJECTED';
+
 export interface Report {
-  id: string;
+  id: number;
   reporter_id: string;
-  target_type: string; // '게시글' | '댓글' | '사용자'
-  target_id: string;
+  target_type: ReportTargetType;
+  target_id: number;
   reason: string;
-  detail: string | null;
-  status: string;
-  admin_note: string | null;
+  status: ReportStatus;
   created_at: string;
-  processed_at: string | null;
-  processed_by: string | null;
-  // joined fields
+  // joined
+  reporter?: { nickname: string; real_name: string | null } | null;
+  // computed
   reporter_nickname?: string;
-  // 대상 정보 (target_type에 따라 다름)
   target_label?: string;
 }
