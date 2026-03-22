@@ -40,6 +40,8 @@ export async function sendPushNotification(
   supabase: SupabaseClient,
   payload: SendPushPayload
 ): Promise<PushNotification> {
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from("push_notifications")
     .insert({
@@ -48,8 +50,9 @@ export async function sendPushNotification(
       target: payload.target,
       target_ids: payload.targetIds ?? null,
       scheduled_at: payload.scheduledAt ?? null,
-      status: payload.scheduledAt ? "대기" : "발송됨",
+      status: payload.scheduledAt ? "PENDING" : "SENT",
       sent_at: payload.scheduledAt ? null : new Date().toISOString(),
+      sent_by: user?.id ?? null,
     })
     .select()
     .single();
