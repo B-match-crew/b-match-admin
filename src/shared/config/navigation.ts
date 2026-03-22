@@ -4,9 +4,11 @@ import {
   Swords,
   Flag,
   Bell,
-  BarChart3,
   Settings,
-  Megaphone,
+  Ticket,
+  Wallet,
+  HandCoins,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,41 +33,30 @@ export const navigation: NavGroup[] = [
   {
     label: "관리",
     items: [
-      { title: "유저 관리", href: "/users", icon: Users },
-      { title: "매칭 관리", href: "/matchings", icon: Swords },
-      { title: "신고 관리", href: "/reports", icon: Flag },
+      { title: "사용자 관리", href: "/users", icon: Users },
+      { title: "매칭 관리", href: "/matches", icon: Swords },
+      { title: "CS 분쟁 관리", href: "/disputes", icon: Flag },
     ],
   },
   {
     label: "운영",
     items: [
-      { title: "알림 발송", href: "/notifications", icon: Bell },
-      {
-        title: "분석",
-        href: "/analytics",
-        icon: BarChart3,
-        children: [
-          { title: "GA4 이벤트", href: "/analytics", icon: BarChart3 },
-          { title: "퍼널 분석", href: "/analytics/funnel", icon: BarChart3 },
-        ],
-      },
-      { title: "배티켓 설정", href: "/settings", icon: Settings },
+      { title: "푸시 관리", href: "/push", icon: Bell },
+      { title: "배티켓 관리", href: "/batticket", icon: Ticket },
     ],
   },
   {
-    label: "광고",
+    label: "재무",
     items: [
-      {
-        title: "광고 관리",
-        href: "/ads",
-        icon: Megaphone,
-        children: [
-          { title: "배너 광고", href: "/ads", icon: Megaphone },
-          { title: "소재 승인", href: "/ads/review", icon: Megaphone },
-          { title: "지도 핀 광고", href: "/ads/pins", icon: Megaphone },
-          { title: "광고 성과", href: "/ads/performance", icon: Megaphone },
-        ],
-      },
+      { title: "재무 대시보드", href: "/finance", icon: Wallet },
+      { title: "정산 관리", href: "/settlements", icon: HandCoins },
+    ],
+  },
+  {
+    label: "시스템",
+    items: [
+      { title: "감사 로그", href: "/audit", icon: ClipboardList },
+      { title: "설정", href: "/settings", icon: Settings },
     ],
   },
 ];
