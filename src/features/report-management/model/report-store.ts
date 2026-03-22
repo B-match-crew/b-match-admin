@@ -1,17 +1,17 @@
 import { create } from "zustand";
-import type { Report } from "@/src/entities/report/types";
+import type { Report, ReportStatus } from "@/src/entities/report/types";
 
 interface ReportStore {
   reports: Report[];
   isLoading: boolean;
   totalCount: number;
   page: number;
-  statusFilter: "all" | "처리 대기" | "경고" | "정지" | "무혐의";
+  statusFilter: "all" | ReportStatus;
   selectedReport: Report | null;
 
   setReports: (reports: Report[], totalCount: number) => void;
   setLoading: (isLoading: boolean) => void;
-  setStatusFilter: (status: "all" | "처리 대기" | "경고" | "정지" | "무혐의") => void;
+  setStatusFilter: (status: "all" | ReportStatus) => void;
   setPage: (page: number) => void;
   setSelectedReport: (report: Report | null) => void;
   resetFilters: () => void;

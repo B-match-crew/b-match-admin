@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Report } from "@/src/entities/report/types";
+import type { Report, ReportStatus } from "@/src/entities/report/types";
 
 interface FetchReportsParams {
-  status?: "all" | "처리 대기" | "경고" | "정지" | "무혐의";
+  status?: "all" | ReportStatus;
   page?: number;
   limit?: number;
 }
@@ -19,19 +19,14 @@ export async function fetchReports(
   let query = supabase
     .from("reports")
     .select(
-      `
-      *,
-      reporter:users!reports_reporter_id_fkey(nickname)
-    `,
+      "*, reporter:users!reports_reporter_id_fkey(nickname, real_name)",
       { count: "exact" }
     );
 
-  // 상태 필터
   if (status !== "all") {
     query = query.eq("status", status);
   }
 
-  // 페이지네이션
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -45,12 +40,14 @@ export async function fetchReports(
 
   const reports: Report[] = (data ?? []).map((item) => {
     const row = item as Record<string, unknown>;
+    const reporter = row.reporter as { nickname: string; real_name: string | null } | null;
     return {
       ...(row as unknown as Report),
-      reporter_nickname: (row.reporter as { nickname: string } | null)?.nickname,
+      reporter,
+      reporter_nickname: reporter?.nickname,
       target_label: buildTargetLabel(
         row.target_type as string,
-        row.target_id as string
+        row.target_id as number
       ),
     };
   });
@@ -63,21 +60,18 @@ export async function fetchReports(
 
 export interface ReportDetail {
   report: Report;
-  reporterInfo: Record<string, unknown> | null;
+  reporterInfo: { nickname: string; real_name: string | null } | null;
   targetContent: string | null;
 }
 
 export async function fetchReportById(
   supabase: SupabaseClient,
-  reportId: string
+  reportId: number
 ): Promise<ReportDetail> {
   const { data, error } = await supabase
     .from("reports")
     .select(
-      `
-      *,
-      reporter:users!reports_reporter_id_fkey(id, nickname, real_name, profile_image_url)
-    `
+      "*, reporter:users!reports_reporter_id_fkey(id, nickname, real_name)"
     )
     .eq("id", reportId)
     .single();
@@ -88,21 +82,20 @@ export async function fetchReportById(
 
   const row = data as Record<string, unknown>;
   const targetType = row.target_type as string;
-  const targetId = row.target_id as string;
+  const targetId = row.target_id as number;
 
-  // 신고 대상 콘텐츠 조회
   let targetContent: string | null = null;
 
-  if (targetType === "게시글") {
+  if (targetType === "POST") {
     const { data: post } = await supabase
-      .from("community_posts")
+      .from("posts")
       .select("title, content")
       .eq("id", targetId)
       .single();
     if (post) {
       targetContent = `${post.title}\n${post.content}`;
     }
-  } else if (targetType === "댓글") {
+  } else if (targetType === "COMMENT") {
     const { data: comment } = await supabase
       .from("comments")
       .select("content")
@@ -111,72 +104,77 @@ export async function fetchReportById(
     if (comment) {
       targetContent = comment.content;
     }
-  } else if (targetType === "사용자") {
-    const { data: user } = await supabase
-      .from("users")
-      .select("nickname, battiket_score, is_active")
+  } else if (targetType === "MATCH") {
+    const { data: match } = await supabase
+      .from("matches")
+      .select("title, status")
       .eq("id", targetId)
       .single();
-    if (user) {
-      targetContent = `${user.nickname} (배티켓: ${user.battiket_score}, 상태: ${user.is_active ? "정상" : "정지"})`;
+    if (match) {
+      targetContent = `${match.title} (상태: ${match.status})`;
+    }
+  } else if (targetType === "HOST_NOSHOW") {
+    const { data: match } = await supabase
+      .from("matches")
+      .select("title")
+      .eq("id", targetId)
+      .single();
+    if (match) {
+      targetContent = `호스트 노쇼: ${match.title}`;
     }
   }
 
+  const reporter = row.reporter as { nickname: string; real_name: string | null } | null;
+
   const report: Report = {
     ...(row as unknown as Report),
-    reporter_nickname: (row.reporter as { nickname: string } | null)?.nickname,
+    reporter,
+    reporter_nickname: reporter?.nickname,
     target_label: buildTargetLabel(targetType, targetId),
   };
 
   return {
     report,
-    reporterInfo: row.reporter as Record<string, unknown> | null,
+    reporterInfo: reporter,
     targetContent,
   };
 }
 
 export async function processReport(
   supabase: SupabaseClient,
-  reportId: string,
+  reportId: number,
   result: "경고" | "정지" | "무혐의",
   adminNote: string,
   adminId: string
 ): Promise<void> {
+  // v3.0: reports 테이블에는 status만 PENDING/RESOLVED/REJECTED
+  const newStatus: ReportStatus = result === "무혐의" ? "REJECTED" : "RESOLVED";
+
   const { error } = await supabase
     .from("reports")
-    .update({
-      status: result,
-      admin_note: adminNote,
-      processed_at: new Date().toISOString(),
-      processed_by: adminId,
-    })
+    .update({ status: newStatus })
     .eq("id", reportId);
 
   if (error) {
     throw new Error(`신고 처리 실패: ${error.message}`);
   }
 
-  // 정지 처리 + 사용자 신고인 경우 유저 비활성화
-  if (result === "정지") {
-    const { data: report } = await supabase
-      .from("reports")
-      .select("target_type, target_id")
-      .eq("id", reportId)
-      .single();
-
-    if (report && report.target_type === "사용자") {
-      await supabase
-        .from("users")
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", report.target_id);
-    }
-  }
+  // 감사 로그 기록
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: result === "정지" ? "SUSPEND_USER" : "ADJUST_BADTICKET",
+    target_type: "USER",
+    target_id: reportId,
+    reason: `${result}: ${adminNote}`,
+  });
 }
 
-function buildTargetLabel(targetType: string, targetId: string): string {
-  const shortId = targetId?.slice(0, 8) ?? "";
-  return `${targetType} (${shortId}...)`;
+function buildTargetLabel(targetType: string, targetId: number): string {
+  const typeLabels: Record<string, string> = {
+    POST: "게시글",
+    COMMENT: "댓글",
+    MATCH: "매칭",
+    HOST_NOSHOW: "호스트 노쇼",
+  };
+  return `${typeLabels[targetType] ?? targetType} #${targetId}`;
 }

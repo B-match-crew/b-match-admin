@@ -27,7 +27,7 @@ import {
 interface ReportDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reportId: string | null;
+  reportId: number | null;
   onAction: (report: Report) => void;
 }
 
@@ -39,7 +39,7 @@ export function ReportDetailPanel({
 }: ReportDetailPanelProps) {
   const supabase = useSupabase();
   const [report, setReport] = useState<Report | null>(null);
-  const [reporterInfo, setReporterInfo] = useState<Record<string, unknown> | null>(null);
+  const [reporterInfo, setReporterInfo] = useState<{ nickname: string; real_name: string | null } | null>(null);
   const [targetContent, setTargetContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,6 +63,13 @@ export function ReportDetailPanel({
     loadReport();
   }, [supabase, reportId, open]);
 
+  const targetTypeLabel: Record<string, string> = {
+    POST: "게시글",
+    COMMENT: "댓글",
+    MATCH: "매칭",
+    HOST_NOSHOW: "호스트 노쇼",
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
@@ -79,7 +86,6 @@ export function ReportDetailPanel({
           </p>
         ) : (
           <div className="space-y-5 mt-4 px-4">
-            {/* 상태 */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">현재 상태:</span>
               <StatusBadge status={report.status} />
@@ -87,22 +93,19 @@ export function ReportDetailPanel({
 
             <Separator />
 
-            {/* 신고자 정보 */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Flag className="h-4 w-4" />
                 신고자
               </h4>
               <UserInfoCard
-                nickname={(reporterInfo?.nickname as string) ?? "-"}
-                realName={(reporterInfo?.real_name as string) ?? "-"}
-                profileImage={reporterInfo?.profile_image_url as string | null}
+                nickname={reporterInfo?.nickname ?? "-"}
+                realName={reporterInfo?.real_name ?? "-"}
               />
             </div>
 
             <Separator />
 
-            {/* 신고 대상 */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Target className="h-4 w-4" />
@@ -110,9 +113,9 @@ export function ReportDetailPanel({
               </h4>
               <div className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={report.target_type} />
+                  <StatusBadge status={targetTypeLabel[report.target_type] ?? report.target_type} />
                   <span className="text-xs text-muted-foreground">
-                    {report.target_id}
+                    #{report.target_id}
                   </span>
                 </div>
                 {targetContent && (
@@ -125,7 +128,6 @@ export function ReportDetailPanel({
 
             <Separator />
 
-            {/* 신고 사유 */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -136,29 +138,8 @@ export function ReportDetailPanel({
               </p>
             </div>
 
-            {/* 상세 내용 */}
-            {report.detail && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">상세 내용</h4>
-                <p className="text-sm whitespace-pre-wrap rounded-lg bg-muted p-3">
-                  {report.detail}
-                </p>
-              </div>
-            )}
-
-            {/* 처리 결과 (이미 처리된 경우) */}
-            {report.admin_note && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">관리자 메모</h4>
-                <p className="text-sm whitespace-pre-wrap rounded-lg bg-muted p-3">
-                  {report.admin_note}
-                </p>
-              </div>
-            )}
-
             <Separator />
 
-            {/* 날짜 정보 */}
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-muted-foreground">
@@ -167,19 +148,9 @@ export function ReportDetailPanel({
                 </span>
                 <span>{formatDateTime(report.created_at)}</span>
               </div>
-              {report.processed_at && (
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    처리일
-                  </span>
-                  <span>{formatDateTime(report.processed_at)}</span>
-                </div>
-              )}
             </div>
 
-            {/* 처리 버튼 */}
-            {report.status === "처리 대기" && (
+            {report.status === "PENDING" && (
               <>
                 <Separator />
                 <Button className="w-full" onClick={() => onAction(report)}>
@@ -197,28 +168,18 @@ export function ReportDetailPanel({
 function UserInfoCard({
   nickname,
   realName,
-  profileImage,
 }: {
   nickname: string;
-  realName: string;
-  profileImage: string | null;
+  realName: string | null;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-        {profileImage ? (
-          <img
-            src={profileImage}
-            alt={nickname}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          <UserIcon className="h-5 w-5 text-muted-foreground" />
-        )}
+        <UserIcon className="h-5 w-5 text-muted-foreground" />
       </div>
       <div>
         <p className="text-sm font-medium">{nickname}</p>
-        <p className="text-xs text-muted-foreground">{realName}</p>
+        <p className="text-xs text-muted-foreground">{realName ?? "-"}</p>
       </div>
     </div>
   );

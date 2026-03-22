@@ -4,7 +4,7 @@ import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useReportStore } from "../model/report-store";
 import { fetchReports } from "../api/report-api";
-import type { Report } from "@/src/entities/report/types";
+import type { Report, ReportStatus } from "@/src/entities/report/types";
 import {
   Table,
   TableBody,
@@ -76,14 +76,11 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
 
   return (
     <div className="space-y-4">
-      {/* 필터 */}
       <div className="flex items-center justify-between">
         <Select
           value={statusFilter}
           onValueChange={(value) =>
-            setStatusFilter(
-              value as "all" | "처리 대기" | "경고" | "정지" | "무혐의"
-            )
+            setStatusFilter(value as "all" | ReportStatus)
           }
         >
           <SelectTrigger>
@@ -91,15 +88,13 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="처리 대기">처리 대기</SelectItem>
-            <SelectItem value="경고">경고</SelectItem>
-            <SelectItem value="정지">정지</SelectItem>
-            <SelectItem value="무혐의">무혐의</SelectItem>
+            <SelectItem value="PENDING">대기</SelectItem>
+            <SelectItem value="RESOLVED">처리완료</SelectItem>
+            <SelectItem value="REJECTED">반려</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* 테이블 */}
       {isLoading ? (
         <LoadingSpinner />
       ) : reports.length === 0 ? (
@@ -141,7 +136,6 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
             </Table>
           </div>
 
-          {/* 페이지네이션 */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               총 {totalCount}건 중 {(page - 1) * ITEMS_PER_PAGE + 1}-

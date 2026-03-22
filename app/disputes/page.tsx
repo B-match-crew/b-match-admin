@@ -11,13 +11,13 @@ import { useReportStore } from "@/src/features/report-management/model/report-st
 import type { Report } from "@/src/entities/report/types";
 import toast from "react-hot-toast";
 
-export default function ReportsPage() {
+export default function DisputesPage() {
   const supabase = useSupabase();
   const { setPage, page } = useReportStore();
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
   const [actionReport, setActionReport] = useState<Report | null>(null);
 
   const handleSelectReport = useCallback((report: Report) => {
@@ -54,18 +54,16 @@ export default function ReportsPage() {
         adminUser.id
       );
       toast.success("신고가 처리되었습니다");
-      // 목록 새로고침
       setPage(page);
-    } catch (error) {
+    } catch {
       toast.error("신고 처리에 실패했습니다");
-      throw error;
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="신고 관리"
+        title="CS 분쟁 관리"
         description="접수된 신고를 확인하고 처리할 수 있습니다"
       />
 
