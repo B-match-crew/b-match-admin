@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUserStore } from "../model/user-store";
+import type { UserStatus } from "@/src/entities/user/types";
 
 export function UserFilter() {
   const { filters, setFilter } = useUserStore();
@@ -17,7 +18,7 @@ export function UserFilter() {
       <Select
         value={filters.status}
         onValueChange={(value) =>
-          setFilter("status", value as "all" | "active" | "suspended" | "withdrawn")
+          setFilter("status", value as "all" | UserStatus)
         }
       >
         <SelectTrigger>
@@ -25,9 +26,10 @@ export function UserFilter() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">전체</SelectItem>
-          <SelectItem value="active">정상</SelectItem>
-          <SelectItem value="suspended">정지</SelectItem>
-          <SelectItem value="withdrawn">탈퇴</SelectItem>
+          <SelectItem value="ACTIVE">정상</SelectItem>
+          <SelectItem value="SUSPENDED">정지</SelectItem>
+          <SelectItem value="BANNED">차단</SelectItem>
+          <SelectItem value="DELETED">탈퇴</SelectItem>
         </SelectContent>
       </Select>
 

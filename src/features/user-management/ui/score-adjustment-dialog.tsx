@@ -55,7 +55,7 @@ export function ScoreAdjustmentDialog({
 
   const parsedChange = parseInt(scoreChange, 10);
   const newScore = user
-    ? user.battiket_score + (isNaN(parsedChange) ? 0 : parsedChange)
+    ? user.badticket_score + (isNaN(parsedChange) ? 0 : parsedChange)
     : 0;
 
   const isValid =
@@ -76,7 +76,7 @@ export function ScoreAdjustmentDialog({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">현재 점수</span>
               <span className="font-semibold text-lg">
-                {user?.battiket_score ?? 0}
+                {user?.badticket_score ?? 0}
               </span>
             </div>
           </div>

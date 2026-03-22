@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { User } from "@/src/entities/user/types";
+import type { User, UserStatus } from "@/src/entities/user/types";
 
 interface FetchUsersParams {
   search?: string;
-  status?: "all" | "active" | "suspended" | "withdrawn";
+  status?: "all" | UserStatus;
   role?: "all" | "user" | "host";
   page?: number;
   limit?: number;
@@ -20,30 +20,24 @@ export async function fetchUsers(
 ): Promise<FetchUsersResult> {
   let query = supabase
     .from("users")
-    .select("*", { count: "exact" });
+    .select("*, host_profiles(*)", { count: "exact" });
 
-  // 검색 필터
   if (search && search.trim()) {
     query = query.or(
-      `nickname.ilike.%${search}%,real_name.ilike.%${search}%,phone_number.ilike.%${search}%`
+      `nickname.ilike.%${search}%,real_name.ilike.%${search}%,phone.ilike.%${search}%`
     );
   }
 
-  // 상태 필터
-  if (status === "active") {
-    query = query.eq("is_active", true);
-  } else if (status === "suspended") {
-    query = query.eq("is_active", false);
+  if (status !== "all") {
+    query = query.eq("status", status);
   }
 
-  // 권한 필터
   if (role === "host") {
     query = query.eq("is_host", true);
   } else if (role === "user") {
     query = query.eq("is_host", false);
   }
 
-  // 페이지네이션
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -64,11 +58,11 @@ export async function fetchUsers(
 export async function updateUserStatus(
   supabase: SupabaseClient,
   userId: string,
-  isActive: boolean
+  newStatus: UserStatus
 ): Promise<void> {
   const { error } = await supabase
     .from("users")
-    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq("id", userId);
 
   if (error) {
@@ -79,48 +73,38 @@ export async function updateUserStatus(
 export async function adjustBattiketScore(
   supabase: SupabaseClient,
   userId: string,
-  scoreChange: number,
+  delta: number,
   reason: string,
   adminId: string
 ): Promise<void> {
-  // 현재 점수 조회
-  const { data: user, error: fetchError } = await supabase
-    .from("users")
-    .select("battiket_score")
-    .eq("id", userId)
-    .single();
-
-  if (fetchError) {
-    throw new Error(`유저 조회 실패: ${fetchError.message}`);
-  }
-
-  const newScore = (user.battiket_score ?? 0) + scoreChange;
-
-  // 점수 업데이트
-  const { error: updateError } = await supabase
-    .from("users")
-    .update({
-      battiket_score: newScore,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId);
-
-  if (updateError) {
-    throw new Error(`점수 조정 실패: ${updateError.message}`);
-  }
-
-  // 조정 로그 기록
-  const { error: logError } = await supabase
-    .from("admin_adjustments")
+  // v3.0: badticket_events에 INSERT → 트리거가 자동으로 users.badticket_score 갱신
+  const { error } = await supabase
+    .from("badticket_events")
     .insert({
       user_id: userId,
+      delta,
+      reason: "ADMIN_ADJUST",
+      admin_note: reason,
+      is_applied: true,
+    });
+
+  if (error) {
+    throw new Error(`배티켓 조정 실패: ${error.message}`);
+  }
+
+  // 감사 로그 기록
+  const { error: auditError } = await supabase
+    .from("admin_audit_logs")
+    .insert({
       admin_id: adminId,
-      score_change: scoreChange,
+      action_type: "ADJUST_BADTICKET",
+      target_type: "USER",
+      target_id: userId,
       reason,
     });
 
-  if (logError) {
-    throw new Error(`조정 로그 기록 실패: ${logError.message}`);
+  if (auditError) {
+    console.error("감사 로그 기록 실패:", auditError.message);
   }
 }
 
@@ -130,7 +114,7 @@ export async function fetchUserById(
 ): Promise<User> {
   const { data, error } = await supabase
     .from("users")
-    .select("*")
+    .select("*, host_profiles(*)")
     .eq("id", userId)
     .single();
 

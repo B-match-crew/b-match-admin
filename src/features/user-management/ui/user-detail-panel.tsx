@@ -63,12 +63,7 @@ export function UserDetailPanel({
     );
   }
 
-  const getUserStatus = () => {
-    if (!user.is_active) return "정지";
-    return "정상";
-  };
-
-  const scorePercent = Math.min(Math.max(user.battiket_score, 0), 100);
+  const scorePercent = Math.min(Math.max(user.badticket_score, 0), 100);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-emerald-500";
@@ -79,37 +74,28 @@ export function UserDetailPanel({
 
   return (
     <div className="space-y-6">
-      {/* 프로필 카드 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>프로필 정보</span>
-            <StatusBadge status={getUserStatus()} />
+            <StatusBadge status={user.status} />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              {user.profile_image_url ? (
-                <img
-                  src={user.profile_image_url}
-                  alt={user.nickname}
-                  className="h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                <UserIcon className="h-8 w-8 text-muted-foreground" />
-              )}
+              <UserIcon className="h-8 w-8 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">{user.nickname}</h3>
-              <p className="text-sm text-muted-foreground">{user.real_name}</p>
+              <h3 className="text-lg font-semibold">{user.nickname ?? "-"}</h3>
+              <p className="text-sm text-muted-foreground">{user.real_name ?? "-"}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <DetailItem label="성별" value={user.gender} />
-            <DetailItem label="연령" value={user.age} />
-            <DetailItem label="급수" value={user.skill_level} />
+            <DetailItem label="성별" value={user.gender ?? "-"} />
+            <DetailItem label="출생년도" value={user.birth_year?.toString() ?? "-"} />
+            <DetailItem label="급수" value={user.level} />
             <DetailItem
               label="권한"
               value={user.is_host ? "호스트" : "일반"}
@@ -118,7 +104,6 @@ export function UserDetailPanel({
         </CardContent>
       </Card>
 
-      {/* 배티켓 점수 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -128,19 +113,18 @@ export function UserDetailPanel({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-end justify-between">
-            <span className="text-3xl font-bold">{user.battiket_score}</span>
+            <span className="text-3xl font-bold">{user.badticket_score}</span>
             <span className="text-sm text-muted-foreground">/ 100</span>
           </div>
           <div className="h-3 w-full rounded-full bg-muted">
             <div
-              className={cn("h-3 rounded-full transition-all", getScoreColor(user.battiket_score))}
+              className={cn("h-3 rounded-full transition-all", getScoreColor(user.badticket_score))}
               style={{ width: `${scorePercent}%` }}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* 추가 정보 */}
       <Card>
         <CardHeader>
           <CardTitle>상세 정보</CardTitle>
@@ -148,18 +132,13 @@ export function UserDetailPanel({
         <CardContent className="space-y-3 text-sm">
           <DetailItem
             label="전화번호"
-            value={user.phone_number ?? "-"}
+            value={user.phone ?? "-"}
             icon={<Phone className="h-4 w-4" />}
           />
           <DetailItem
             label="가입 방법"
-            value={user.provider ?? "-"}
+            value={user.social_provider}
             icon={<Shield className="h-4 w-4" />}
-          />
-          <DetailItem
-            label="참여 횟수"
-            value={`${user.participation_count}회`}
-            icon={<Award className="h-4 w-4" />}
           />
           <DetailItem
             label="가입일"
@@ -174,7 +153,22 @@ export function UserDetailPanel({
         </CardContent>
       </Card>
 
-      {/* 관리 버튼 */}
+      {/* 호스트 프로필 */}
+      {user.host_profiles && (
+        <Card>
+          <CardHeader>
+            <CardTitle>호스트 정보</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <DetailItem label="클럽명" value={user.host_profiles.club_name} />
+            <DetailItem
+              label="성별비율"
+              value={`남 ${user.host_profiles.gender_ratio_male}% / 여 ${user.host_profiles.gender_ratio_female}%`}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex gap-2">
         <Button
           variant="outline"
@@ -188,7 +182,7 @@ export function UserDetailPanel({
           variant="destructive"
           className="flex-1"
           onClick={() => onSuspend(user)}
-          disabled={!user.is_active}
+          disabled={user.status !== "ACTIVE"}
         >
           <Ban className="h-4 w-4" />
           강제 정지

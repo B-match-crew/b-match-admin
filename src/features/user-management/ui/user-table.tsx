@@ -61,11 +61,6 @@ export function UserTable() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const getUserStatus = (user: { is_active: boolean }) => {
-    if (!user.is_active) return "정지";
-    return "정상";
-  };
-
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -83,7 +78,7 @@ export function UserTable() {
               <TableHead>닉네임</TableHead>
               <TableHead>실명</TableHead>
               <TableHead>성별</TableHead>
-              <TableHead>연령</TableHead>
+              <TableHead>출생년도</TableHead>
               <TableHead>급수</TableHead>
               <TableHead>배티켓</TableHead>
               <TableHead>상태</TableHead>
@@ -97,14 +92,14 @@ export function UserTable() {
                 className="cursor-pointer"
                 onClick={() => router.push(`/users/${user.id}`)}
               >
-                <TableCell className="font-medium">{user.nickname}</TableCell>
-                <TableCell>{user.real_name}</TableCell>
-                <TableCell>{user.gender}</TableCell>
-                <TableCell>{user.age}</TableCell>
-                <TableCell>{user.skill_level}</TableCell>
-                <TableCell>{user.battiket_score}</TableCell>
+                <TableCell className="font-medium">{user.nickname ?? "-"}</TableCell>
+                <TableCell>{user.real_name ?? "-"}</TableCell>
+                <TableCell>{user.gender ?? "-"}</TableCell>
+                <TableCell>{user.birth_year ?? "-"}</TableCell>
+                <TableCell>{user.level}</TableCell>
+                <TableCell>{user.badticket_score}</TableCell>
                 <TableCell>
-                  <StatusBadge status={getUserStatus(user)} />
+                  <StatusBadge status={user.status} />
                 </TableCell>
                 <TableCell>
                   {user.created_at ? formatDate(user.created_at) : "-"}

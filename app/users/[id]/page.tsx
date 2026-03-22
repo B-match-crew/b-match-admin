@@ -46,20 +46,18 @@ export default function UserDetailPage() {
       await adjustBattiketScore(supabase, userId, scoreChange, reason, adminUser.id);
       toast.success("배티켓 점수가 조정되었습니다");
       setRefreshKey((prev) => prev + 1);
-    } catch (error) {
+    } catch {
       toast.error("점수 조정에 실패했습니다");
-      throw error;
     }
   };
 
   const handleSuspendConfirm = async (_reason: string) => {
     try {
-      await updateUserStatus(supabase, userId, false);
+      await updateUserStatus(supabase, userId, "SUSPENDED");
       toast.success("유저가 정지 처리되었습니다");
       setRefreshKey((prev) => prev + 1);
-    } catch (error) {
+    } catch {
       toast.error("유저 정지에 실패했습니다");
-      throw error;
     }
   };
 

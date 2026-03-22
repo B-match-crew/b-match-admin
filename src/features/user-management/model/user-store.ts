@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import type { User } from "@/src/entities/user/types";
+import type { User, UserStatus } from "@/src/entities/user/types";
 
 interface UserFilters {
-  status: "all" | "active" | "suspended" | "withdrawn";
+  status: "all" | UserStatus;
   role: "all" | "user" | "host";
 }
 
