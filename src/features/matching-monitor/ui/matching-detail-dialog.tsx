@@ -7,16 +7,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
-import { formatDate, formatTime } from "@/src/shared/lib/format-date";
-import { formatCurrency } from "@/src/shared/lib/format-number";
-import type { Matching } from "@/src/entities/matching/types";
+import { formatDate } from "@/src/shared/lib/format-date";
+import type { Match } from "@/src/entities/matching/types";
 import { Separator } from "@/components/ui/separator";
 import {
   MapPin,
   Calendar,
-  Clock,
   Users,
-  CreditCard,
   Gauge,
   UserCheck,
 } from "lucide-react";
@@ -24,7 +21,7 @@ import {
 interface MatchingDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  matching: Matching | null;
+  matching: Match | null;
 }
 
 export function MatchingDetailDialog({
@@ -40,90 +37,81 @@ export function MatchingDetailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             매칭 상세 정보
-            <StatusBadge status={matching.recruitment_status} />
+            <StatusBadge status={matching.status} />
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 기본 정보 */}
           <div>
             <h3 className="text-base font-semibold">{matching.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              호스트: {matching.host_name}
+              호스트: {matching.host?.nickname ?? matching.host_id.slice(0, 8)}
             </p>
           </div>
 
           <Separator />
 
-          {/* 일정/장소 */}
           <div className="space-y-3 text-sm">
             <InfoRow
               icon={<MapPin className="h-4 w-4" />}
               label="장소"
-              value={matching.location}
+              value={matching.location_name}
+            />
+            {matching.location_detail && (
+              <InfoRow
+                icon={<MapPin className="h-4 w-4" />}
+                label="상세 장소"
+                value={matching.location_detail}
+              />
+            )}
+            <InfoRow
+              icon={<Calendar className="h-4 w-4" />}
+              label="시작"
+              value={formatDate(matching.start_time)}
             />
             <InfoRow
               icon={<Calendar className="h-4 w-4" />}
-              label="날짜"
-              value={formatDate(matching.date)}
-            />
-            <InfoRow
-              icon={<Clock className="h-4 w-4" />}
-              label="시간"
-              value={`${formatTime(matching.start_time)} - ${formatTime(matching.end_time)}`}
+              label="종료"
+              value={formatDate(matching.end_time)}
             />
           </div>
 
           <Separator />
 
-          {/* 인원/비용 */}
           <div className="space-y-3 text-sm">
             <InfoRow
               icon={<Users className="h-4 w-4" />}
-              label="인원"
-              value={`${matching.current_members} / ${matching.max_members}명`}
+              label="정원"
+              value={matching.capacity ? `${matching.capacity}명` : "제한 없음"}
             />
-            <InfoRow
-              icon={<CreditCard className="h-4 w-4" />}
-              label="참가비"
-              value={`${formatCurrency(matching.fee)} (${matching.fee_type})`}
-            />
-            <InfoRow
-              icon={<CreditCard className="h-4 w-4" />}
-              label="코트비"
-              value={`${formatCurrency(matching.court_fee)} (${matching.court_fee_type})`}
-            />
-            {matching.shuttlecock_brand && (
-              <InfoRow
-                icon={<CreditCard className="h-4 w-4" />}
-                label="셔틀콕"
-                value={`${matching.shuttlecock_brand} (${formatCurrency(matching.shuttlecock_price)})`}
-              />
-            )}
-          </div>
-
-          <Separator />
-
-          {/* 조건 */}
-          <div className="space-y-3 text-sm">
             <InfoRow
               icon={<Gauge className="h-4 w-4" />}
-              label="급수"
-              value={matching.skill_levels.join(", ")}
+              label="허용 급수"
+              value={matching.allowed_levels.join(", ")}
             />
             <InfoRow
               icon={<UserCheck className="h-4 w-4" />}
-              label="성별"
-              value={matching.gender}
+              label="성별 조건"
+              value={matching.gender_condition}
             />
             <InfoRow
               icon={<UserCheck className="h-4 w-4" />}
               label="초보 환영"
-              value={matching.is_beginner_welcome ? "예" : "아니오"}
+              value={matching.beginner_friendly ? "예" : "아니오"}
             />
           </div>
 
-          {/* 설명 */}
+          {matching.designated_cock_brand && (
+            <>
+              <Separator />
+              <InfoRow
+                icon={<Gauge className="h-4 w-4" />}
+                label="지정 셔틀콕"
+                value={matching.designated_cock_brand}
+              />
+            </>
+          )}
+
           {matching.description && (
             <>
               <Separator />
@@ -136,14 +124,13 @@ export function MatchingDetailDialog({
             </>
           )}
 
-          {/* 공지 */}
-          {matching.announcement && (
+          {matching.notice && (
             <>
               <Separator />
               <div>
                 <p className="text-sm font-medium mb-1">공지사항</p>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {matching.announcement}
+                  {matching.notice}
                 </p>
               </div>
             </>

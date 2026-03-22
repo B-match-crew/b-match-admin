@@ -1,31 +1,31 @@
 import { create } from "zustand";
-import type { Matching } from "@/src/entities/matching/types";
+import type { Match, MatchStatus } from "@/src/entities/matching/types";
 
 interface MatchingStore {
-  matchings: Matching[];
+  matches: Match[];
   isLoading: boolean;
   totalCount: number;
   page: number;
   searchQuery: string;
-  statusFilter: "all" | "모집중" | "마감" | "종료" | "취소";
+  statusFilter: "all" | MatchStatus;
 
-  setMatchings: (matchings: Matching[], totalCount: number) => void;
+  setMatches: (matches: Match[], totalCount: number) => void;
   setLoading: (isLoading: boolean) => void;
   setSearch: (query: string) => void;
-  setStatusFilter: (status: "all" | "모집중" | "마감" | "종료" | "취소") => void;
+  setStatusFilter: (status: "all" | MatchStatus) => void;
   setPage: (page: number) => void;
   resetFilters: () => void;
 }
 
 export const useMatchingStore = create<MatchingStore>((set) => ({
-  matchings: [],
+  matches: [],
   isLoading: false,
   totalCount: 0,
   page: 1,
   searchQuery: "",
   statusFilter: "all",
 
-  setMatchings: (matchings, totalCount) => set({ matchings, totalCount }),
+  setMatches: (matches, totalCount) => set({ matches, totalCount }),
   setLoading: (isLoading) => set({ isLoading }),
   setSearch: (query) => set({ searchQuery: query, page: 1 }),
   setStatusFilter: (status) => set({ statusFilter: status, page: 1 }),

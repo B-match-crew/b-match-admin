@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { Matching } from "@/src/entities/matching/types";
+import type { Match } from "@/src/entities/matching/types";
 import { AlertTriangle } from "lucide-react";
 
 interface DeleteMatchingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  matching: Matching | null;
+  matching: Match | null;
   onConfirm: (reason: string, notifyHost: boolean) => Promise<void>;
 }
 
@@ -32,14 +32,14 @@ export function DeleteMatchingDialog({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConfirm = async () => {
-    if (!reason.trim()) return;
+    if (!reason.trim() || reason.trim().length < 10) return;
 
     setIsLoading(true);
     try {
       await onConfirm(reason, notifyHost);
       handleClose();
     } catch (error) {
-      console.error("매칭 삭제 실패:", error);
+      console.error("매칭 취소 실패:", error);
     } finally {
       setIsLoading(false);
     }
@@ -57,11 +57,11 @@ export function DeleteMatchingDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            매칭 강제 삭제
+            매칭 강제 취소
           </DialogTitle>
           <DialogDescription>
             <span className="font-semibold">{matching?.title}</span> 매칭을 강제
-            삭제(취소)합니다
+            취소합니다
           </DialogDescription>
         </DialogHeader>
 
@@ -75,10 +75,10 @@ export function DeleteMatchingDialog({
 
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              삭제 사유 <span className="text-destructive">*</span>
+              취소 사유 <span className="text-destructive">* (최소 10자)</span>
             </label>
             <Textarea
-              placeholder="삭제 사유를 입력해 주세요"
+              placeholder="취소 사유를 입력해 주세요 (최소 10자)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
@@ -94,21 +94,21 @@ export function DeleteMatchingDialog({
               className="h-4 w-4 rounded border-gray-300"
             />
             <label htmlFor="notify-host" className="text-sm">
-              호스트에게 삭제 알림 발송
+              호스트에게 취소 알림 발송
             </label>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            취소
+            닫기
           </Button>
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={!reason.trim() || isLoading}
+            disabled={!reason.trim() || reason.trim().length < 10 || isLoading}
           >
-            {isLoading ? "처리 중..." : "삭제"}
+            {isLoading ? "처리 중..." : "강제 취소"}
           </Button>
         </DialogFooter>
       </DialogContent>

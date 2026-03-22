@@ -1,15 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Matching } from "@/src/entities/matching/types";
+import type { Match, MatchStatus } from "@/src/entities/matching/types";
 
-interface FetchMatchingsParams {
+interface FetchMatchesParams {
   search?: string;
-  status?: "all" | "모집중" | "마감" | "종료" | "취소";
+  status?: "all" | MatchStatus;
   page?: number;
   limit?: number;
 }
 
-interface FetchMatchingsResult {
-  matchings: Matching[];
+interface FetchMatchesResult {
+  matches: Match[];
   totalCount: number;
 }
 
@@ -20,25 +20,22 @@ export async function fetchMatchings(
     status = "all",
     page = 1,
     limit = 20,
-  }: FetchMatchingsParams
-): Promise<FetchMatchingsResult> {
+  }: FetchMatchesParams
+): Promise<FetchMatchesResult> {
   let query = supabase
-    .from("matchings")
-    .select("*", { count: "exact" });
+    .from("matches")
+    .select("*, host:users!matches_host_id_fkey(nickname, real_name)", { count: "exact" });
 
-  // 검색 필터
   if (search && search.trim()) {
     query = query.or(
-      `title.ilike.%${search}%,host_name.ilike.%${search}%,location.ilike.%${search}%`
+      `title.ilike.%${search}%,location_name.ilike.%${search}%`
     );
   }
 
-  // 상태 필터
   if (status !== "all") {
-    query = query.eq("recruitment_status", status);
+    query = query.eq("status", status);
   }
 
-  // 페이지네이션
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -51,42 +48,41 @@ export async function fetchMatchings(
   }
 
   return {
-    matchings: (data as Matching[]) ?? [],
+    matches: (data as Match[]) ?? [],
     totalCount: count ?? 0,
   };
 }
 
 export async function fetchMatchingById(
   supabase: SupabaseClient,
-  matchingId: string
-): Promise<Matching> {
+  matchId: number
+): Promise<Match> {
   const { data, error } = await supabase
-    .from("matchings")
-    .select("*")
-    .eq("id", matchingId)
+    .from("matches")
+    .select("*, host:users!matches_host_id_fkey(nickname, real_name)")
+    .eq("id", matchId)
     .single();
 
   if (error) {
     throw new Error(`매칭 조회 실패: ${error.message}`);
   }
 
-  return data as Matching;
+  return data as Match;
 }
 
 export async function deleteMatching(
   supabase: SupabaseClient,
-  matchingId: string
+  matchId: number
 ): Promise<void> {
   const { error } = await supabase
-    .from("matchings")
+    .from("matches")
     .update({
-      recruitment_status: "취소",
-      cancelled_at: new Date().toISOString(),
+      status: "CANCELED_BY_ADMIN",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", matchingId);
+    .eq("id", matchId);
 
   if (error) {
-    throw new Error(`매칭 삭제 실패: ${error.message}`);
+    throw new Error(`매칭 취소 실패: ${error.message}`);
   }
 }

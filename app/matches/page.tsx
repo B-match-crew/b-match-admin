@@ -8,26 +8,24 @@ import { MatchingDetailDialog } from "@/src/features/matching-monitor/ui/matchin
 import { DeleteMatchingDialog } from "@/src/features/matching-monitor/ui/delete-matching-dialog";
 import { deleteMatching } from "@/src/features/matching-monitor/api/matching-api";
 import { useMatchingStore } from "@/src/features/matching-monitor/model/matching-store";
-import type { Matching } from "@/src/entities/matching/types";
+import type { Match } from "@/src/entities/matching/types";
 import toast from "react-hot-toast";
 
-export default function MatchingsPage() {
+export default function MatchesPage() {
   const supabase = useSupabase();
   const { setPage, page } = useMatchingStore();
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedMatching, setSelectedMatching] = useState<Matching | null>(
-    null
-  );
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
-  const handleViewDetail = (matching: Matching) => {
-    setSelectedMatching(matching);
+  const handleViewDetail = (match: Match) => {
+    setSelectedMatch(match);
     setDetailDialogOpen(true);
   };
 
-  const handleDeleteRequest = (matching: Matching) => {
-    setSelectedMatching(matching);
+  const handleDeleteRequest = (match: Match) => {
+    setSelectedMatch(match);
     setDeleteDialogOpen(true);
   };
 
@@ -35,23 +33,21 @@ export default function MatchingsPage() {
     _reason: string,
     _notifyHost: boolean
   ) => {
-    if (!selectedMatching) return;
+    if (!selectedMatch) return;
 
     try {
-      await deleteMatching(supabase, selectedMatching.id);
-      toast.success("매칭이 삭제(취소)되었습니다");
-      // 목록 새로고침을 위해 page를 다시 설정
+      await deleteMatching(supabase, selectedMatch.id);
+      toast.success("매칭이 취소되었습니다");
       setPage(page);
-    } catch (error) {
-      toast.error("매칭 삭제에 실패했습니다");
-      throw error;
+    } catch {
+      toast.error("매칭 취소에 실패했습니다");
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="매칭 모니터링"
+        title="매칭 관리"
         description="등록된 매칭을 조회하고 관리할 수 있습니다"
       />
 
@@ -63,13 +59,13 @@ export default function MatchingsPage() {
       <MatchingDetailDialog
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
-        matching={selectedMatching}
+        matching={selectedMatch}
       />
 
       <DeleteMatchingDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        matching={selectedMatching}
+        matching={selectedMatch}
         onConfirm={handleDeleteConfirm}
       />
     </div>
