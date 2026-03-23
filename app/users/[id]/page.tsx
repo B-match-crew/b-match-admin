@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { PageHeader } from "@/src/shared/ui/page-header";
 import { UserDetailPanel } from "@/src/features/user-management/ui/user-detail-panel";
+import { UserHistoryTabs } from "@/src/features/user-management/ui/user-history-tabs";
 import { ScoreAdjustmentDialog } from "@/src/features/user-management/ui/score-adjustment-dialog";
 import { SuspensionDialog } from "@/src/features/user-management/ui/suspension-dialog";
 import { adjustBattiketScore, updateUserStatus } from "@/src/features/user-management/api/user-api";
@@ -34,9 +35,18 @@ export default function UserDetailPage() {
     setSuspensionDialogOpen(true);
   };
 
+  const handleUnsuspend = async () => {
+    try {
+      await updateUserStatus(supabase, userId, "ACTIVE");
+      toast.success("유저 정지가 해제되었습니다");
+      setRefreshKey((prev) => prev + 1);
+    } catch {
+      toast.error("정지 해제에 실패했습니다");
+    }
+  };
+
   const handleScoreConfirm = async (scoreChange: number, reason: string) => {
     try {
-      // 현재 로그인된 관리자 ID 가져오기
       const { data: { user: adminUser } } = await supabase.auth.getUser();
       if (!adminUser) {
         toast.error("관리자 인증 정보를 확인할 수 없습니다");
@@ -80,7 +90,12 @@ export default function UserDetailPage() {
           userId={userId}
           onScoreAdjust={handleScoreAdjust}
           onSuspend={handleSuspend}
+          onUnsuspend={handleUnsuspend}
         />
+      </div>
+
+      <div className="max-w-4xl">
+        <UserHistoryTabs key={`tabs-${refreshKey}`} userId={userId} />
       </div>
 
       <ScoreAdjustmentDialog

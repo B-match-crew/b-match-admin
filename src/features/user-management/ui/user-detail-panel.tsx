@@ -24,12 +24,14 @@ interface UserDetailPanelProps {
   userId: string;
   onScoreAdjust: (user: User) => void;
   onSuspend: (user: User) => void;
+  onUnsuspend?: () => void;
 }
 
 export function UserDetailPanel({
   userId,
   onScoreAdjust,
   onSuspend,
+  onUnsuspend,
 }: UserDetailPanelProps) {
   const supabase = useSupabase();
   const [user, setUser] = useState<User | null>(null);
@@ -178,15 +180,26 @@ export function UserDetailPanel({
           <Pencil className="h-4 w-4" />
           점수 조정
         </Button>
-        <Button
-          variant="destructive"
-          className="flex-1"
-          onClick={() => onSuspend(user)}
-          disabled={user.status !== "ACTIVE"}
-        >
-          <Ban className="h-4 w-4" />
-          강제 정지
-        </Button>
+        {user.status === "SUSPENDED" && onUnsuspend ? (
+          <Button
+            variant="outline"
+            className="flex-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+            onClick={onUnsuspend}
+          >
+            <Shield className="h-4 w-4" />
+            정지 해제
+          </Button>
+        ) : (
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={() => onSuspend(user)}
+            disabled={user.status !== "ACTIVE"}
+          >
+            <Ban className="h-4 w-4" />
+            강제 정지
+          </Button>
+        )}
       </div>
     </div>
   );
