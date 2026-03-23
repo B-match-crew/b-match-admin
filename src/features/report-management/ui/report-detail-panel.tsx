@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { fetchReportById, type ReportDetail } from "../api/report-api";
-import type { Report } from "@/src/entities/report/types";
+import { fetchReportById, fetchPastReports, type ReportDetail } from "../api/report-api";
+import type { Report, PastReportRecord } from "@/src/entities/report/types";
 import {
   Sheet,
   SheetContent,
@@ -15,13 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { LoadingSpinner } from "@/src/shared/ui/loading-spinner";
-import { formatDateTime } from "@/src/shared/lib/format-date";
+import { formatDateTime, formatDate } from "@/src/shared/lib/format-date";
 import {
   User as UserIcon,
   Flag,
   Calendar,
   FileText,
   Target,
+  History,
 } from "lucide-react";
 
 interface ReportDetailPanelProps {
@@ -41,6 +42,7 @@ export function ReportDetailPanel({
   const [report, setReport] = useState<Report | null>(null);
   const [reporterInfo, setReporterInfo] = useState<{ nickname: string; real_name: string | null } | null>(null);
   const [targetContent, setTargetContent] = useState<string | null>(null);
+  const [pastReports, setPastReports] = useState<PastReportRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -53,6 +55,18 @@ export function ReportDetailPanel({
         setReport(result.report);
         setReporterInfo(result.reporterInfo);
         setTargetContent(result.targetContent);
+
+        // 피신고자 과거 신고 이력 조회
+        if (result.report.target_user_id) {
+          const history = await fetchPastReports(
+            supabase,
+            result.report.target_user_id,
+            reportId
+          );
+          setPastReports(history);
+        } else {
+          setPastReports([]);
+        }
       } catch (error) {
         console.error("신고 상세 조회 실패:", error);
       } finally {
@@ -150,7 +164,15 @@ export function ReportDetailPanel({
               </div>
             </div>
 
-            {report.status === "PENDING" && (
+            {/* 피신고자 과거 신고 이력 */}
+            {pastReports.length > 0 && (
+              <>
+                <Separator />
+                <PastReportHistory reports={pastReports} />
+              </>
+            )}
+
+            {(report.status === "PENDING" || report.status === "ON_HOLD") && (
               <>
                 <Separator />
                 <Button className="w-full" onClick={() => onAction(report)}>
@@ -180,6 +202,48 @@ function UserInfoCard({
       <div>
         <p className="text-sm font-medium">{nickname}</p>
         <p className="text-xs text-muted-foreground">{realName ?? "-"}</p>
+      </div>
+    </div>
+  );
+}
+
+function PastReportHistory({ reports }: { reports: PastReportRecord[] }) {
+  const targetTypeLabel: Record<string, string> = {
+    POST: "게시글",
+    COMMENT: "댓글",
+    MATCH: "매칭",
+    HOST_NOSHOW: "호스트 노쇼",
+  };
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-semibold flex items-center gap-2">
+        <History className="h-4 w-4" />
+        피신고자 과거 신고 이력
+        <span className="text-xs font-normal text-muted-foreground">
+          ({reports.length}건)
+        </span>
+      </h4>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {reports.map((record) => (
+          <div
+            key={record.id}
+            className="rounded-lg border p-2.5 space-y-1 text-xs"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={record.status} />
+                <span className="text-muted-foreground">
+                  {targetTypeLabel[record.target_type] ?? record.target_type}
+                </span>
+              </div>
+              <span className="text-muted-foreground">
+                {formatDate(record.created_at)}
+              </span>
+            </div>
+            <p className="text-muted-foreground line-clamp-2">{record.reason}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -12,20 +12,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { Report } from "@/src/entities/report/types";
+import type { ReportActionType } from "../api/report-api";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Shield, ShieldOff, ShieldCheck } from "lucide-react";
-
-type ActionType = "경고" | "정지" | "무혐의";
+import { AlertTriangle, Shield, ShieldOff, ShieldCheck, Pause } from "lucide-react";
 
 interface ReportActionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   report: Report | null;
-  onConfirm: (action: ActionType, adminNote: string) => Promise<void>;
+  onConfirm: (action: ReportActionType, adminNote: string) => Promise<void>;
 }
 
 const actionOptions: {
-  value: ActionType;
+  value: ReportActionType;
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -52,6 +51,13 @@ const actionOptions: {
     icon: <ShieldCheck className="h-5 w-5" />,
     color: "border-blue-300 bg-blue-50 text-blue-700",
   },
+  {
+    value: "보류",
+    label: "보류",
+    description: "추가 조사가 필요하여 판정을 보류합니다",
+    icon: <Pause className="h-5 w-5" />,
+    color: "border-purple-300 bg-purple-50 text-purple-700",
+  },
 ];
 
 export function ReportActionDialog({
@@ -60,7 +66,7 @@ export function ReportActionDialog({
   report,
   onConfirm,
 }: ReportActionDialogProps) {
-  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
+  const [selectedAction, setSelectedAction] = useState<ReportActionType | null>(null);
   const [adminNote, setAdminNote] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 

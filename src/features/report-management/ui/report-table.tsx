@@ -89,6 +89,7 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
             <SelectItem value="PENDING">대기</SelectItem>
+            <SelectItem value="ON_HOLD">보류</SelectItem>
             <SelectItem value="RESOLVED">처리완료</SelectItem>
             <SelectItem value="REJECTED">반려</SelectItem>
           </SelectContent>
