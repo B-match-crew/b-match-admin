@@ -6,7 +6,7 @@ import { PageHeader } from "@/src/shared/ui/page-header";
 import { ReportTable } from "@/src/features/report-management/ui/report-table";
 import { ReportDetailPanel } from "@/src/features/report-management/ui/report-detail-panel";
 import { ReportActionDialog } from "@/src/features/report-management/ui/report-action-dialog";
-import { processReport } from "@/src/features/report-management/api/report-api";
+import { processReport, type ReportActionType } from "@/src/features/report-management/api/report-api";
 import { useReportStore } from "@/src/features/report-management/model/report-store";
 import type { Report } from "@/src/entities/report/types";
 import toast from "react-hot-toast";
@@ -32,7 +32,7 @@ export default function DisputesPage() {
   }, []);
 
   const handleActionConfirm = async (
-    action: "경고" | "정지" | "무혐의",
+    action: ReportActionType,
     adminNote: string
   ) => {
     if (!actionReport) return;

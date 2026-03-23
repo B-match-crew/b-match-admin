@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
+import { useAuth } from "@/src/app/providers/auth-provider";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { formatNumber } from "@/src/shared/lib/format-number";
@@ -22,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminCancelMatch } from "../api/matching-api";
 import {
   MapPin,
   Calendar,
@@ -29,12 +32,14 @@ import {
   Gauge,
   UserCheck,
   CreditCard,
+  ShieldAlert,
 } from "lucide-react";
 
 interface MatchingDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   matching: Match | null;
+  onMatchUpdated?: () => void;
 }
 
 interface Applicant {
@@ -50,8 +55,37 @@ export function MatchingDetailDialog({
   open,
   onOpenChange,
   matching,
+  onMatchUpdated,
 }: MatchingDetailDialogProps) {
+  const supabase = useSupabase();
+  const { user } = useAuth();
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
   if (!matching) return null;
+
+  const isSuperAdmin = user?.app_metadata?.role === "SUPER_ADMIN";
+  const isCancelable =
+    matching.status !== "CANCELED_BY_ADMIN" &&
+    matching.status !== "CANCELED_BY_HOST" &&
+    matching.status !== "ENDED";
+
+  async function handleForceCancel() {
+    if (!matching || !cancelReason.trim()) return;
+    setIsCanceling(true);
+    try {
+      await adminCancelMatch(supabase, matching.id, cancelReason.trim());
+      setShowCancelConfirm(false);
+      setCancelReason("");
+      onMatchUpdated?.();
+      onOpenChange(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "직권 취소에 실패했습니다");
+    } finally {
+      setIsCanceling(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,10 +169,76 @@ export function MatchingDetailDialog({
             </>
           )}
 
+          {matching.notice && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-sm font-medium mb-1">공지사항</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {matching.notice}
+                </p>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* 신청자 목록 & 결제 상태 탭 */}
           <ApplicantsTabs matchId={matching.id} />
+
+          {isSuperAdmin && isCancelable && (
+            <>
+              <Separator />
+              {!showCancelConfirm ? (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  직권 취소
+                </Button>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-medium text-red-700">
+                    이 모임을 직권 취소하시겠습니까?
+                  </p>
+                  <p className="text-xs text-red-600">
+                    직권 취소 시 모든 참가자에게 환불 처리되며 되돌릴 수 없습니다.
+                  </p>
+                  <textarea
+                    className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="취소 사유를 입력하세요 (필수)"
+                    rows={2}
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={isCanceling || !cancelReason.trim()}
+                      onClick={handleForceCancel}
+                    >
+                      {isCanceling ? "처리 중..." : "직권 취소 확인"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowCancelConfirm(false);
+                        setCancelReason("");
+                      }}
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -86,3 +86,18 @@ export async function deleteMatching(
     throw new Error(`매칭 취소 실패: ${error.message}`);
   }
 }
+
+export async function adminCancelMatch(
+  supabase: SupabaseClient,
+  matchId: number,
+  reason: string
+): Promise<void> {
+  const { error } = await supabase.rpc("rpc_admin_cancel_match", {
+    p_match_id: matchId,
+    p_reason: reason,
+  });
+
+  if (error) {
+    throw new Error(`직권 취소 실패: ${error.message}`);
+  }
+}
