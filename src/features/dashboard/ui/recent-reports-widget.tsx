@@ -13,7 +13,7 @@ interface ReportRow {
   reason: string;
   status: string;
   created_at: string;
-  reporter: { nickname: string } | null;
+  reporter: { nickname: string }[] | null;
 }
 
 export function RecentReportsWidget() {
@@ -64,7 +64,7 @@ export function RecentReportsWidget() {
                     {report.reason}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {report.reporter?.nickname ?? "알 수 없음"} &middot;{" "}
+                    {report.reporter?.[0]?.nickname ?? "알 수 없음"} &middot;{" "}
                     {formatRelativeTime(report.created_at)}
                   </p>
                 </div>
