@@ -4,7 +4,8 @@ import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
-import { fetchRefunds, retryRefund } from "../api/settlement-api";
+import { fetchRefunds } from "../api/settlement-api";
+import { adminRetryRefund } from "@/src/app/actions/admin-actions";
 import type { SettlementStatus } from "@/src/entities/settlement/types";
 import {
   Table,
@@ -70,7 +71,7 @@ export function RefundTable() {
   const handleRetry = async (refundId: string) => {
     if (!user?.id) return;
     try {
-      await retryRefund(supabase, refundId, user.id);
+      await adminRetryRefund(refundId, user.id);
       toast.success("환불 재시도가 요청되었습니다");
       loadRefunds();
     } catch (error) {

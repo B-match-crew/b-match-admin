@@ -8,7 +8,7 @@ import { UserDetailPanel } from "@/src/features/user-management/ui/user-detail-p
 import { UserHistoryTabs } from "@/src/features/user-management/ui/user-history-tabs";
 import { ScoreAdjustmentDialog } from "@/src/features/user-management/ui/score-adjustment-dialog";
 import { SuspensionDialog } from "@/src/features/user-management/ui/suspension-dialog";
-import { adjustBattiketScore, updateUserStatus } from "@/src/features/user-management/api/user-api";
+import { adminUpdateUserStatus, adminAdjustBatticket } from "@/src/app/actions/admin-actions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import type { User } from "@/src/entities/user/types";
@@ -37,7 +37,7 @@ export default function UserDetailPage() {
 
   const handleUnsuspend = async () => {
     try {
-      await updateUserStatus(supabase, userId, "ACTIVE");
+      await adminUpdateUserStatus(userId, "ACTIVE");
       toast.success("유저 정지가 해제되었습니다");
       setRefreshKey((prev) => prev + 1);
     } catch {
@@ -53,7 +53,7 @@ export default function UserDetailPage() {
         return;
       }
 
-      await adjustBattiketScore(supabase, userId, scoreChange, reason, adminUser.id);
+      await adminAdjustBatticket(userId, scoreChange, reason, adminUser.id);
       toast.success("배티켓 점수가 조정되었습니다");
       setRefreshKey((prev) => prev + 1);
     } catch {
@@ -63,7 +63,7 @@ export default function UserDetailPage() {
 
   const handleSuspendConfirm = async (_reason: string) => {
     try {
-      await updateUserStatus(supabase, userId, "SUSPENDED");
+      await adminUpdateUserStatus(userId, "SUSPENDED");
       toast.success("유저가 정지 처리되었습니다");
       setRefreshKey((prev) => prev + 1);
     } catch {

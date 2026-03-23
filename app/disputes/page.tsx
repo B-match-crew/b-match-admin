@@ -6,7 +6,8 @@ import { PageHeader } from "@/src/shared/ui/page-header";
 import { ReportTable } from "@/src/features/report-management/ui/report-table";
 import { ReportDetailPanel } from "@/src/features/report-management/ui/report-detail-panel";
 import { ReportActionDialog } from "@/src/features/report-management/ui/report-action-dialog";
-import { processReport, type ReportActionType } from "@/src/features/report-management/api/report-api";
+import { type ReportActionType } from "@/src/features/report-management/api/report-api";
+import { adminProcessReport } from "@/src/app/actions/admin-actions";
 import { useReportStore } from "@/src/features/report-management/model/report-store";
 import type { Report } from "@/src/entities/report/types";
 import toast from "react-hot-toast";
@@ -46,8 +47,7 @@ export default function DisputesPage() {
         return;
       }
 
-      await processReport(
-        supabase,
+      await adminProcessReport(
         actionReport.id,
         action,
         adminNote,

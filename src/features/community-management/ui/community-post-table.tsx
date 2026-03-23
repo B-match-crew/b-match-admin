@@ -3,7 +3,8 @@
 import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useCommunityStore } from "../model/community-store";
-import { fetchCommunityPosts, blindPost, unblindPost, type BlindFilter } from "../api/community-api";
+import { fetchCommunityPosts, type BlindFilter } from "../api/community-api";
+import { adminBlindPost, adminUnblindPost } from "@/src/app/actions/admin-actions";
 import {
   Table,
   TableBody,
@@ -72,7 +73,7 @@ export function CommunityPostTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await blindPost(supabase, postId, user.id, reason);
+      await adminBlindPost(postId, user.id, reason);
       toast.success("게시글이 블라인드 처리되었습니다");
       loadPosts();
     } catch {
@@ -84,7 +85,7 @@ export function CommunityPostTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await unblindPost(supabase, postId, user.id);
+      await adminUnblindPost(postId, user.id);
       toast.success("블라인드가 해제되었습니다");
       loadPosts();
     } catch {

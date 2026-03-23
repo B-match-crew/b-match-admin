@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { adminCancelMatch } from "../api/matching-api";
+import { adminCancelMatch } from "@/src/app/actions/admin-actions";
 import {
   MapPin,
   Calendar,
@@ -75,7 +75,7 @@ export function MatchingDetailDialog({
     if (!matching || !cancelReason.trim()) return;
     setIsCanceling(true);
     try {
-      await adminCancelMatch(supabase, matching.id, cancelReason.trim());
+      await adminCancelMatch(matching.id, cancelReason.trim());
       setShowCancelConfirm(false);
       setCancelReason("");
       onMatchUpdated?.();

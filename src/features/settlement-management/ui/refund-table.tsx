@@ -6,11 +6,9 @@ import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
 import {
   fetchRefunds,
-  markRefundsExported,
-  completeRefund,
-  failRefund,
   generateRefundTSV,
 } from "../api/settlement-api";
+import { adminMarkRefundsExported, adminCompleteRefund, adminFailRefund } from "@/src/app/actions/admin-actions";
 import { canWriteFinance } from "@/src/shared/lib/role-guard";
 import type { SettlementStatus } from "@/src/entities/settlement/types";
 import {
@@ -131,8 +129,7 @@ export function RefundTable() {
       const tsv = generateRefundTSV(selected);
       await navigator.clipboard.writeText(tsv);
 
-      await markRefundsExported(
-        supabase,
+      await adminMarkRefundsExported(
         selected.map((r) => r.id),
         user.id
       );
@@ -151,7 +148,7 @@ export function RefundTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await completeRefund(supabase, id, user.id);
+      await adminCompleteRefund(id, user.id);
       toast.success("환불 완료 처리됨");
       loadRefunds();
     } catch (error) {
@@ -168,7 +165,7 @@ export function RefundTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await failRefund(supabase, id, user.id, reason);
+      await adminFailRefund(id, user.id, reason);
       toast.success("환불 실패 처리됨");
       loadRefunds();
     } catch (error) {

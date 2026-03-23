@@ -1,0 +1,580 @@
+"use server";
+
+import { createAdminClient } from "@/src/shared/api/supabase-admin";
+import type { UserStatus } from "@/src/entities/user/types";
+import type { SettlementStatus } from "@/src/entities/settlement/types";
+import type { ReportStatus } from "@/src/entities/report/types";
+import type { DisputeResolutionType } from "@/src/entities/report/types";
+
+// ─── 유저 관리 ───
+
+export async function adminUpdateUserStatus(
+  userId: string,
+  newStatus: UserStatus
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("users")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) throw new Error(`유저 상태 변경 실패: ${error.message}`);
+}
+
+export async function adminAdjustBatticket(
+  userId: string,
+  delta: number,
+  reason: string,
+  adminId: string
+) {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase.from("badticket_events").insert({
+    user_id: userId,
+    delta,
+    reason: "ADMIN_ADJUST",
+    admin_note: reason,
+    is_applied: true,
+  });
+
+  if (error) throw new Error(`배티켓 조정 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "ADJUST_BADTICKET",
+    target_type: "USER",
+    target_id: userId,
+    reason,
+  });
+}
+
+// ─── 매칭 관리 ───
+
+export async function adminCancelMatch(matchId: string, reason: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("rpc_admin_cancel_match", {
+    p_match_id: matchId,
+    p_reason: reason,
+  });
+  if (error) throw new Error(`직권 취소 실패: ${error.message}`);
+}
+
+export async function adminDeleteMatching(matchId: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("matches")
+    .update({
+      status: "CANCELED_BY_ADMIN",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", matchId);
+  if (error) throw new Error(`매칭 취소 실패: ${error.message}`);
+}
+
+// ─── 커뮤니티 관리 ───
+
+export async function adminBlindPost(
+  postId: string,
+  adminId: string,
+  reason: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_blind: true })
+    .eq("id", postId);
+  if (error) throw new Error(`게시글 블라인드 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "BLIND_POST",
+    target_type: "POST",
+    target_id: postId,
+    reason,
+  });
+}
+
+export async function adminUnblindPost(postId: string, adminId: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_blind: false })
+    .eq("id", postId);
+  if (error) throw new Error(`게시글 블라인드 해제 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "UNBLIND_POST",
+    target_type: "POST",
+    target_id: postId,
+    reason: "블라인드 해제",
+  });
+}
+
+export async function adminBlindComment(
+  commentId: string,
+  adminId: string,
+  reason: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("comments")
+    .update({ is_blind: true })
+    .eq("id", commentId);
+  if (error) throw new Error(`댓글 블라인드 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "BLIND_COMMENT",
+    target_type: "COMMENT",
+    target_id: commentId,
+    reason,
+  });
+}
+
+export async function adminUnblindComment(
+  commentId: string,
+  adminId: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("comments")
+    .update({ is_blind: false })
+    .eq("id", commentId);
+  if (error) throw new Error(`댓글 블라인드 해제 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "UNBLIND_COMMENT",
+    target_type: "COMMENT",
+    target_id: commentId,
+    reason: "블라인드 해제",
+  });
+}
+
+// ─── 신고/분쟁 관리 ───
+
+export async function adminProcessReport(
+  reportId: string,
+  result: "경고" | "정지" | "무혐의" | "보류",
+  adminNote: string,
+  adminId: string
+) {
+  const supabase = createAdminClient();
+
+  const statusMap: Record<string, ReportStatus> = {
+    "무혐의": "REJECTED",
+    "경고": "RESOLVED",
+    "정지": "RESOLVED",
+    "보류": "ON_HOLD",
+  };
+
+  const { error } = await supabase
+    .from("reports")
+    .update({ status: statusMap[result] })
+    .eq("id", reportId);
+  if (error) throw new Error(`신고 처리 실패: ${error.message}`);
+
+  const actionTypeMap: Record<string, string> = {
+    "정지": "SUSPEND_USER",
+    "경고": "ADJUST_BADTICKET",
+    "무혐의": "REJECT_REPORT",
+    "보류": "REJECT_REPORT",
+  };
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: actionTypeMap[result],
+    target_type: "REPORT",
+    target_id: reportId,
+    reason: `${result}: ${adminNote}`,
+  });
+}
+
+export async function adminResolveDispute(params: {
+  reportId: string;
+  resolutionType: DisputeResolutionType;
+  adminId: string;
+  adminNote: string;
+  refundAmount?: number;
+  paymentId?: string;
+  settlementRequestId?: string;
+}) {
+  const supabase = createAdminClient();
+  const {
+    reportId,
+    resolutionType,
+    adminId,
+    adminNote,
+    refundAmount,
+    paymentId,
+    settlementRequestId,
+  } = params;
+
+  switch (resolutionType) {
+    case "DISMISS": {
+      await supabase
+        .from("reports")
+        .update({ status: "REJECTED" })
+        .eq("id", reportId);
+      break;
+    }
+    case "FULL_REFUND": {
+      if (!paymentId) throw new Error("결제 ID가 필요합니다");
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("amount, user_id, match_id")
+        .eq("id", paymentId)
+        .single();
+      if (!payment) throw new Error("결제 정보를 찾을 수 없습니다");
+
+      await supabase
+        .from("payments")
+        .update({
+          status: "REFUNDED",
+          refunded_amount: payment.amount,
+          refund_reason: "CS_REFUND",
+        })
+        .eq("id", paymentId);
+
+      await supabase.from("refund_requests").insert({
+        guest_id: payment.user_id,
+        match_id: payment.match_id,
+        payment_id: paymentId,
+        amount: payment.amount,
+        reason: `분쟁 판정 전액 환불: ${adminNote}`,
+        status: "PENDING",
+      });
+
+      await supabase
+        .from("reports")
+        .update({ status: "RESOLVED" })
+        .eq("id", reportId);
+      break;
+    }
+    case "PARTIAL_REFUND": {
+      if (!paymentId) throw new Error("결제 ID가 필요합니다");
+      if (!refundAmount || refundAmount <= 0)
+        throw new Error("환불 금액이 필요합니다");
+
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("amount, user_id, match_id, refunded_amount")
+        .eq("id", paymentId)
+        .single();
+      if (!payment) throw new Error("결제 정보를 찾을 수 없습니다");
+
+      const totalRefunded = (payment.refunded_amount ?? 0) + refundAmount;
+      if (totalRefunded > payment.amount)
+        throw new Error("환불 금액이 결제 금액을 초과합니다");
+
+      const newStatus =
+        totalRefunded === payment.amount ? "REFUNDED" : "REFUND_PENDING";
+
+      await supabase
+        .from("payments")
+        .update({
+          status: newStatus,
+          refunded_amount: totalRefunded,
+          refund_reason: "CS_REFUND",
+        })
+        .eq("id", paymentId);
+
+      await supabase.from("refund_requests").insert({
+        guest_id: payment.user_id,
+        match_id: payment.match_id,
+        payment_id: paymentId,
+        amount: refundAmount,
+        reason: `분쟁 판정 부분 환불: ${adminNote}`,
+        status: "PENDING",
+      });
+
+      await supabase
+        .from("reports")
+        .update({ status: "RESOLVED" })
+        .eq("id", reportId);
+      break;
+    }
+    case "WITHDRAW_INTERCEPT": {
+      if (!settlementRequestId)
+        throw new Error("정산 요청 ID가 필요합니다");
+      await supabase
+        .from("settlement_requests")
+        .update({ status: "FAILED" })
+        .eq("id", settlementRequestId);
+      await supabase
+        .from("reports")
+        .update({ status: "RESOLVED" })
+        .eq("id", reportId);
+      break;
+    }
+    case "TRANSFER_EXEMPT": {
+      await supabase
+        .from("reports")
+        .update({ status: "RESOLVED" })
+        .eq("id", reportId);
+      break;
+    }
+  }
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "REJECT_REPORT",
+    target_type: "REPORT",
+    target_id: reportId,
+    reason: adminNote,
+    snapshot: {
+      resolution_type: resolutionType,
+      refund_amount: refundAmount,
+      payment_id: paymentId,
+      settlement_request_id: settlementRequestId,
+    },
+  });
+}
+
+// ─── 정산 관리 (settlement-management) ───
+
+export async function adminMarkSettlementsExported(
+  ids: string[],
+  adminId: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("settlement_requests")
+    .update({ status: "EXPORTED" })
+    .in("id", ids)
+    .eq("status", "PENDING");
+  if (error) throw new Error(`정산 내보내기 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "EXPORT_SETTLEMENTS",
+    target_type: "SETTLEMENT",
+    target_id: ids[0],
+    reason: `${ids.length}건 정산 내보내기`,
+  });
+}
+
+export async function adminCompleteSettlement(
+  id: string,
+  adminId: string
+) {
+  const supabase = createAdminClient();
+  const { data: current } = await supabase
+    .from("settlement_requests")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if (!current) throw new Error("정산 요청을 찾을 수 없습니다");
+  if (current.status === "COMPLETED")
+    throw new Error("이미 완료된 정산입니다 (이중 송금 방어)");
+  if (current.status !== "EXPORTED")
+    throw new Error("EXPORTED 상태만 완료 처리할 수 있습니다");
+
+  const { error } = await supabase
+    .from("settlement_requests")
+    .update({ status: "COMPLETED", completed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "EXPORTED");
+  if (error) throw new Error(`정산 완료 처리 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "COMPLETE_SETTLEMENT",
+    target_type: "SETTLEMENT",
+    target_id: id,
+    reason: "정산 완료 처리",
+  });
+}
+
+export async function adminFailSettlement(
+  id: string,
+  adminId: string,
+  reason: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("settlement_requests")
+    .update({ status: "FAILED" })
+    .eq("id", id);
+  if (error) throw new Error(`정산 실패 처리 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "FAIL_SETTLEMENT",
+    target_type: "SETTLEMENT",
+    target_id: id,
+    reason,
+  });
+}
+
+export async function adminMarkRefundsExported(
+  ids: string[],
+  adminId: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("refund_requests")
+    .update({ status: "EXPORTED" })
+    .in("id", ids)
+    .eq("status", "PENDING");
+  if (error) throw new Error(`환불 내보내기 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "EXPORT_REFUNDS",
+    target_type: "REFUND",
+    target_id: ids[0],
+    reason: `${ids.length}건 환불 내보내기`,
+  });
+}
+
+export async function adminCompleteRefund(id: string, adminId: string) {
+  const supabase = createAdminClient();
+  const { data: current } = await supabase
+    .from("refund_requests")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if (!current) throw new Error("환불 요청을 찾을 수 없습니다");
+  if (current.status === "COMPLETED")
+    throw new Error("이미 완료된 환불입니다 (이중 송금 방어)");
+  if (current.status !== "EXPORTED")
+    throw new Error("EXPORTED 상태만 완료 처리할 수 있습니다");
+
+  const { error } = await supabase
+    .from("refund_requests")
+    .update({ status: "COMPLETED", completed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "EXPORTED");
+  if (error) throw new Error(`환불 완료 처리 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "COMPLETE_REFUND",
+    target_type: "REFUND",
+    target_id: id,
+    reason: "환불 완료 처리",
+  });
+}
+
+export async function adminFailRefund(
+  id: string,
+  adminId: string,
+  reason: string
+) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("refund_requests")
+    .update({ status: "FAILED" })
+    .eq("id", id);
+  if (error) throw new Error(`환불 실패 처리 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "FAIL_REFUND",
+    target_type: "REFUND",
+    target_id: id,
+    reason,
+  });
+}
+
+// ─── 정산 관리 (settlement - 레거시) ───
+
+export async function adminUpdateSettlementStatus(
+  ids: string[],
+  newStatus: SettlementStatus,
+  adminId: string,
+  reason?: string
+) {
+  const supabase = createAdminClient();
+  const updateData: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+  if (newStatus === "COMPLETED") {
+    updateData.completed_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from("settlement_requests")
+    .update(updateData)
+    .in("id", ids);
+  if (error) throw new Error(`정산 상태 변경 실패: ${error.message}`);
+
+  const actionType =
+    newStatus === "COMPLETED"
+      ? "APPROVE_SETTLEMENT"
+      : newStatus === "FAILED"
+        ? "FAIL_SETTLEMENT"
+        : "APPROVE_SETTLEMENT";
+
+  for (const id of ids) {
+    await supabase.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action_type: actionType,
+      target_type: "SETTLEMENT",
+      target_id: id,
+      reason: reason ?? `상태 변경: ${newStatus}`,
+    });
+  }
+}
+
+export async function adminRetryRefund(refundId: string, adminId: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("refund_requests")
+    .update({ status: "PENDING", updated_at: new Date().toISOString() })
+    .eq("id", refundId);
+  if (error) throw new Error(`환불 재시도 실패: ${error.message}`);
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: adminId,
+    action_type: "APPROVE_REFUND",
+    target_type: "REFUND",
+    target_id: refundId,
+    reason: "PG 환불 재시도",
+  });
+}
+
+// ─── 푸시 알림 ───
+
+export async function adminSendPush(payload: {
+  title: string;
+  body: string;
+  target: string;
+  targetIds?: string[];
+  scheduledAt?: string | null;
+  sentBy?: string | null;
+}) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("push_notifications")
+    .insert({
+      title: payload.title,
+      body: payload.body,
+      target: payload.target,
+      target_ids: payload.targetIds ?? null,
+      scheduled_at: payload.scheduledAt ?? null,
+      status: payload.scheduledAt ? "PENDING" : "SENT",
+      sent_at: payload.scheduledAt ? null : new Date().toISOString(),
+      sent_by: payload.sentBy ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(`푸시 발송 실패: ${error.message}`);
+  return data;
+}
+
+// ─── 시스템 설정 ───
+
+export async function adminUpdateAppConfig(key: string, value: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("app_config")
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq("key", key);
+  if (error) throw new Error(`설정 변경 실패: ${error.message}`);
+}

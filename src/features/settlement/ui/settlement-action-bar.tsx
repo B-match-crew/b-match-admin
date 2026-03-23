@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
-import {
-  updateSettlementStatus,
-  generateTossBulkTransferText,
-} from "../api/settlement-api";
+import { generateTossBulkTransferText } from "../api/settlement-api";
+import { adminUpdateSettlementStatus } from "@/src/app/actions/admin-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +23,6 @@ interface SettlementActionBarProps {
 }
 
 export function SettlementActionBar({ onRefresh }: SettlementActionBarProps) {
-  const supabase = useSupabase();
   const { user } = useAuth();
   const { settlements, selectedIds, clearSelection } = useSettlementStore();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -57,8 +53,7 @@ export function SettlementActionBar({ onRefresh }: SettlementActionBarProps) {
 
     if (pendingIds.length > 0) {
       try {
-        await updateSettlementStatus(
-          supabase,
+        await adminUpdateSettlementStatus(
           pendingIds,
           "EXPORTED",
           user.id,
@@ -86,8 +81,7 @@ export function SettlementActionBar({ onRefresh }: SettlementActionBarProps) {
 
     setIsProcessing(true);
     try {
-      await updateSettlementStatus(
-        supabase,
+      await adminUpdateSettlementStatus(
         selectedIds,
         "COMPLETED",
         user.id,
@@ -111,8 +105,7 @@ export function SettlementActionBar({ onRefresh }: SettlementActionBarProps) {
 
     setIsProcessing(true);
     try {
-      await updateSettlementStatus(
-        supabase,
+      await adminUpdateSettlementStatus(
         selectedIds,
         "FAILED",
         user.id,

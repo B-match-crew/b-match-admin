@@ -6,11 +6,9 @@ import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
 import {
   fetchSettlements,
-  markSettlementsExported,
-  completeSettlement,
-  failSettlement,
   generateSettlementTSV,
 } from "../api/settlement-api";
+import { adminMarkSettlementsExported, adminCompleteSettlement, adminFailSettlement } from "@/src/app/actions/admin-actions";
 import { canWriteFinance } from "@/src/shared/lib/role-guard";
 import type { SettlementStatus } from "@/src/entities/settlement/types";
 import {
@@ -131,8 +129,7 @@ export function SettlementTable() {
       const tsv = generateSettlementTSV(selected);
       await navigator.clipboard.writeText(tsv);
 
-      await markSettlementsExported(
-        supabase,
+      await adminMarkSettlementsExported(
         selected.map((s) => s.id),
         user.id
       );
@@ -151,7 +148,7 @@ export function SettlementTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await completeSettlement(supabase, id, user.id);
+      await adminCompleteSettlement(id, user.id);
       toast.success("정산 완료 처리됨");
       loadSettlements();
     } catch (error) {
@@ -168,7 +165,7 @@ export function SettlementTable() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await failSettlement(supabase, id, user.id, reason);
+      await adminFailSettlement(id, user.id, reason);
       toast.success("정산 실패 처리됨");
       loadSettlements();
     } catch (error) {

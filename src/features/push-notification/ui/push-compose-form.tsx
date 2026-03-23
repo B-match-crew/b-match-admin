@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { sendPushNotification } from "../api/push-api";
+import { adminSendPush } from "@/src/app/actions/admin-actions";
 import { usePushStore } from "../model/push-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ import { ko } from "date-fns/locale";
 import toast from "react-hot-toast";
 
 export function PushComposeForm() {
-  const supabase = useSupabase();
   const { isSending, setIsSending, addNotification } = usePushStore();
 
   const [title, setTitle] = useState("");
@@ -65,7 +63,7 @@ export function PushComposeForm() {
               .filter(Boolean)
           : undefined;
 
-      const notification = await sendPushNotification(supabase, {
+      const notification = await adminSendPush({
         title: isTest ? `[테스트] ${title}` : title,
         body,
         target,

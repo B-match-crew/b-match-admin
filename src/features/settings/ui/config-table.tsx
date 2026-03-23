@@ -5,9 +5,9 @@ import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useSettingsStore } from "../model/settings-store";
 import {
   fetchAppConfigs,
-  updateAppConfig,
   CONFIG_LABELS,
 } from "../api/settings-api";
+import { adminUpdateAppConfig } from "@/src/app/actions/admin-actions";
 import {
   Table,
   TableBody,
@@ -58,7 +58,7 @@ export function ConfigTable() {
     if (!editingKey) return;
 
     try {
-      await updateAppConfig(supabase, editingKey, editingValue);
+      await adminUpdateAppConfig(editingKey, editingValue);
       toast.success("설정이 변경되었습니다");
       cancelEditing();
       loadConfigs();

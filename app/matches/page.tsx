@@ -1,18 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { PageHeader } from "@/src/shared/ui/page-header";
 import { MatchingTable } from "@/src/features/matching-monitor/ui/matching-table";
 import { MatchingDetailDialog } from "@/src/features/matching-monitor/ui/matching-detail-dialog";
 import { DeleteMatchingDialog } from "@/src/features/matching-monitor/ui/delete-matching-dialog";
-import { deleteMatching } from "@/src/features/matching-monitor/api/matching-api";
+import { adminDeleteMatching } from "@/src/app/actions/admin-actions";
 import { useMatchingStore } from "@/src/features/matching-monitor/model/matching-store";
 import type { Match } from "@/src/entities/matching/types";
 import toast from "react-hot-toast";
 
 export default function MatchesPage() {
-  const supabase = useSupabase();
   const { setPage, page } = useMatchingStore();
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -36,7 +34,7 @@ export default function MatchesPage() {
     if (!selectedMatch) return;
 
     try {
-      await deleteMatching(supabase, selectedMatch.id);
+      await adminDeleteMatching(selectedMatch.id);
       toast.success("매칭이 취소되었습니다");
       setPage(page);
     } catch {
