@@ -50,7 +50,7 @@ export function FinanceChart({ data }: FinanceChartProps) {
             className="fill-muted-foreground"
           />
           <Tooltip
-            formatter={(value: number) => formatNumber(value)}
+            formatter={(value) => formatNumber(Number(value))}
             labelFormatter={(label) => `날짜: ${label}`}
           />
           <Legend />

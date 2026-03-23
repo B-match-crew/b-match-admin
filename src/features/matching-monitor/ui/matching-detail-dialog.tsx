@@ -48,7 +48,7 @@ interface Applicant {
   message: string | null;
   total_amount: number;
   created_at: string;
-  guest?: { nickname: string; real_name: string | null } | null;
+  guest?: { nickname: string; real_name: string | null }[] | null;
 }
 
 export function MatchingDetailDialog({
@@ -307,7 +307,7 @@ function ApplicantsTabs({ matchId }: { matchId: string | number }) {
               {applicants.map((app) => (
                 <TableRow key={app.id}>
                   <TableCell className="font-medium">
-                    {app.guest?.nickname ?? "-"}
+                    {app.guest?.[0]?.nickname ?? "-"}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={app.status} />

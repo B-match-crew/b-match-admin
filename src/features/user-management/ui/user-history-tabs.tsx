@@ -43,7 +43,7 @@ interface PaymentHistory {
   amount: number;
   status: string;
   created_at: string;
-  match?: { title: string } | null;
+  match?: { title: string }[] | null;
 }
 
 interface ReportHistory {
@@ -225,7 +225,7 @@ function PaymentHistoryTab({ userId }: { userId: string }) {
             {data.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">
-                  {item.match?.title ?? "-"}
+                  {item.match?.[0]?.title ?? "-"}
                 </TableCell>
                 <TableCell>{formatNumber(item.amount)}원</TableCell>
                 <TableCell>{formatDateTime(item.created_at)}</TableCell>
