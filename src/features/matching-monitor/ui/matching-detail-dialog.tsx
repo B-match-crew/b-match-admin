@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSupabase } from "@/src/app/providers/supabase-provider";
 import {
   Dialog,
   DialogContent,
@@ -7,21 +9,41 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
-import { formatDate } from "@/src/shared/lib/format-date";
+import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
+import { formatNumber } from "@/src/shared/lib/format-number";
 import type { Match } from "@/src/entities/matching/types";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   MapPin,
   Calendar,
   Users,
   Gauge,
   UserCheck,
+  CreditCard,
 } from "lucide-react";
 
 interface MatchingDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   matching: Match | null;
+}
+
+interface Applicant {
+  id: string;
+  status: string;
+  message: string | null;
+  total_amount: number;
+  created_at: string;
+  guest?: { nickname: string; real_name: string | null } | null;
 }
 
 export function MatchingDetailDialog({
@@ -33,7 +55,7 @@ export function MatchingDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             매칭 상세 정보
@@ -101,17 +123,6 @@ export function MatchingDetailDialog({
             />
           </div>
 
-          {matching.designated_cock_brand && (
-            <>
-              <Separator />
-              <InfoRow
-                icon={<Gauge className="h-4 w-4" />}
-                label="지정 셔틀콕"
-                value={matching.designated_cock_brand}
-              />
-            </>
-          )}
-
           {matching.description && (
             <>
               <Separator />
@@ -124,20 +135,133 @@ export function MatchingDetailDialog({
             </>
           )}
 
-          {matching.notice && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-sm font-medium mb-1">공지사항</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {matching.notice}
-                </p>
-              </div>
-            </>
-          )}
+          <Separator />
+
+          {/* 신청자 목록 & 결제 상태 탭 */}
+          <ApplicantsTabs matchId={matching.id} />
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ApplicantsTabs({ matchId }: { matchId: string | number }) {
+  const supabase = useSupabase();
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await supabase
+          .from("applications")
+          .select("id, status, message, total_amount, created_at, guest:guest_id(nickname, real_name)")
+          .eq("match_id", matchId)
+          .order("created_at", { ascending: false });
+
+        setApplicants((data ?? []) as Applicant[]);
+      } catch (e) {
+        console.error("신청자 조회 실패:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [supabase, matchId]);
+
+  const statusCounts = applicants.reduce<Record<string, number>>((acc, a) => {
+    acc[a.status] = (acc[a.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <Tabs defaultValue="applicants">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="applicants" className="gap-1">
+          <Users className="h-3 w-3" />
+          신청자 ({applicants.length})
+        </TabsTrigger>
+        <TabsTrigger value="payment" className="gap-1">
+          <CreditCard className="h-3 w-3" />
+          결제 현황
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="applicants">
+        {isLoading ? (
+          <div className="text-center text-sm text-muted-foreground py-4">로딩 중...</div>
+        ) : applicants.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-4">신청자가 없습니다</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>게스트</TableHead>
+                <TableHead>상태</TableHead>
+                <TableHead>금액</TableHead>
+                <TableHead>신청일</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {applicants.map((app) => (
+                <TableRow key={app.id}>
+                  <TableCell className="font-medium">
+                    {app.guest?.nickname ?? "-"}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={app.status} />
+                  </TableCell>
+                  <TableCell>{formatNumber(app.total_amount)}원</TableCell>
+                  <TableCell>{formatDateTime(app.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </TabsContent>
+
+      <TabsContent value="payment">
+        {isLoading ? (
+          <div className="text-center text-sm text-muted-foreground py-4">로딩 중...</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard label="전체 신청" value={applicants.length} />
+              <StatCard label="참가 확정" value={statusCounts["CONFIRMED"] ?? 0} color="text-emerald-600" />
+              <StatCard label="결제 대기" value={statusCounts["PENDING_PAYMENT"] ?? 0} color="text-amber-600" />
+              <StatCard label="승인 대기" value={statusCounts["PENDING"] ?? 0} color="text-blue-600" />
+              <StatCard label="취소/거절" value={(statusCounts["CANCELED"] ?? 0) + (statusCounts["REJECTED"] ?? 0)} color="text-red-600" />
+              <StatCard
+                label="총 결제 금액"
+                value={`${formatNumber(
+                  applicants
+                    .filter((a) => a.status === "CONFIRMED" || a.status === "PAID")
+                    .reduce((sum, a) => sum + a.total_amount, 0)
+                )}원`}
+              />
+            </div>
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number | string;
+  color?: string;
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-lg font-semibold ${color ?? ""}`}>{value}</p>
+    </div>
   );
 }
 
