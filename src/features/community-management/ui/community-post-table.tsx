@@ -3,8 +3,7 @@
 import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useCommunityStore } from "../model/community-store";
-import { fetchCommunityPosts, blindPost, unblindPost } from "../api/community-api";
-import type { BlindStatus } from "@/src/entities/community/types";
+import { fetchCommunityPosts, blindPost, unblindPost, type BlindFilter } from "../api/community-api";
 import {
   Table,
   TableBody,
@@ -48,7 +47,7 @@ export function CommunityPostTable() {
     setLoading(true);
     try {
       const result = await fetchCommunityPosts(supabase, {
-        blindStatus: postBlindFilter,
+        blindFilter: postBlindFilter,
         page: postPage,
         limit: ITEMS_PER_PAGE,
       });
@@ -104,7 +103,7 @@ export function CommunityPostTable() {
         <Select
           value={postBlindFilter}
           onValueChange={(value) =>
-            setPostBlindFilter(value as "all" | BlindStatus)
+            setPostBlindFilter(value as BlindFilter)
           }
         >
           <SelectTrigger className="w-[160px]">
@@ -112,8 +111,9 @@ export function CommunityPostTable() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="VISIBLE">공개</SelectItem>
-            <SelectItem value="BLINDED">블라인드</SelectItem>
+            <SelectItem value="visible">공개</SelectItem>
+            <SelectItem value="blinded">블라인드</SelectItem>
+            <SelectItem value="deleted">삭제</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -148,20 +148,20 @@ export function CommunityPostTable() {
                     <TableCell>
                       <span
                         className={
-                          post.report_count > 0
+                          (post.report_count ?? 0) > 0
                             ? "text-red-600 font-medium"
                             : "text-muted-foreground"
                         }
                       >
-                        {post.report_count}
+                        {post.report_count ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={post.blind_status} />
+                      <StatusBadge status={post.is_deleted ? "DELETED" : post.is_blind ? "BLINDED" : "VISIBLE"} />
                     </TableCell>
                     <TableCell>{formatDate(post.created_at)}</TableCell>
                     <TableCell>
-                      {post.blind_status === "VISIBLE" ? (
+                      {!post.is_blind && !post.is_deleted ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -170,7 +170,7 @@ export function CommunityPostTable() {
                         >
                           <EyeOff className="h-4 w-4 text-red-600" />
                         </Button>
-                      ) : post.blind_status === "BLINDED" ? (
+                      ) : post.is_blind && !post.is_deleted ? (
                         <Button
                           variant="ghost"
                           size="sm"

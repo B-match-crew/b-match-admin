@@ -32,7 +32,7 @@ export interface Match {
   contact_value: string | null;
   notice: string | null;
   status: MatchStatus;
-  is_manually_closed: boolean;
+  is_manually_close: boolean;
   created_at: string;
   updated_at: string;
   // joined

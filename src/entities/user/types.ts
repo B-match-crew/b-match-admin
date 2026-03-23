@@ -29,10 +29,9 @@ export interface HostProfile {
   user_id: string;
   club_name: string;
   cover_image_url: string | null;
-  gender_ratio_male: number;
-  gender_ratio_female: number;
+  male_ratio: number;
+  female_ratio: number;
   age_distribution: Record<string, number> | null;
-  level_distribution: Record<string, number> | null;
-  settlement_bank_name: string | null;
-  settlement_account_no: string | null;
+  skill_counts: Record<string, number> | null;
+  settlement_account_id: number | null;
 }

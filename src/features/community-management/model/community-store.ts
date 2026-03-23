@@ -1,26 +1,27 @@
 import { create } from "zustand";
-import type { CommunityPost, CommunityComment, BlindStatus } from "@/src/entities/community/types";
+import type { CommunityPost, CommunityComment } from "@/src/entities/community/types";
+import type { BlindFilter } from "@/src/features/community-management/api/community-api";
 
 interface CommunityStore {
   posts: CommunityPost[];
   postTotalCount: number;
   postPage: number;
-  postBlindFilter: "all" | BlindStatus;
+  postBlindFilter: BlindFilter;
 
   comments: CommunityComment[];
   commentTotalCount: number;
   commentPage: number;
-  commentBlindFilter: "all" | BlindStatus;
+  commentBlindFilter: BlindFilter;
 
   isLoading: boolean;
 
   setPosts: (posts: CommunityPost[], totalCount: number) => void;
   setPostPage: (page: number) => void;
-  setPostBlindFilter: (status: "all" | BlindStatus) => void;
+  setPostBlindFilter: (filter: BlindFilter) => void;
 
   setComments: (comments: CommunityComment[], totalCount: number) => void;
   setCommentPage: (page: number) => void;
-  setCommentBlindFilter: (status: "all" | BlindStatus) => void;
+  setCommentBlindFilter: (filter: BlindFilter) => void;
 
   setLoading: (isLoading: boolean) => void;
 }

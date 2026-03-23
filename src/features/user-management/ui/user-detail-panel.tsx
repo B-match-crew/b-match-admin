@@ -165,7 +165,7 @@ export function UserDetailPanel({
             <DetailItem label="클럽명" value={user.host_profiles.club_name} />
             <DetailItem
               label="성별비율"
-              value={`남 ${user.host_profiles.gender_ratio_male}% / 여 ${user.host_profiles.gender_ratio_female}%`}
+              value={`남 ${user.host_profiles.male_ratio}% / 여 ${user.host_profiles.female_ratio}%`}
             />
           </CardContent>
         </Card>

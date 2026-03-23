@@ -30,6 +30,11 @@ const statusStyles: Record<string, { label: string; style: string }> = {
   CONFIRMED: { label: "참여 확정", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   CANCELED_BY_GUEST: { label: "게스트 취소", style: "bg-gray-50 text-gray-500 border-gray-200" },
   REJECTED_BY_HOST: { label: "호스트 거절", style: "bg-red-50 text-red-700 border-red-200" },
+  AUTO_CANCELED_UNPAID: { label: "미입금 자동취소", style: "bg-gray-50 text-gray-500 border-gray-200" },
+  AUTO_REJECTED_TIMEOUT: { label: "시간초과 자동거절", style: "bg-gray-50 text-gray-500 border-gray-200" },
+  GIVE_UP: { label: "포기", style: "bg-gray-50 text-gray-500 border-gray-200" },
+  MATCH_CANCELED: { label: "매칭 취소", style: "bg-gray-50 text-gray-500 border-gray-200" },
+  REFUNDED_BY_CS: { label: "CS 환불", style: "bg-blue-50 text-blue-700 border-blue-200" },
   // 결제 상태
   PAID: { label: "결제완료", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   CANCELED: { label: "취소", style: "bg-gray-50 text-gray-500 border-gray-200" },

@@ -3,8 +3,7 @@
 import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useCommunityStore } from "../model/community-store";
-import { fetchCommunityComments, blindComment, unblindComment } from "../api/community-api";
-import type { BlindStatus } from "@/src/entities/community/types";
+import { fetchCommunityComments, blindComment, unblindComment, type BlindFilter } from "../api/community-api";
 import {
   Table,
   TableBody,
@@ -48,7 +47,7 @@ export function CommunityCommentTable() {
     setLoading(true);
     try {
       const result = await fetchCommunityComments(supabase, {
-        blindStatus: commentBlindFilter,
+        blindFilter: commentBlindFilter,
         page: commentPage,
         limit: ITEMS_PER_PAGE,
       });
@@ -104,7 +103,7 @@ export function CommunityCommentTable() {
         <Select
           value={commentBlindFilter}
           onValueChange={(value) =>
-            setCommentBlindFilter(value as "all" | BlindStatus)
+            setCommentBlindFilter(value as BlindFilter)
           }
         >
           <SelectTrigger className="w-[160px]">
@@ -112,8 +111,9 @@ export function CommunityCommentTable() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="VISIBLE">공개</SelectItem>
-            <SelectItem value="BLINDED">블라인드</SelectItem>
+            <SelectItem value="visible">공개</SelectItem>
+            <SelectItem value="blinded">블라인드</SelectItem>
+            <SelectItem value="deleted">삭제</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -152,20 +152,20 @@ export function CommunityCommentTable() {
                     <TableCell>
                       <span
                         className={
-                          comment.report_count > 0
+                          (comment.report_count ?? 0) > 0
                             ? "text-red-600 font-medium"
                             : "text-muted-foreground"
                         }
                       >
-                        {comment.report_count}
+                        {comment.report_count ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={comment.blind_status} />
+                      <StatusBadge status={comment.is_deleted ? "DELETED" : comment.is_blind ? "BLINDED" : "VISIBLE"} />
                     </TableCell>
                     <TableCell>{formatDate(comment.created_at)}</TableCell>
                     <TableCell>
-                      {comment.blind_status === "VISIBLE" ? (
+                      {!comment.is_blind && !comment.is_deleted ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -174,7 +174,7 @@ export function CommunityCommentTable() {
                         >
                           <EyeOff className="h-4 w-4 text-red-600" />
                         </Button>
-                      ) : comment.blind_status === "BLINDED" ? (
+                      ) : comment.is_blind && !comment.is_deleted ? (
                         <Button
                           variant="ghost"
                           size="sm"

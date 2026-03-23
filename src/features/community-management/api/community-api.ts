@@ -2,11 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CommunityPost,
   CommunityComment,
-  BlindStatus,
 } from "@/src/entities/community/types";
 
+export type BlindFilter = "all" | "visible" | "blinded" | "deleted";
+
 interface FetchPostsParams {
-  blindStatus?: "all" | BlindStatus;
+  blindFilter?: BlindFilter;
   page?: number;
   limit?: number;
 }
@@ -18,17 +19,21 @@ interface FetchPostsResult {
 
 export async function fetchCommunityPosts(
   supabase: SupabaseClient,
-  { blindStatus = "all", page = 1, limit = 20 }: FetchPostsParams
+  { blindFilter = "all", page = 1, limit = 20 }: FetchPostsParams
 ): Promise<FetchPostsResult> {
   let query = supabase
     .from("posts")
     .select(
-      "id, author_id, title, content, blind_status, report_count, created_at, updated_at, author:users!posts_author_id_fkey(nickname, real_name)",
+      "id, author_id, title, content, is_blind, is_deleted, created_at, updated_at, author:users!posts_author_id_fkey(nickname, real_name), reports(count)",
       { count: "exact" }
     );
 
-  if (blindStatus !== "all") {
-    query = query.eq("blind_status", blindStatus);
+  if (blindFilter === "visible") {
+    query = query.eq("is_blind", false).eq("is_deleted", false);
+  } else if (blindFilter === "blinded") {
+    query = query.eq("is_blind", true);
+  } else if (blindFilter === "deleted") {
+    query = query.eq("is_deleted", true);
   }
 
   const from = (page - 1) * limit;
@@ -42,14 +47,24 @@ export async function fetchCommunityPosts(
     throw new Error(`게시글 목록 조회 실패: ${error.message}`);
   }
 
+  // reports(count) 결과를 report_count로 매핑
+  const posts = (data ?? []).map((row: Record<string, unknown>) => {
+    const reports = row.reports as { count: number }[] | undefined;
+    const { reports: _reports, ...rest } = row;
+    return {
+      ...rest,
+      report_count: reports?.[0]?.count ?? 0,
+    };
+  }) as unknown as CommunityPost[];
+
   return {
-    posts: (data ?? []) as unknown as CommunityPost[],
+    posts,
     totalCount: count ?? 0,
   };
 }
 
 interface FetchCommentsParams {
-  blindStatus?: "all" | BlindStatus;
+  blindFilter?: BlindFilter;
   page?: number;
   limit?: number;
 }
@@ -61,17 +76,21 @@ interface FetchCommentsResult {
 
 export async function fetchCommunityComments(
   supabase: SupabaseClient,
-  { blindStatus = "all", page = 1, limit = 20 }: FetchCommentsParams
+  { blindFilter = "all", page = 1, limit = 20 }: FetchCommentsParams
 ): Promise<FetchCommentsResult> {
   let query = supabase
     .from("comments")
     .select(
-      "id, post_id, author_id, content, blind_status, report_count, created_at, author:users!comments_author_id_fkey(nickname, real_name)",
+      "id, post_id, author_id, content, is_blind, is_deleted, created_at, author:users!comments_author_id_fkey(nickname, real_name), reports(count)",
       { count: "exact" }
     );
 
-  if (blindStatus !== "all") {
-    query = query.eq("blind_status", blindStatus);
+  if (blindFilter === "visible") {
+    query = query.eq("is_blind", false).eq("is_deleted", false);
+  } else if (blindFilter === "blinded") {
+    query = query.eq("is_blind", true);
+  } else if (blindFilter === "deleted") {
+    query = query.eq("is_deleted", true);
   }
 
   const from = (page - 1) * limit;
@@ -85,8 +104,17 @@ export async function fetchCommunityComments(
     throw new Error(`댓글 목록 조회 실패: ${error.message}`);
   }
 
+  const comments = (data ?? []).map((row: Record<string, unknown>) => {
+    const reports = row.reports as { count: number }[] | undefined;
+    const { reports: _reports, ...rest } = row;
+    return {
+      ...rest,
+      report_count: reports?.[0]?.count ?? 0,
+    };
+  }) as unknown as CommunityComment[];
+
   return {
-    comments: (data ?? []) as unknown as CommunityComment[],
+    comments,
     totalCount: count ?? 0,
   };
 }
@@ -102,7 +130,7 @@ export async function blindPost(
 ): Promise<void> {
   const { error } = await supabase
     .from("posts")
-    .update({ blind_status: "BLINDED" })
+    .update({ is_blind: true })
     .eq("id", postId);
 
   if (error) {
@@ -128,7 +156,7 @@ export async function unblindPost(
 ): Promise<void> {
   const { error } = await supabase
     .from("posts")
-    .update({ blind_status: "VISIBLE" })
+    .update({ is_blind: false })
     .eq("id", postId);
 
   if (error) {
@@ -155,7 +183,7 @@ export async function blindComment(
 ): Promise<void> {
   const { error } = await supabase
     .from("comments")
-    .update({ blind_status: "BLINDED" })
+    .update({ is_blind: true })
     .eq("id", commentId);
 
   if (error) {
@@ -181,7 +209,7 @@ export async function unblindComment(
 ): Promise<void> {
   const { error } = await supabase
     .from("comments")
-    .update({ blind_status: "VISIBLE" })
+    .update({ is_blind: false })
     .eq("id", commentId);
 
   if (error) {

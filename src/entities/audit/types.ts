@@ -3,16 +3,22 @@
 export type AuditAction =
   | 'BAN_USER'
   | 'SUSPEND_USER'
+  | 'UNSUSPEND_USER'
   | 'FORCE_CANCEL_MATCH'
   | 'ADJUST_BADTICKET'
   | 'APPROVE_SETTLEMENT'
+  | 'COMPLETE_SETTLEMENT'
   | 'APPROVE_REFUND'
+  | 'COMPLETE_REFUND'
   | 'FAIL_SETTLEMENT'
   | 'FAIL_REFUND'
   | 'RELEASE_HOLD'
-  | 'DEDUCT_HOLD';
+  | 'DEDUCT_HOLD'
+  | 'REJECT_REPORT'
+  | 'EXPORT_SETTLEMENTS'
+  | 'EXPORT_REFUNDS';
 
-export type AuditTargetType = 'USER' | 'MATCH' | 'SETTLEMENT' | 'REFUND';
+export type AuditTargetType = 'USER' | 'MATCH' | 'SETTLEMENT' | 'REFUND' | 'REPORT';
 
 export interface AuditLog {
   id: number;
