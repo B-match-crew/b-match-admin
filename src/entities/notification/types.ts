@@ -1,9 +1,9 @@
-// v3.0 스키마 기준: public.push_notifications (관리자 전용)
+// v3.0 스키마 기준: public.push_notifications
 export type PushStatus = 'PENDING' | 'SENT' | 'FAILED';
 export type PushTarget = 'all' | 'hosts' | 'custom';
 
 export interface PushNotification {
-  id: number;
+  id: string;
   title: string;
   body: string;
   target: PushTarget;

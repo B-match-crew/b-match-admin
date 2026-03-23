@@ -17,7 +17,7 @@ export default function DisputesPage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [actionReport, setActionReport] = useState<Report | null>(null);
 
   const handleSelectReport = useCallback((report: Report) => {

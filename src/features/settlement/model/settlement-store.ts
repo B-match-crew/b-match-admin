@@ -15,7 +15,7 @@ interface SettlementStore {
   totalCount: number;
   page: number;
   statusFilter: "all" | SettlementStatus;
-  selectedIds: number[];
+  selectedIds: string[];
 
   setActiveTab: (tab: TabType) => void;
   setSettlements: (settlements: SettlementRequest[], totalCount: number) => void;
@@ -23,8 +23,8 @@ interface SettlementStore {
   setLoading: (isLoading: boolean) => void;
   setStatusFilter: (status: "all" | SettlementStatus) => void;
   setPage: (page: number) => void;
-  toggleSelect: (id: number) => void;
-  selectAll: (ids: number[]) => void;
+  toggleSelect: (id: string) => void;
+  selectAll: (ids: string[]) => void;
   clearSelection: () => void;
   resetFilters: () => void;
 }

@@ -245,7 +245,7 @@ export function MatchingDetailDialog({
   );
 }
 
-function ApplicantsTabs({ matchId }: { matchId: string | number }) {
+function ApplicantsTabs({ matchId }: { matchId: string }) {
   const supabase = useSupabase();
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [isLoading, setIsLoading] = useState(true);

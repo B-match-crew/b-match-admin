@@ -9,48 +9,36 @@ export type PaymentStatus =
   | 'REFUND_PENDING'
   | 'REFUND_FAILED';
 
-export type RefundReason =
-  | 'GUEST_CANCEL_FULL'
-  | 'HOST_CANCEL'
-  | 'ADMIN_CANCEL'
-  | 'CS_REFUND'
-  | 'CONFIRM_FAILED_REFUND';
-
 export type WalletHistoryType =
   | 'EARN'
-  | 'WITHDRAW'
-  | 'REFUND_DEDUCT'
-  | 'ROLLBACK'
+  | 'ESCROW_RELEASE'
   | 'HOLD'
   | 'RELEASE'
-  | 'ESCROW_RELEASE';
-
-export type WalletReferenceType =
-  | 'MATCH'
-  | 'SETTLEMENT_REQUEST'
-  | 'REFUND_REQUEST'
-  | 'ADMIN_ACTION';
+  | 'REFUND_DEDUCT'
+  | 'WITHDRAW'
+  | 'ROLLBACK';
 
 export interface Payment {
-  id: number;
+  id: string;
   order_id: string;
-  guest_id: string;
-  match_id: number;
+  user_id: string;
+  match_id: string;
+  application_id: string | null;
   amount: number;
   refunded_amount: number;
-  refund_reason: RefundReason | null;
+  refund_reason: string | null;
   pg_fee: number;
   pg_payment_key: string | null;
   status: PaymentStatus;
   created_at: string;
   updated_at: string;
   // joined
-  guest?: { nickname: string; real_name: string | null } | null;
+  user?: { nickname: string; real_name: string | null } | null;
   match?: { title: string } | null;
 }
 
 export interface HostWallet {
-  id: number;
+  id: string;
   user_id: string;
   total_balance: number;
   withdrawable_balance: number;
@@ -63,17 +51,13 @@ export interface HostWallet {
 }
 
 export interface WalletHistory {
-  id: number;
-  wallet_id: number;
+  id: string;
+  wallet_id: string;
   type: WalletHistoryType;
   amount: number;
-  balance_snapshot: {
-    total: number;
-    withdrawable: number;
-    pending: number;
-    frozen: number;
-  };
-  reference_type: WalletReferenceType;
-  reference_id: number | null;
+  description: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  balance_snapshot: Record<string, unknown> | null;
   created_at: string;
 }

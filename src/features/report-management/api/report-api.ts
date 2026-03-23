@@ -52,7 +52,7 @@ export async function fetchReports(
       reporter_nickname: reporter?.nickname,
       target_label: buildTargetLabel(
         row.target_type as string,
-        row.target_id as number
+        row.target_id as string
       ),
     };
   });
@@ -71,7 +71,7 @@ export interface ReportDetail {
 
 export async function fetchReportById(
   supabase: SupabaseClient,
-  reportId: number
+  reportId: string
 ): Promise<ReportDetail> {
   const { data, error } = await supabase
     .from("reports")
@@ -87,7 +87,7 @@ export async function fetchReportById(
 
   const row = data as Record<string, unknown>;
   const targetType = row.target_type as string;
-  const targetId = row.target_id as number;
+  const targetId = row.target_id as string;
 
   let targetContent: string | null = null;
 
@@ -151,7 +151,7 @@ export async function fetchReportById(
 export async function fetchPastReports(
   supabase: SupabaseClient,
   targetUserId: string,
-  excludeReportId?: number
+  excludeReportId?: string
 ): Promise<PastReportRecord[]> {
   let query = supabase
     .from("reports")
@@ -177,7 +177,7 @@ export type ReportActionType = "경고" | "정지" | "무혐의" | "보류";
 
 export async function processReport(
   supabase: SupabaseClient,
-  reportId: number,
+  reportId: string,
   result: ReportActionType,
   adminNote: string,
   adminId: string
@@ -204,8 +204,8 @@ export async function processReport(
   const actionTypeMap: Record<ReportActionType, string> = {
     "정지": "SUSPEND_USER",
     "경고": "ADJUST_BADTICKET",
-    "무혐의": "DISMISS_REPORT",
-    "보류": "HOLD_REPORT",
+    "무혐의": "REJECT_REPORT",
+    "보류": "REJECT_REPORT",
   };
 
   await supabase.from("admin_audit_logs").insert({
@@ -221,16 +221,16 @@ export async function processReport(
  * 분쟁 판정 5종 트랜잭션
  */
 export interface DisputeResolutionParams {
-  reportId: number;
+  reportId: string;
   resolutionType: DisputeResolutionType;
   adminId: string;
   adminNote: string;
   /** 부분 환불 시 환불 금액 */
   refundAmount?: number;
   /** 관련 결제 ID */
-  paymentId?: number;
+  paymentId?: string;
   /** 관련 정산 요청 ID */
-  settlementRequestId?: number;
+  settlementRequestId?: string;
 }
 
 export async function resolveDispute(
@@ -368,11 +368,11 @@ export async function resolveDispute(
   // 감사 로그 기록
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
-    action_type: `DISPUTE_${resolutionType}`,
+    action_type: "REJECT_REPORT",
     target_type: "REPORT",
     target_id: reportId,
     reason: adminNote,
-    metadata: {
+    snapshot: {
       resolution_type: resolutionType,
       refund_amount: refundAmount,
       payment_id: paymentId,
@@ -381,7 +381,7 @@ export async function resolveDispute(
   });
 }
 
-function buildTargetLabel(targetType: string, targetId: number): string {
+function buildTargetLabel(targetType: string, targetId: string): string {
   const typeLabels: Record<string, string> = {
     POST: "게시글",
     COMMENT: "댓글",

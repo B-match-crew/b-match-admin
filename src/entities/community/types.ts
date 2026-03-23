@@ -1,12 +1,14 @@
-// 커뮤니티 게시글/댓글 블라인드 관리 타입
+// v3.0 스키마 기준: public.posts, public.comments
 
 export type ContentType = "POST" | "COMMENT";
 
 export interface CommunityPost {
-  id: number;
+  id: string;
   author_id: string;
   title: string;
   content: string;
+  like_count: number;
+  comment_count: number;
   is_blind: boolean;
   is_deleted: boolean;
   report_count?: number; // reports 테이블에서 집계
@@ -17,14 +19,17 @@ export interface CommunityPost {
 }
 
 export interface CommunityComment {
-  id: number;
-  post_id: number;
+  id: string;
+  post_id: string;
   author_id: string;
+  parent_id: string | null;
   content: string;
+  like_count: number;
   is_blind: boolean;
   is_deleted: boolean;
   report_count?: number; // reports 테이블에서 집계
   created_at: string;
+  updated_at: string;
   // joined
   author?: { nickname: string; real_name: string | null } | null;
 }

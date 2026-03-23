@@ -67,7 +67,7 @@ export function RefundTable() {
     loadRefunds();
   }, [loadRefunds]);
 
-  const handleRetry = async (refundId: number) => {
+  const handleRetry = async (refundId: string) => {
     if (!user?.id) return;
     try {
       await retryRefund(supabase, refundId, user.id);

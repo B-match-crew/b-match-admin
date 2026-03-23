@@ -2,6 +2,7 @@
 
 import { useAuditStore } from "../model/audit-store";
 import { ACTION_LABELS, TARGET_TYPE_LABELS } from "../api/audit-api";
+import type { AuditAction, AuditTargetType } from "@/src/entities/audit/types";
 import {
   Dialog,
   DialogContent,
@@ -43,21 +44,21 @@ export function AuditDetailDialog() {
               <div>
                 <p className="text-muted-foreground">관리자</p>
                 <p className="font-medium">
-                  {selectedLog.admin?.nickname ??
+                  {selectedLog.admin?.email ??
                     selectedLog.admin_id.slice(0, 8)}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">행위</p>
                 <Badge variant="outline">
-                  {ACTION_LABELS[selectedLog.action_type] ??
+                  {ACTION_LABELS[selectedLog.action_type as AuditAction] ??
                     selectedLog.action_type}
                 </Badge>
               </div>
               <div>
                 <p className="text-muted-foreground">대상</p>
                 <p className="font-medium">
-                  {TARGET_TYPE_LABELS[selectedLog.target_type] ??
+                  {TARGET_TYPE_LABELS[selectedLog.target_type as AuditTargetType] ??
                     selectedLog.target_type}{" "}
                   #{selectedLog.target_id}
                 </p>

@@ -65,7 +65,7 @@ export function CommunityPostTable() {
 
   const totalPages = Math.ceil(postTotalCount / ITEMS_PER_PAGE);
 
-  const handleBlind = async (postId: number) => {
+  const handleBlind = async (postId: string) => {
     const reason = prompt("블라인드 사유를 입력해 주세요");
     if (!reason) return;
 
@@ -80,7 +80,7 @@ export function CommunityPostTable() {
     }
   };
 
-  const handleUnblind = async (postId: number) => {
+  const handleUnblind = async (postId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

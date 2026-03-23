@@ -25,7 +25,7 @@ export async function fetchAuditLogs(
   let query = supabase
     .from("admin_audit_logs")
     .select(
-      "*, admin:users!admin_audit_logs_admin_id_fkey(nickname, real_name)",
+      "*, admin:admin_users!admin_audit_logs_admin_id_fkey(email, role)",
       { count: "exact" }
     );
 
@@ -52,7 +52,7 @@ export async function fetchAuditLogs(
     const row = item as Record<string, unknown>;
     return {
       ...(row as unknown as AuditLog),
-      admin: row.admin as { nickname: string; real_name: string | null } | null,
+      admin: row.admin as { email: string; role: string } | null,
     };
   });
 
@@ -76,6 +76,10 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
   REJECT_REPORT: "신고 반려",
   EXPORT_SETTLEMENTS: "정산 내역 다운로드",
   EXPORT_REFUNDS: "환불 내역 다운로드",
+  BLIND_POST: "게시글 블라인드",
+  UNBLIND_POST: "게시글 블라인드 해제",
+  BLIND_COMMENT: "댓글 블라인드",
+  UNBLIND_COMMENT: "댓글 블라인드 해제",
 };
 
 export const TARGET_TYPE_LABELS: Record<AuditTargetType, string> = {
@@ -84,4 +88,6 @@ export const TARGET_TYPE_LABELS: Record<AuditTargetType, string> = {
   SETTLEMENT: "정산",
   REFUND: "환불",
   REPORT: "신고",
+  POST: "게시글",
+  COMMENT: "댓글",
 };

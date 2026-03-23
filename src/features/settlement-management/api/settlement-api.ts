@@ -55,7 +55,7 @@ export async function fetchSettlements(
  */
 export async function markSettlementsExported(
   supabase: SupabaseClient,
-  ids: number[],
+  ids: string[],
   adminId: string
 ): Promise<void> {
   const { error } = await supabase
@@ -71,7 +71,7 @@ export async function markSettlementsExported(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "EXPORT_SETTLEMENTS",
-    target_type: "SETTLEMENT_REQUEST",
+    target_type: "SETTLEMENT",
     target_id: ids[0],
     reason: `${ids.length}건 정산 내보내기`,
   });
@@ -83,7 +83,7 @@ export async function markSettlementsExported(
  */
 export async function completeSettlement(
   supabase: SupabaseClient,
-  id: number,
+  id: string,
   adminId: string
 ): Promise<void> {
   // 이중 송금 방어: 현재 상태 확인
@@ -110,7 +110,7 @@ export async function completeSettlement(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "COMPLETE_SETTLEMENT",
-    target_type: "SETTLEMENT_REQUEST",
+    target_type: "SETTLEMENT",
     target_id: id,
     reason: "정산 완료 처리",
   });
@@ -121,7 +121,7 @@ export async function completeSettlement(
  */
 export async function failSettlement(
   supabase: SupabaseClient,
-  id: number,
+  id: string,
   adminId: string,
   reason: string
 ): Promise<void> {
@@ -137,7 +137,7 @@ export async function failSettlement(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "FAIL_SETTLEMENT",
-    target_type: "SETTLEMENT_REQUEST",
+    target_type: "SETTLEMENT",
     target_id: id,
     reason,
   });
@@ -190,7 +190,7 @@ export async function fetchRefunds(
 
 export async function markRefundsExported(
   supabase: SupabaseClient,
-  ids: number[],
+  ids: string[],
   adminId: string
 ): Promise<void> {
   const { error } = await supabase
@@ -206,7 +206,7 @@ export async function markRefundsExported(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "EXPORT_REFUNDS",
-    target_type: "REFUND_REQUEST",
+    target_type: "REFUND",
     target_id: ids[0],
     reason: `${ids.length}건 환불 내보내기`,
   });
@@ -214,7 +214,7 @@ export async function markRefundsExported(
 
 export async function completeRefund(
   supabase: SupabaseClient,
-  id: number,
+  id: string,
   adminId: string
 ): Promise<void> {
   const { data: current } = await supabase
@@ -240,7 +240,7 @@ export async function completeRefund(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "COMPLETE_REFUND",
-    target_type: "REFUND_REQUEST",
+    target_type: "REFUND",
     target_id: id,
     reason: "환불 완료 처리",
   });
@@ -248,7 +248,7 @@ export async function completeRefund(
 
 export async function failRefund(
   supabase: SupabaseClient,
-  id: number,
+  id: string,
   adminId: string,
   reason: string
 ): Promise<void> {
@@ -264,7 +264,7 @@ export async function failRefund(
   await supabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action_type: "FAIL_REFUND",
-    target_type: "REFUND_REQUEST",
+    target_type: "REFUND",
     target_id: id,
     reason,
   });

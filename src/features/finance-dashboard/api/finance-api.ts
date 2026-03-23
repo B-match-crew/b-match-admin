@@ -86,7 +86,7 @@ export async function fetchFinanceSummary(
 }
 
 export interface RecentTransaction {
-  id: number;
+  id: string;
   type: "payment" | "settlement" | "refund";
   amount: number;
   status: string;
@@ -109,13 +109,13 @@ export async function fetchRecentTransactions(
 
   for (const p of payments ?? []) {
     const row = p as Record<string, unknown>;
-    const match = row.match as { title: string } | null;
+    const matchArr = row.match as { title: string }[] | null;
     transactions.push({
-      id: row.id as number,
+      id: row.id as string,
       type: "payment",
       amount: row.amount as number,
       status: row.status as string,
-      label: match?.title ?? `결제 #${row.id}`,
+      label: matchArr?.[0]?.title ?? `결제 #${row.id}`,
       created_at: row.created_at as string,
     });
   }
@@ -129,13 +129,13 @@ export async function fetchRecentTransactions(
 
   for (const s of settlements ?? []) {
     const row = s as Record<string, unknown>;
-    const host = row.host as { nickname: string } | null;
+    const hostArr = row.host as { nickname: string }[] | null;
     transactions.push({
-      id: row.id as number,
+      id: row.id as string,
       type: "settlement",
       amount: row.amount as number,
       status: row.status as string,
-      label: host?.nickname ?? `정산 #${row.id}`,
+      label: hostArr?.[0]?.nickname ?? `정산 #${row.id}`,
       created_at: row.created_at as string,
     });
   }
@@ -149,13 +149,13 @@ export async function fetchRecentTransactions(
 
   for (const r of refunds ?? []) {
     const row = r as Record<string, unknown>;
-    const guest = row.guest as { nickname: string } | null;
+    const guestArr = row.guest as { nickname: string }[] | null;
     transactions.push({
-      id: row.id as number,
+      id: row.id as string,
       type: "refund",
       amount: row.amount as number,
       status: row.status as string,
-      label: guest?.nickname ?? `환불 #${row.id}`,
+      label: guestArr?.[0]?.nickname ?? `환불 #${row.id}`,
       created_at: row.created_at as string,
     });
   }

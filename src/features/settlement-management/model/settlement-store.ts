@@ -7,14 +7,14 @@ interface SettlementStore {
   settlementTotalCount: number;
   settlementPage: number;
   settlementStatusFilter: "all" | SettlementStatus;
-  selectedSettlementIds: number[];
+  selectedSettlementIds: string[];
 
   // 게스트 환불
   refunds: RefundRequest[];
   refundTotalCount: number;
   refundPage: number;
   refundStatusFilter: "all" | SettlementStatus;
-  selectedRefundIds: number[];
+  selectedRefundIds: string[];
 
   isLoading: boolean;
 
@@ -22,15 +22,15 @@ interface SettlementStore {
   setSettlements: (settlements: SettlementRequest[], totalCount: number) => void;
   setSettlementPage: (page: number) => void;
   setSettlementStatusFilter: (status: "all" | SettlementStatus) => void;
-  toggleSettlementSelection: (id: number) => void;
-  selectAllSettlements: (ids: number[]) => void;
+  toggleSettlementSelection: (id: string) => void;
+  selectAllSettlements: (ids: string[]) => void;
   clearSettlementSelection: () => void;
 
   setRefunds: (refunds: RefundRequest[], totalCount: number) => void;
   setRefundPage: (page: number) => void;
   setRefundStatusFilter: (status: "all" | SettlementStatus) => void;
-  toggleRefundSelection: (id: number) => void;
-  selectAllRefunds: (ids: number[]) => void;
+  toggleRefundSelection: (id: string) => void;
+  selectAllRefunds: (ids: string[]) => void;
   clearRefundSelection: () => void;
 
   setLoading: (isLoading: boolean) => void;

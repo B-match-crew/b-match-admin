@@ -16,19 +16,32 @@ export type AuditAction =
   | 'DEDUCT_HOLD'
   | 'REJECT_REPORT'
   | 'EXPORT_SETTLEMENTS'
-  | 'EXPORT_REFUNDS';
+  | 'EXPORT_REFUNDS'
+  // 커뮤니티 관리 (DB enum에는 없지만 앱에서 사용)
+  | 'BLIND_POST'
+  | 'UNBLIND_POST'
+  | 'BLIND_COMMENT'
+  | 'UNBLIND_COMMENT';
 
-export type AuditTargetType = 'USER' | 'MATCH' | 'SETTLEMENT' | 'REFUND' | 'REPORT';
+export type AuditTargetType =
+  | 'USER'
+  | 'MATCH'
+  | 'SETTLEMENT'
+  | 'REFUND'
+  | 'REPORT'
+  // 커뮤니티 관리 (DB enum에는 없지만 앱에서 사용)
+  | 'POST'
+  | 'COMMENT';
 
 export interface AuditLog {
-  id: number;
+  id: string;
   admin_id: string;
-  action_type: AuditAction;
-  target_type: AuditTargetType;
-  target_id: number;
+  action_type: string;
+  target_type: string;
+  target_id: string;
   reason: string;
   snapshot: Record<string, unknown> | null;
   created_at: string;
   // joined
-  admin?: { nickname: string; real_name: string | null } | null;
+  admin?: { email: string; role: string } | null;
 }

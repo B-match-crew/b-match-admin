@@ -55,7 +55,7 @@ export async function fetchMatchings(
 
 export async function fetchMatchingById(
   supabase: SupabaseClient,
-  matchId: number
+  matchId: string
 ): Promise<Match> {
   const { data, error } = await supabase
     .from("matches")
@@ -72,7 +72,7 @@ export async function fetchMatchingById(
 
 export async function deleteMatching(
   supabase: SupabaseClient,
-  matchId: number
+  matchId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("matches")
@@ -89,7 +89,7 @@ export async function deleteMatching(
 
 export async function adminCancelMatch(
   supabase: SupabaseClient,
-  matchId: number,
+  matchId: string,
   reason: string
 ): Promise<void> {
   const { error } = await supabase.rpc("rpc_admin_cancel_match", {

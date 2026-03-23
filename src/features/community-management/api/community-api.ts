@@ -124,7 +124,7 @@ export async function fetchCommunityComments(
  */
 export async function blindPost(
   supabase: SupabaseClient,
-  postId: number,
+  postId: string,
   adminId: string,
   reason: string
 ): Promise<void> {
@@ -141,7 +141,7 @@ export async function blindPost(
     admin_id: adminId,
     action_type: "BLIND_POST",
     target_type: "POST",
-    target_id: postId,
+    target_id: String(postId),
     reason,
   });
 }
@@ -151,7 +151,7 @@ export async function blindPost(
  */
 export async function unblindPost(
   supabase: SupabaseClient,
-  postId: number,
+  postId: string,
   adminId: string
 ): Promise<void> {
   const { error } = await supabase
@@ -167,7 +167,7 @@ export async function unblindPost(
     admin_id: adminId,
     action_type: "UNBLIND_POST",
     target_type: "POST",
-    target_id: postId,
+    target_id: String(postId),
     reason: "블라인드 해제",
   });
 }
@@ -177,7 +177,7 @@ export async function unblindPost(
  */
 export async function blindComment(
   supabase: SupabaseClient,
-  commentId: number,
+  commentId: string,
   adminId: string,
   reason: string
 ): Promise<void> {
@@ -194,7 +194,7 @@ export async function blindComment(
     admin_id: adminId,
     action_type: "BLIND_COMMENT",
     target_type: "COMMENT",
-    target_id: commentId,
+    target_id: String(commentId),
     reason,
   });
 }
@@ -204,7 +204,7 @@ export async function blindComment(
  */
 export async function unblindComment(
   supabase: SupabaseClient,
-  commentId: number,
+  commentId: string,
   adminId: string
 ): Promise<void> {
   const { error } = await supabase
@@ -220,7 +220,7 @@ export async function unblindComment(
     admin_id: adminId,
     action_type: "UNBLIND_COMMENT",
     target_type: "COMMENT",
-    target_id: commentId,
+    target_id: String(commentId),
     reason: "블라인드 해제",
   });
 }

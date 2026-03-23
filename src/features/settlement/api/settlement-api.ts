@@ -104,7 +104,7 @@ export async function fetchRefunds(
 
 export async function updateSettlementStatus(
   supabase: SupabaseClient,
-  ids: number[],
+  ids: string[],
   newStatus: SettlementStatus,
   adminId: string,
   reason?: string
@@ -147,7 +147,7 @@ export async function updateSettlementStatus(
 
 export async function retryRefund(
   supabase: SupabaseClient,
-  refundId: number,
+  refundId: string,
   adminId: string
 ): Promise<void> {
   const { error } = await supabase

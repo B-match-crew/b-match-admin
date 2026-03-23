@@ -65,7 +65,7 @@ export function CommunityCommentTable() {
 
   const totalPages = Math.ceil(commentTotalCount / ITEMS_PER_PAGE);
 
-  const handleBlind = async (commentId: number) => {
+  const handleBlind = async (commentId: string) => {
     const reason = prompt("블라인드 사유를 입력해 주세요");
     if (!reason) return;
 
@@ -80,7 +80,7 @@ export function CommunityCommentTable() {
     }
   };
 
-  const handleUnblind = async (commentId: number) => {
+  const handleUnblind = async (commentId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

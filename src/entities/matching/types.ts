@@ -8,7 +8,7 @@ export type MatchStatus =
   | 'CANCELED_BY_ADMIN';
 
 export interface Match {
-  id: number;
+  id: string;
   host_id: string;
   title: string;
   cover_image_url: string | null;
@@ -33,6 +33,9 @@ export interface Match {
   notice: string | null;
   status: MatchStatus;
   is_manually_close: boolean;
+  confirmed_count: number | null;
+  pending_payment_count: number | null;
+  cancelled_at: string | null;
   created_at: string;
   updated_at: string;
   // joined
@@ -42,6 +45,7 @@ export interface Match {
 
 export type ApplicationStatus =
   | 'PENDING_APPROVAL'
+  | 'APPROVED'
   | 'PENDING_PAYMENT'
   | 'CONFIRMED'
   | 'CANCELED_BY_GUEST'
@@ -49,19 +53,26 @@ export type ApplicationStatus =
   | 'AUTO_CANCELED_UNPAID'
   | 'AUTO_REJECTED_TIMEOUT'
   | 'GIVE_UP'
+  | 'NOSHOW'
   | 'MATCH_CANCELED'
   | 'REFUNDED_BY_CS'
   | 'CANCELED_BY_ADMIN';
 
 export interface Application {
-  id: number;
+  id: string;
   guest_id: string;
-  match_id: number;
+  match_id: string;
   status: ApplicationStatus;
   message: string | null;
+  addon_cock_qty: number | null;
   total_amount: number;
+  applied_at: string | null;
+  approved_at: string | null;
   payment_deadline: string | null;
+  paid_at: string | null;
+  canceled_at: string | null;
   created_at: string;
+  updated_at: string;
   // joined
   guest?: { nickname: string; real_name: string | null } | null;
 }

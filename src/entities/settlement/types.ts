@@ -8,8 +8,9 @@ export type SettlementStatus =
   | 'CANCELED';
 
 export interface SettlementRequest {
-  id: number;
+  id: string;
   host_id: string;
+  wallet_id: string;
   amount: number;
   bank_info: {
     bank_name: string;
@@ -17,6 +18,7 @@ export interface SettlementRequest {
     holder_name: string;
   };
   status: SettlementStatus;
+  admin_note: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -25,10 +27,10 @@ export interface SettlementRequest {
 }
 
 export interface RefundRequest {
-  id: number;
+  id: string;
   guest_id: string;
-  match_id: number;
-  payment_id: number;
+  match_id: string;
+  payment_id: string | null;
   amount: number;
   reason: string;
   bank_info: {
@@ -37,6 +39,7 @@ export interface RefundRequest {
     holder_name: string;
   } | null;
   status: SettlementStatus;
+  retry_count: number;
   completed_at: string | null;
   created_at: string;
   updated_at: string;

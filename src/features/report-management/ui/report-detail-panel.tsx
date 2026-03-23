@@ -28,7 +28,7 @@ import {
 interface ReportDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reportId: number | null;
+  reportId: string | null;
   onAction: (report: Report) => void;
 }
 

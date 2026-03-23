@@ -172,18 +172,18 @@ export function AuditTable() {
                       {formatDateTime(log.created_at)}
                     </TableCell>
                     <TableCell>
-                      {log.admin?.nickname ?? log.admin_id.slice(0, 8)}
+                      {log.admin?.email ?? log.admin_id.slice(0, 8)}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
                         className={getActionColor(log.action_type)}
                       >
-                        {ACTION_LABELS[log.action_type] ?? log.action_type}
+                        {ACTION_LABELS[log.action_type as AuditAction] ?? log.action_type}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {TARGET_TYPE_LABELS[log.target_type] ?? log.target_type}
+                      {TARGET_TYPE_LABELS[log.target_type as AuditTargetType] ?? log.target_type}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       #{log.target_id}

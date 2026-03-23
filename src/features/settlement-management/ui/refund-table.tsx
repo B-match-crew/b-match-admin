@@ -146,7 +146,7 @@ export function RefundTable() {
     }
   };
 
-  const handleComplete = async (id: number) => {
+  const handleComplete = async (id: string) => {
     if (!canWrite) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -160,7 +160,7 @@ export function RefundTable() {
     }
   };
 
-  const handleFail = async (id: number) => {
+  const handleFail = async (id: string) => {
     if (!canWrite) return;
     const reason = prompt("실패 사유를 입력해 주세요");
     if (!reason) return;
