@@ -1,5 +1,7 @@
 "use client";
 
+import { AuditTable } from "@/src/features/audit/ui/audit-table";
+import { AuditDetailDialog } from "@/src/features/audit/ui/audit-detail-dialog";
 import { PageHeader } from "@/src/shared/ui/page-header";
 
 export default function AuditPage() {
@@ -9,9 +11,8 @@ export default function AuditPage() {
         title="감사 로그"
         description="관리자 행위 이력을 조회합니다"
       />
-      <div className="rounded-lg border p-8 text-center text-muted-foreground">
-        감사 로그 기능 준비 중
-      </div>
+      <AuditTable />
+      <AuditDetailDialog />
     </div>
   );
 }
