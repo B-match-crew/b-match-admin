@@ -21,6 +21,7 @@ const statusStyles: Record<string, { label: string; style: string }> = {
   CANCELED_BY_ADMIN: { label: "관리자 취소", style: "bg-red-50 text-red-700 border-red-200" },
   // 신고 상태
   PENDING: { label: "대기", style: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  ON_HOLD: { label: "보류", style: "bg-purple-50 text-purple-700 border-purple-200" },
   RESOLVED: { label: "처리완료", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   REJECTED: { label: "반려", style: "bg-blue-50 text-blue-700 border-blue-200" },
   // 신청 상태
@@ -39,6 +40,9 @@ const statusStyles: Record<string, { label: string; style: string }> = {
   FAILED: { label: "실패", style: "bg-red-50 text-red-700 border-red-200" },
   // 알림 상태
   SENT: { label: "발송됨", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  // 커뮤니티 블라인드 상태
+  VISIBLE: { label: "공개", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  BLINDED: { label: "블라인드", style: "bg-red-50 text-red-700 border-red-200" },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
