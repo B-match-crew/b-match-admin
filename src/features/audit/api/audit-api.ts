@@ -62,14 +62,20 @@ export async function fetchAuditLogs(
 export const ACTION_LABELS: Record<AuditAction, string> = {
   BAN_USER: "유저 차단",
   SUSPEND_USER: "유저 정지",
+  UNSUSPEND_USER: "유저 정지 해제",
   FORCE_CANCEL_MATCH: "매칭 강제 취소",
   ADJUST_BADTICKET: "배티켓 조정",
   APPROVE_SETTLEMENT: "정산 승인",
+  COMPLETE_SETTLEMENT: "정산 완료",
   APPROVE_REFUND: "환불 승인",
+  COMPLETE_REFUND: "환불 완료",
   FAIL_SETTLEMENT: "정산 실패",
   FAIL_REFUND: "환불 실패",
   RELEASE_HOLD: "동결 해제",
   DEDUCT_HOLD: "동결금 차감",
+  REJECT_REPORT: "신고 반려",
+  EXPORT_SETTLEMENTS: "정산 내역 다운로드",
+  EXPORT_REFUNDS: "환불 내역 다운로드",
 };
 
 export const TARGET_TYPE_LABELS: Record<AuditTargetType, string> = {
@@ -77,4 +83,5 @@ export const TARGET_TYPE_LABELS: Record<AuditTargetType, string> = {
   MATCH: "매칭",
   SETTLEMENT: "정산",
   REFUND: "환불",
+  REPORT: "신고",
 };
