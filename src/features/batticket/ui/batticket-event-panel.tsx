@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useBatticketStore } from "../model/batticket-store";
-import { fetchBatticketEvents, REASON_LABELS } from "../api/batticket-api";
+import { REASON_LABELS } from "../api/batticket-api";
+import { adminFetchBatticketEvents } from "@/src/app/actions/admin-read-actions";
 import type { BadticketReason } from "@/src/entities/battiket/types";
 import {
   Sheet,
@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 const EVENTS_PER_PAGE = 30;
 
 export function BatticketEventPanel() {
-  const supabase = useSupabase();
   const {
     selectedUserId,
     selectedUserNickname,
@@ -47,7 +46,7 @@ export function BatticketEventPanel() {
     if (!selectedUserId) return;
     setEventsLoading(true);
     try {
-      const result = await fetchBatticketEvents(supabase, {
+      const result = await adminFetchBatticketEvents({
         userId: selectedUserId,
         page: eventsPage,
         limit: EVENTS_PER_PAGE,
@@ -58,7 +57,7 @@ export function BatticketEventPanel() {
     } finally {
       setEventsLoading(false);
     }
-  }, [supabase, selectedUserId, eventsPage, setEvents, setEventsLoading]);
+  }, [selectedUserId, eventsPage, setEvents, setEventsLoading]);
 
   useEffect(() => {
     loadEvents();

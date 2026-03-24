@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useCallback, useState, useRef } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useMatchingStore } from "../model/matching-store";
-import { fetchMatchings } from "../api/matching-api";
+import { adminFetchMatchings } from "@/src/app/actions/admin-read-actions";
 import type { Match, MatchStatus } from "@/src/entities/matching/types";
 import {
   Table,
@@ -42,7 +41,6 @@ interface MatchingTableProps {
 }
 
 export function MatchingTable({ onViewDetail, onDelete }: MatchingTableProps) {
-  const supabase = useSupabase();
   const {
     matches,
     isLoading,
@@ -63,7 +61,7 @@ export function MatchingTable({ onViewDetail, onDelete }: MatchingTableProps) {
   const loadMatches = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchMatchings(supabase, {
+      const result = await adminFetchMatchings({
         search: searchQuery,
         status: statusFilter,
         page,
@@ -75,7 +73,7 @@ export function MatchingTable({ onViewDetail, onDelete }: MatchingTableProps) {
     } finally {
       setLoading(false);
     }
-  }, [supabase, searchQuery, statusFilter, page, setMatches, setLoading]);
+  }, [searchQuery, statusFilter, page, setMatches, setLoading]);
 
   useEffect(() => {
     loadMatches();

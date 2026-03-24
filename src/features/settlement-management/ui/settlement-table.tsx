@@ -4,10 +4,8 @@ import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
-import {
-  fetchSettlements,
-  generateSettlementTSV,
-} from "../api/settlement-api";
+import { generateSettlementTSV } from "../api/settlement-api";
+import { adminFetchSettlements } from "@/src/app/actions/admin-read-actions";
 import { adminMarkSettlementsExported, adminCompleteSettlement, adminFailSettlement } from "@/src/app/actions/admin-actions";
 import { canWriteFinance } from "@/src/shared/lib/role-guard";
 import type { SettlementStatus } from "@/src/entities/settlement/types";
@@ -69,7 +67,7 @@ export function SettlementTable() {
   const loadSettlements = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchSettlements(supabase, {
+      const result = await adminFetchSettlements({
         status: settlementStatusFilter,
         page: settlementPage,
         limit: ITEMS_PER_PAGE,
@@ -80,7 +78,7 @@ export function SettlementTable() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, settlementStatusFilter, settlementPage, setSettlements, setLoading]);
+  }, [settlementStatusFilter, settlementPage, setSettlements, setLoading]);
 
   useEffect(() => {
     loadSettlements();

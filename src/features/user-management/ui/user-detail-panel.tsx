@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { fetchUserById } from "../api/user-api";
+import { adminFetchUserById } from "@/src/app/actions/admin-read-actions";
 import type { User } from "@/src/entities/user/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,6 @@ export function UserDetailPanel({
   onSuspend,
   onUnsuspend,
 }: UserDetailPanelProps) {
-  const supabase = useSupabase();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,8 +39,8 @@ export function UserDetailPanel({
     const loadUser = async () => {
       setIsLoading(true);
       try {
-        const data = await fetchUserById(supabase, userId);
-        setUser(data);
+        const data = await adminFetchUserById(userId);
+        setUser(data as User);
       } catch (error) {
         console.error("유저 상세 조회 실패:", error);
       } finally {
@@ -51,7 +49,7 @@ export function UserDetailPanel({
     };
 
     loadUser();
-  }, [supabase, userId]);
+  }, [userId]);
 
   if (isLoading) {
     return <LoadingSpinner />;

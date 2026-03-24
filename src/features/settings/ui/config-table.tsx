@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useSettingsStore } from "../model/settings-store";
-import {
-  fetchAppConfigs,
-  CONFIG_LABELS,
-} from "../api/settings-api";
+import { CONFIG_LABELS } from "../api/settings-api";
+import { adminFetchAppConfigs } from "@/src/app/actions/admin-read-actions";
 import { adminUpdateAppConfig } from "@/src/app/actions/admin-actions";
 import {
   Table,
@@ -25,7 +22,6 @@ import { Pencil, Check, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 export function ConfigTable() {
-  const supabase = useSupabase();
   const {
     configs,
     isLoading,
@@ -41,14 +37,14 @@ export function ConfigTable() {
   const loadConfigs = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAppConfigs(supabase);
+      const data = await adminFetchAppConfigs();
       setConfigs(data);
     } catch (error) {
       console.error("설정 로딩 실패:", error);
     } finally {
       setLoading(false);
     }
-  }, [supabase, setConfigs, setLoading]);
+  }, [setConfigs, setLoading]);
 
   useEffect(() => {
     loadConfigs();

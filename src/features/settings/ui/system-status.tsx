@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useSettingsStore } from "../model/settings-store";
-import { fetchSystemStatus } from "../api/settings-api";
+import { adminFetchSystemStatus } from "@/src/app/actions/admin-read-actions";
 import { formatNumber } from "@/src/shared/lib/format-number";
 import { Users, Swords, Flag, HandCoins } from "lucide-react";
 
 export function SystemStatus() {
-  const supabase = useSupabase();
   const { systemStatus, setSystemStatus } = useSettingsStore();
 
   const loadStatus = useCallback(async () => {
     try {
-      const status = await fetchSystemStatus(supabase);
+      const status = await adminFetchSystemStatus();
       setSystemStatus(status);
     } catch (error) {
       console.error("시스템 상태 로딩 실패:", error);
     }
-  }, [supabase, setSystemStatus]);
+  }, [setSystemStatus]);
 
   useEffect(() => {
     loadStatus();

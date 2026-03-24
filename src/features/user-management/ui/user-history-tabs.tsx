@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
+import {
+  adminFetchUserMatchHistory,
+  adminFetchUserPaymentHistory,
+  adminFetchUserReportHistory,
+  adminFetchUserBadticketHistory,
+} from "@/src/app/actions/admin-read-actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
@@ -102,7 +107,6 @@ export function UserHistoryTabs({ userId }: UserHistoryTabsProps) {
 }
 
 function MatchingHistoryTab({ userId }: { userId: string }) {
-  const supabase = useSupabase();
   const [data, setData] = useState<MatchHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,28 +114,8 @@ function MatchingHistoryTab({ userId }: { userId: string }) {
     const load = async () => {
       setIsLoading(true);
       try {
-        // 게스트로 참여한 매칭 (applications → matches)
-        const { data: apps } = await supabase
-          .from("applications")
-          .select("id, status, match:match_id(id, title, start_time, status, location_name)")
-          .eq("guest_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        const matchHistory: MatchHistory[] = (apps ?? [])
-          .filter((a: Record<string, unknown>) => a.match)
-          .map((a: Record<string, unknown>) => {
-            const m = a.match as Record<string, unknown>;
-            return {
-              id: m.id as string,
-              title: m.title as string,
-              start_time: m.start_time as string,
-              status: a.status as string,
-              location_name: m.location_name as string,
-            };
-          });
-
-        setData(matchHistory);
+        const matchHistory = await adminFetchUserMatchHistory(userId);
+        setData(matchHistory as MatchHistory[]);
       } catch (e) {
         console.error("매칭 이력 조회 실패:", e);
       } finally {
@@ -139,7 +123,7 @@ function MatchingHistoryTab({ userId }: { userId: string }) {
       }
     };
     load();
-  }, [supabase, userId]);
+  }, [userId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (data.length === 0) return <EmptyState message="매칭 이력이 없습니다" />;
@@ -178,7 +162,6 @@ function MatchingHistoryTab({ userId }: { userId: string }) {
 }
 
 function PaymentHistoryTab({ userId }: { userId: string }) {
-  const supabase = useSupabase();
   const [data, setData] = useState<PaymentHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -186,14 +169,8 @@ function PaymentHistoryTab({ userId }: { userId: string }) {
     const load = async () => {
       setIsLoading(true);
       try {
-        const { data: payments } = await supabase
-          .from("payments")
-          .select("id, amount, status, created_at, match:match_id(title)")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        setData((payments ?? []) as PaymentHistory[]);
+        const payments = await adminFetchUserPaymentHistory(userId);
+        setData(payments as PaymentHistory[]);
       } catch (e) {
         console.error("결제 이력 조회 실패:", e);
       } finally {
@@ -201,7 +178,7 @@ function PaymentHistoryTab({ userId }: { userId: string }) {
       }
     };
     load();
-  }, [supabase, userId]);
+  }, [userId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (data.length === 0) return <EmptyState message="결제 이력이 없습니다" />;
@@ -242,7 +219,6 @@ function PaymentHistoryTab({ userId }: { userId: string }) {
 }
 
 function ReportHistoryTab({ userId }: { userId: string }) {
-  const supabase = useSupabase();
   const [data, setData] = useState<ReportHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -250,15 +226,8 @@ function ReportHistoryTab({ userId }: { userId: string }) {
     const load = async () => {
       setIsLoading(true);
       try {
-        // 이 유저가 신고당한 이력
-        const { data: reports } = await supabase
-          .from("reports")
-          .select("id, target_type, reason, status, created_at")
-          .eq("target_user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        setData((reports ?? []) as ReportHistory[]);
+        const reports = await adminFetchUserReportHistory(userId);
+        setData(reports as ReportHistory[]);
       } catch (e) {
         console.error("신고 이력 조회 실패:", e);
       } finally {
@@ -266,7 +235,7 @@ function ReportHistoryTab({ userId }: { userId: string }) {
       }
     };
     load();
-  }, [supabase, userId]);
+  }, [userId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (data.length === 0) return <EmptyState message="신고 이력이 없습니다" />;
@@ -305,7 +274,6 @@ function ReportHistoryTab({ userId }: { userId: string }) {
 }
 
 function BadticketHistoryTab({ userId }: { userId: string }) {
-  const supabase = useSupabase();
   const [data, setData] = useState<BadticketEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -313,14 +281,8 @@ function BadticketHistoryTab({ userId }: { userId: string }) {
     const load = async () => {
       setIsLoading(true);
       try {
-        const { data: events } = await supabase
-          .from("badticket_events")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(100);
-
-        setData((events ?? []) as BadticketEvent[]);
+        const events = await adminFetchUserBadticketHistory(userId);
+        setData(events as BadticketEvent[]);
       } catch (e) {
         console.error("배티켓 이력 조회 실패:", e);
       } finally {
@@ -328,7 +290,7 @@ function BadticketHistoryTab({ userId }: { userId: string }) {
       }
     };
     load();
-  }, [supabase, userId]);
+  }, [userId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (data.length === 0) return <EmptyState message="배티켓 이벤트가 없습니다" />;

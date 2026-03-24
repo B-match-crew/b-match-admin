@@ -1,23 +1,23 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { PageHeader } from "@/src/shared/ui/page-header";
 import { LoadingSpinner } from "@/src/shared/ui/loading-spinner";
 import { FinanceSummaryCards } from "@/src/features/finance-dashboard/ui/finance-summary-cards";
 import { RecentTransactions } from "@/src/features/finance-dashboard/ui/recent-transactions";
 import {
-  fetchFinanceSummary,
-  fetchRecentTransactions,
-  type FinanceSummary,
-  type RecentTransaction,
+  adminFetchFinanceSummary,
+  adminFetchRecentTransactions,
+} from "@/src/app/actions/admin-read-actions";
+import type {
+  FinanceSummary,
+  RecentTransaction,
 } from "@/src/features/finance-dashboard/api/finance-api";
 import { canWriteFinance } from "@/src/shared/lib/role-guard";
 import { Badge } from "@/components/ui/badge";
 
 export default function FinancePage() {
-  const supabase = useSupabase();
   const { role } = useAuth();
   const canWrite = canWriteFinance(role);
 
@@ -29,8 +29,8 @@ export default function FinancePage() {
     setIsLoading(true);
     try {
       const [summaryData, txData] = await Promise.all([
-        fetchFinanceSummary(supabase),
-        fetchRecentTransactions(supabase, 15),
+        adminFetchFinanceSummary(),
+        adminFetchRecentTransactions(15),
       ]);
       setSummary(summaryData);
       setTransactions(txData);
@@ -39,7 +39,7 @@ export default function FinancePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadData();

@@ -4,10 +4,8 @@ import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { useSettlementStore } from "../model/settlement-store";
-import {
-  fetchRefunds,
-  generateRefundTSV,
-} from "../api/settlement-api";
+import { generateRefundTSV } from "../api/settlement-api";
+import { adminFetchRefunds } from "@/src/app/actions/admin-read-actions";
 import { adminMarkRefundsExported, adminCompleteRefund, adminFailRefund } from "@/src/app/actions/admin-actions";
 import { canWriteFinance } from "@/src/shared/lib/role-guard";
 import type { SettlementStatus } from "@/src/entities/settlement/types";
@@ -69,7 +67,7 @@ export function RefundTable() {
   const loadRefunds = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchRefunds(supabase, {
+      const result = await adminFetchRefunds({
         status: refundStatusFilter,
         page: refundPage,
         limit: ITEMS_PER_PAGE,
@@ -80,7 +78,7 @@ export function RefundTable() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, refundStatusFilter, refundPage, setRefunds, setLoading]);
+  }, [refundStatusFilter, refundPage, setRefunds, setLoading]);
 
   useEffect(() => {
     loadRefunds();

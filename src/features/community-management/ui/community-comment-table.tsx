@@ -3,7 +3,8 @@
 import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useCommunityStore } from "../model/community-store";
-import { fetchCommunityComments, type BlindFilter } from "../api/community-api";
+import { adminFetchCommunityComments, type BlindFilter } from "@/src/app/actions/admin-read-actions";
+import type { CommunityComment } from "@/src/entities/community/types";
 import { adminBlindComment, adminUnblindComment } from "@/src/app/actions/admin-actions";
 import {
   Table,
@@ -47,18 +48,18 @@ export function CommunityCommentTable() {
   const loadComments = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchCommunityComments(supabase, {
+      const result = await adminFetchCommunityComments({
         blindFilter: commentBlindFilter,
         page: commentPage,
         limit: ITEMS_PER_PAGE,
       });
-      setComments(result.comments, result.totalCount);
+      setComments(result.comments as CommunityComment[], result.totalCount);
     } catch (error) {
       console.error("댓글 목록 로딩 실패:", error);
     } finally {
       setLoading(false);
     }
-  }, [supabase, commentBlindFilter, commentPage, setComments, setLoading]);
+  }, [commentBlindFilter, commentPage, setComments, setLoading]);
 
   useEffect(() => {
     loadComments();

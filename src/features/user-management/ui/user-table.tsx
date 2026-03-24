@@ -2,9 +2,8 @@
 
 import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useUserStore } from "../model/user-store";
-import { fetchUsers } from "../api/user-api";
+import { adminFetchUsers } from "@/src/app/actions/admin-read-actions";
 import {
   Table,
   TableBody,
@@ -23,7 +22,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const ITEMS_PER_PAGE = 20;
 
 export function UserTable() {
-  const supabase = useSupabase();
   const router = useRouter();
   const {
     users,
@@ -40,7 +38,7 @@ export function UserTable() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchUsers(supabase, {
+      const result = await adminFetchUsers({
         search: searchQuery,
         status: filters.status,
         role: filters.role,
@@ -53,7 +51,7 @@ export function UserTable() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, searchQuery, filters.status, filters.role, page, setUsers, setLoading]);
+  }, [searchQuery, filters.status, filters.role, page, setUsers, setLoading]);
 
   useEffect(() => {
     loadUsers();

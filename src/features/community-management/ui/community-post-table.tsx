@@ -3,7 +3,8 @@
 import { useEffect, useCallback } from "react";
 import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useCommunityStore } from "../model/community-store";
-import { fetchCommunityPosts, type BlindFilter } from "../api/community-api";
+import { adminFetchCommunityPosts, type BlindFilter } from "@/src/app/actions/admin-read-actions";
+import type { CommunityPost } from "@/src/entities/community/types";
 import { adminBlindPost, adminUnblindPost } from "@/src/app/actions/admin-actions";
 import {
   Table,
@@ -47,18 +48,18 @@ export function CommunityPostTable() {
   const loadPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchCommunityPosts(supabase, {
+      const result = await adminFetchCommunityPosts({
         blindFilter: postBlindFilter,
         page: postPage,
         limit: ITEMS_PER_PAGE,
       });
-      setPosts(result.posts, result.totalCount);
+      setPosts(result.posts as CommunityPost[], result.totalCount);
     } catch (error) {
       console.error("게시글 목록 로딩 실패:", error);
     } finally {
       setLoading(false);
     }
-  }, [supabase, postBlindFilter, postPage, setPosts, setLoading]);
+  }, [postBlindFilter, postPage, setPosts, setLoading]);
 
   useEffect(() => {
     loadPosts();

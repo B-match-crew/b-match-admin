@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { fetchPushHistory } from "../api/push-api";
+import { adminFetchPushHistory } from "@/src/app/actions/admin-read-actions";
 import { usePushStore } from "../model/push-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,7 +27,6 @@ const TARGET_LABELS: Record<string, string> = {
 };
 
 export function PushHistoryTable() {
-  const supabase = useSupabase();
   const { history, total, page, isLoading, setHistory, setPage, setIsLoading } =
     usePushStore();
 
@@ -36,12 +34,12 @@ export function PushHistoryTable() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetchPushHistory(supabase, page, DEFAULT_PAGE_SIZE)
+    adminFetchPushHistory(page, DEFAULT_PAGE_SIZE)
       .then(({ data, total }) => {
         setHistory(data, total);
       })
       .finally(() => setIsLoading(false));
-  }, [supabase, page, setHistory, setIsLoading]);
+  }, [page, setHistory, setIsLoading]);
 
   if (isLoading) return <LoadingSpinner />;
 

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useBatticketStore } from "../model/batticket-store";
-import { fetchBatticketUsers } from "../api/batticket-api";
+import { adminFetchBatticketUsers } from "@/src/app/actions/admin-read-actions";
 import {
   Table,
   TableBody,
@@ -38,7 +37,6 @@ interface UserRow {
 }
 
 export function BatticketUserTable() {
-  const supabase = useSupabase();
   const {
     isLoading,
     totalCount,
@@ -57,7 +55,7 @@ export function BatticketUserTable() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchBatticketUsers(supabase, {
+      const result = await adminFetchBatticketUsers({
         search: searchQuery,
         page,
         limit: ITEMS_PER_PAGE,
@@ -69,7 +67,7 @@ export function BatticketUserTable() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, searchQuery, page, setLoading, setTotalCount]);
+  }, [searchQuery, page, setLoading, setTotalCount]);
 
   useEffect(() => {
     loadUsers();

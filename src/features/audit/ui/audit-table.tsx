@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useAuditStore } from "../model/audit-store";
 import {
-  fetchAuditLogs,
   ACTION_LABELS,
   TARGET_TYPE_LABELS,
 } from "../api/audit-api";
-import type { AuditAction, AuditTargetType } from "@/src/entities/audit/types";
+import { adminFetchAuditLogs } from "@/src/app/actions/admin-read-actions";
+import type { AuditAction, AuditLog, AuditTargetType } from "@/src/entities/audit/types";
 import {
   Table,
   TableBody,
@@ -56,7 +55,6 @@ const targetTypeOptions: { value: "all" | AuditTargetType; label: string }[] = [
 ];
 
 export function AuditTable() {
-  const supabase = useSupabase();
   const {
     logs,
     isLoading,
@@ -75,19 +73,19 @@ export function AuditTable() {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchAuditLogs(supabase, {
+      const result = await adminFetchAuditLogs({
         actionType: actionFilter,
         targetType: targetFilter,
         page,
         limit: ITEMS_PER_PAGE,
       });
-      setLogs(result.logs, result.totalCount);
+      setLogs(result.logs as AuditLog[], result.totalCount);
     } catch (error) {
       console.error("감사 로그 로딩 실패:", error);
     } finally {
       setLoading(false);
     }
-  }, [supabase, actionFilter, targetFilter, page, setLogs, setLoading]);
+  }, [actionFilter, targetFilter, page, setLogs, setLoading]);
 
   useEffect(() => {
     loadLogs();

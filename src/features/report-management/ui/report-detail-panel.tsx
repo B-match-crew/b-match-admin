@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
-import { fetchReportById, fetchPastReports, type ReportDetail } from "../api/report-api";
+import { adminFetchReportById, adminFetchPastReports } from "@/src/app/actions/admin-read-actions";
 import type { Report, PastReportRecord } from "@/src/entities/report/types";
 import {
   Sheet,
@@ -38,7 +37,6 @@ export function ReportDetailPanel({
   reportId,
   onAction,
 }: ReportDetailPanelProps) {
-  const supabase = useSupabase();
   const [report, setReport] = useState<Report | null>(null);
   const [reporterInfo, setReporterInfo] = useState<{ nickname: string; real_name: string | null } | null>(null);
   const [targetContent, setTargetContent] = useState<string | null>(null);
@@ -51,19 +49,19 @@ export function ReportDetailPanel({
     const loadReport = async () => {
       setIsLoading(true);
       try {
-        const result = await fetchReportById(supabase, reportId);
-        setReport(result.report);
+        const result = await adminFetchReportById(reportId);
+        const reportData = result.report as unknown as Report;
+        setReport(reportData);
         setReporterInfo(result.reporterInfo);
         setTargetContent(result.targetContent);
 
         // 피신고자 과거 신고 이력 조회
-        if (result.report.target_user_id) {
-          const history = await fetchPastReports(
-            supabase,
-            result.report.target_user_id,
+        if (reportData.target_user_id) {
+          const history = await adminFetchPastReports(
+            reportData.target_user_id,
             reportId
           );
-          setPastReports(history);
+          setPastReports(history as PastReportRecord[]);
         } else {
           setPastReports([]);
         }
@@ -75,7 +73,7 @@ export function ReportDetailPanel({
     };
 
     loadReport();
-  }, [supabase, reportId, open]);
+  }, [reportId, open]);
 
   const targetTypeLabel: Record<string, string> = {
     POST: "게시글",

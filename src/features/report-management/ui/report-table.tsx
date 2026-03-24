@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import { useReportStore } from "../model/report-store";
-import { fetchReports } from "../api/report-api";
+import { adminFetchReports } from "@/src/app/actions/admin-read-actions";
 import type { Report, ReportStatus } from "@/src/entities/report/types";
 import {
   Table,
@@ -34,7 +33,6 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ onSelectReport }: ReportTableProps) {
-  const supabase = useSupabase();
   const {
     reports,
     isLoading,
@@ -50,18 +48,18 @@ export function ReportTable({ onSelectReport }: ReportTableProps) {
   const loadReports = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchReports(supabase, {
+      const result = await adminFetchReports({
         status: statusFilter,
         page,
         limit: ITEMS_PER_PAGE,
       });
-      setReports(result.reports, result.totalCount);
+      setReports(result.reports as Report[], result.totalCount);
     } catch (error) {
       console.error("신고 목록 로딩 실패:", error);
     } finally {
       setLoading(false);
     }
-  }, [supabase, statusFilter, page, setReports, setLoading]);
+  }, [statusFilter, page, setReports, setLoading]);
 
   useEffect(() => {
     loadReports();
