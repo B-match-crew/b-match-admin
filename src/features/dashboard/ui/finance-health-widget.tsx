@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
+import { adminFetchFinanceHealth } from "@/src/app/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet } from "lucide-react";
 import { formatCurrency } from "@/src/shared/lib/format-number";
@@ -13,50 +13,11 @@ interface FinanceHealthData {
 }
 
 export function FinanceHealthWidget() {
-  const supabase = useSupabase();
   const [data, setData] = useState<FinanceHealthData | null>(null);
 
   useEffect(() => {
-    async function fetchFinanceData() {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-
-      const [pgFeesRes, refundLossesRes, pendingEscrowRes] = await Promise.all([
-        supabase
-          .from("payments")
-          .select("pg_fee")
-          .eq("status", "PAID")
-          .gte("created_at", monthStart.toISOString()),
-        supabase
-          .from("payments")
-          .select("amount")
-          .eq("status", "REFUNDED")
-          .gte("created_at", monthStart.toISOString()),
-        supabase
-          .from("host_wallets")
-          .select("pending_amount"),
-      ]);
-
-      const monthlyPgFees = (pgFeesRes.data ?? []).reduce(
-        (sum, row) => sum + (row.pg_fee ?? 0),
-        0
-      );
-
-      const refundLosses = (refundLossesRes.data ?? []).reduce(
-        (sum, row) => sum + (row.amount ?? 0),
-        0
-      );
-
-      const pendingEscrow = (pendingEscrowRes.data ?? []).reduce(
-        (sum, row) => sum + (row.pending_amount ?? 0),
-        0
-      );
-
-      setData({ monthlyPgFees, refundLosses, pendingEscrow });
-    }
-    fetchFinanceData();
-  }, [supabase]);
+    adminFetchFinanceHealth().then(setData);
+  }, []);
 
   return (
     <Card>

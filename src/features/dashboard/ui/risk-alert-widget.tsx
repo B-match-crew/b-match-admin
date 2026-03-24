@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
+import { adminFetchRiskAlerts } from "@/src/app/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Flag, Undo2, Clock } from "lucide-react";
 
@@ -12,39 +12,11 @@ interface RiskAlertData {
 }
 
 export function RiskAlertWidget() {
-  const supabase = useSupabase();
   const [data, setData] = useState<RiskAlertData | null>(null);
 
   useEffect(() => {
-    async function fetchRiskData() {
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-
-      const [pendingReports, failedRefunds, delayedSettlements] =
-        await Promise.all([
-          supabase
-            .from("reports")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "PENDING"),
-          supabase
-            .from("payments")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "REFUND_FAILED"),
-          supabase
-            .from("settlement_requests")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "PENDING")
-            .lte("created_at", threeDaysAgo.toISOString()),
-        ]);
-
-      setData({
-        pendingReports: pendingReports.count ?? 0,
-        failedRefunds: failedRefunds.count ?? 0,
-        delayedSettlements: delayedSettlements.count ?? 0,
-      });
-    }
-    fetchRiskData();
-  }, [supabase]);
+    adminFetchRiskAlerts().then(setData);
+  }, []);
 
   const totalAlerts =
     (data?.pendingReports ?? 0) +

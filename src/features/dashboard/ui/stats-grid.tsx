@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
 import {
   getDashboardStats,
   type DashboardStats,
@@ -12,16 +11,15 @@ import { Users, UserPlus, Swords, Flag } from "lucide-react";
 import { formatNumber } from "@/src/shared/lib/format-number";
 
 export function StatsGrid() {
-  const supabase = useSupabase();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getDashboardStats(supabase).then((data) => {
+    getDashboardStats().then((data) => {
       setStats(data);
       setIsLoading(false);
     });
-  }, [supabase]);
+  }, []);
 
   if (isLoading) return <LoadingSpinner />;
   if (!stats) return null;

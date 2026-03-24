@@ -568,6 +568,157 @@ export async function adminSendPush(payload: {
   return data;
 }
 
+// ─── 대시보드 읽기 (RLS 우회) ───
+
+export async function adminFetchRiskAlerts() {
+  const supabase = createAdminClient();
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const [pendingReports, failedRefunds, delayedSettlements] =
+    await Promise.all([
+      supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "PENDING"),
+      supabase
+        .from("payments")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "REFUND_FAILED"),
+      supabase
+        .from("settlement_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "PENDING")
+        .lte("created_at", threeDaysAgo.toISOString()),
+    ]);
+
+  return {
+    pendingReports: pendingReports.count ?? 0,
+    failedRefunds: failedRefunds.count ?? 0,
+    delayedSettlements: delayedSettlements.count ?? 0,
+  };
+}
+
+export async function adminFetchFinanceHealth() {
+  const supabase = createAdminClient();
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [pgFeesRes, refundLossesRes, pendingEscrowRes] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("pg_fee")
+      .eq("status", "PAID")
+      .gte("created_at", monthStart.toISOString()),
+    supabase
+      .from("payments")
+      .select("amount")
+      .eq("status", "REFUNDED")
+      .gte("created_at", monthStart.toISOString()),
+    supabase.from("host_wallets").select("pending_balance"),
+  ]);
+
+  const monthlyPgFees = (pgFeesRes.data ?? []).reduce(
+    (sum, row) => sum + (row.pg_fee ?? 0),
+    0
+  );
+  const refundLosses = (refundLossesRes.data ?? []).reduce(
+    (sum, row) => sum + (row.amount ?? 0),
+    0
+  );
+  const pendingEscrow = (pendingEscrowRes.data ?? []).reduce(
+    (sum, row) => sum + (row.pending_balance ?? 0),
+    0
+  );
+
+  return { monthlyPgFees, refundLosses, pendingEscrow };
+}
+
+export async function adminFetchActiveMatches() {
+  const supabase = createAdminClient();
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const [todayMatches, recruitingMatches] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .gte("start_time", todayStart.toISOString())
+      .lte("start_time", todayEnd.toISOString())
+      .in("status", ["RECRUITING", "CLOSED", "IN_PROGRESS"]),
+    supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "RECRUITING"),
+  ]);
+
+  return {
+    todayMatches: todayMatches.count ?? 0,
+    recruitingMatches: recruitingMatches.count ?? 0,
+  };
+}
+
+export async function adminFetchRecentActivity() {
+  const supabase = createAdminClient();
+  const [usersRes, reportsRes] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id, nickname, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("reports")
+      .select("id, reason, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const userItems = (usersRes.data ?? []).map((u) => ({
+    id: u.id as string,
+    type: "user" as const,
+    label: `${u.nickname} 님이 가입했습니다`,
+    status: "신규 가입",
+    created_at: u.created_at as string,
+  }));
+
+  const reportItems = (reportsRes.data ?? []).map((r) => ({
+    id: r.id as string,
+    type: "report" as const,
+    label: r.reason as string,
+    status: r.status as string,
+    created_at: r.created_at as string,
+  }));
+
+  return [...userItems, ...reportItems]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    .slice(0, 10);
+}
+
+export async function adminFetchRecentReports() {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("reports")
+    .select(
+      "id, reason, status, created_at, reporter:users!reports_reporter_id_fkey(nickname)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    reason: row.reason as string,
+    status: row.status as string,
+    created_at: row.created_at as string,
+    reporter: row.reporter as { nickname: string }[] | null,
+  }));
+}
+
 // ─── 시스템 설정 ───
 
 export async function adminUpdateAppConfig(key: string, value: string) {

@@ -1,4 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+"use server";
+
+import { createAdminClient } from "@/src/shared/api/supabase-admin";
 
 export interface DashboardStats {
   totalUsers: number;
@@ -9,9 +11,9 @@ export interface DashboardStats {
   failedRefunds: number;
 }
 
-export async function getDashboardStats(
-  supabase: SupabaseClient
-): Promise<DashboardStats> {
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const supabase = createAdminClient();
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
