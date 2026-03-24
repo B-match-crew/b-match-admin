@@ -6,6 +6,21 @@ import type { SettlementStatus } from "@/src/entities/settlement/types";
 import type { ReportStatus } from "@/src/entities/report/types";
 import type { DisputeResolutionType } from "@/src/entities/report/types";
 
+// ─── 헬퍼: auth.users.id → admin_users.id 변환 ───
+
+async function resolveAdminId(
+  supabase: ReturnType<typeof createAdminClient>,
+  authUserId: string
+): Promise<string> {
+  const { data } = await supabase
+    .from("admin_users")
+    .select("id")
+    .eq("user_id", authUserId)
+    .single();
+  if (!data) throw new Error("관리자 계정을 찾을 수 없습니다");
+  return data.id;
+}
+
 // ─── 유저 관리 ───
 
 export async function adminUpdateUserStatus(
@@ -25,9 +40,10 @@ export async function adminAdjustBatticket(
   userId: string,
   delta: number,
   reason: string,
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
 
   const { error } = await supabase.from("badticket_events").insert({
     user_id: userId,
@@ -75,10 +91,11 @@ export async function adminDeleteMatching(matchId: string) {
 
 export async function adminBlindPost(
   postId: string,
-  adminId: string,
+  authUserId: string,
   reason: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("posts")
     .update({ is_blind: true })
@@ -94,8 +111,9 @@ export async function adminBlindPost(
   });
 }
 
-export async function adminUnblindPost(postId: string, adminId: string) {
+export async function adminUnblindPost(postId: string, authUserId: string) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("posts")
     .update({ is_blind: false })
@@ -113,10 +131,11 @@ export async function adminUnblindPost(postId: string, adminId: string) {
 
 export async function adminBlindComment(
   commentId: string,
-  adminId: string,
+  authUserId: string,
   reason: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("comments")
     .update({ is_blind: true })
@@ -134,9 +153,10 @@ export async function adminBlindComment(
 
 export async function adminUnblindComment(
   commentId: string,
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("comments")
     .update({ is_blind: false })
@@ -158,9 +178,10 @@ export async function adminProcessReport(
   reportId: string,
   result: "경고" | "정지" | "무혐의" | "보류",
   adminNote: string,
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
 
   const statusMap: Record<string, ReportStatus> = {
     "무혐의": "REJECTED",
@@ -194,7 +215,7 @@ export async function adminProcessReport(
 export async function adminResolveDispute(params: {
   reportId: string;
   resolutionType: DisputeResolutionType;
-  adminId: string;
+  authUserId: string;
   adminNote: string;
   refundAmount?: number;
   paymentId?: string;
@@ -204,12 +225,13 @@ export async function adminResolveDispute(params: {
   const {
     reportId,
     resolutionType,
-    adminId,
+    authUserId,
     adminNote,
     refundAmount,
     paymentId,
     settlementRequestId,
   } = params;
+  const adminId = await resolveAdminId(supabase, authUserId);
 
   switch (resolutionType) {
     case "DISMISS": {
@@ -336,9 +358,10 @@ export async function adminResolveDispute(params: {
 
 export async function adminMarkSettlementsExported(
   ids: string[],
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("settlement_requests")
     .update({ status: "EXPORTED" })
@@ -357,9 +380,10 @@ export async function adminMarkSettlementsExported(
 
 export async function adminCompleteSettlement(
   id: string,
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { data: current } = await supabase
     .from("settlement_requests")
     .select("status")
@@ -390,10 +414,11 @@ export async function adminCompleteSettlement(
 
 export async function adminFailSettlement(
   id: string,
-  adminId: string,
+  authUserId: string,
   reason: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("settlement_requests")
     .update({ status: "FAILED" })
@@ -411,9 +436,10 @@ export async function adminFailSettlement(
 
 export async function adminMarkRefundsExported(
   ids: string[],
-  adminId: string
+  authUserId: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("refund_requests")
     .update({ status: "EXPORTED" })
@@ -430,8 +456,9 @@ export async function adminMarkRefundsExported(
   });
 }
 
-export async function adminCompleteRefund(id: string, adminId: string) {
+export async function adminCompleteRefund(id: string, authUserId: string) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { data: current } = await supabase
     .from("refund_requests")
     .select("status")
@@ -462,10 +489,11 @@ export async function adminCompleteRefund(id: string, adminId: string) {
 
 export async function adminFailRefund(
   id: string,
-  adminId: string,
+  authUserId: string,
   reason: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("refund_requests")
     .update({ status: "FAILED" })
@@ -486,10 +514,11 @@ export async function adminFailRefund(
 export async function adminUpdateSettlementStatus(
   ids: string[],
   newStatus: SettlementStatus,
-  adminId: string,
+  authUserId: string,
   reason?: string
 ) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const updateData: Record<string, unknown> = {
     status: newStatus,
     updated_at: new Date().toISOString(),
@@ -522,8 +551,9 @@ export async function adminUpdateSettlementStatus(
   }
 }
 
-export async function adminRetryRefund(refundId: string, adminId: string) {
+export async function adminRetryRefund(refundId: string, authUserId: string) {
   const supabase = createAdminClient();
+  const adminId = await resolveAdminId(supabase, authUserId);
   const { error } = await supabase
     .from("refund_requests")
     .update({ status: "PENDING", updated_at: new Date().toISOString() })
