@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
+import { adminFetchRecentReports } from "@/src/app/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { formatRelativeTime } from "@/src/shared/lib/format-date";
@@ -17,23 +17,15 @@ interface ReportRow {
 }
 
 export function RecentReportsWidget() {
-  const supabase = useSupabase();
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchReports() {
-      const { data } = await supabase
-        .from("reports")
-        .select("id, reason, status, created_at, reporter:users!reports_reporter_id_fkey(nickname)")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      setReports((data as ReportRow[]) ?? []);
+    adminFetchRecentReports().then((data) => {
+      setReports(data);
       setIsLoading(false);
-    }
-    fetchReports();
-  }, [supabase]);
+    });
+  }, []);
 
   return (
     <Card>

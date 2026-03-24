@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSupabase } from "@/src/app/providers/supabase-provider";
+import { adminFetchActiveMatches } from "@/src/app/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Swords } from "lucide-react";
 import { formatNumber } from "@/src/shared/lib/format-number";
@@ -12,37 +12,11 @@ interface ActiveMatchesData {
 }
 
 export function ActiveMatchesWidget() {
-  const supabase = useSupabase();
   const [data, setData] = useState<ActiveMatchesData | null>(null);
 
   useEffect(() => {
-    async function fetchActiveMatches() {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
-
-      const [todayMatches, recruitingMatches] = await Promise.all([
-        supabase
-          .from("matches")
-          .select("id", { count: "exact", head: true })
-          .gte("start_time", todayStart.toISOString())
-          .lte("start_time", todayEnd.toISOString())
-          .in("status", ["RECRUITING", "CLOSED", "IN_PROGRESS"]),
-        supabase
-          .from("matches")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "RECRUITING"),
-      ]);
-
-      setData({
-        todayMatches: todayMatches.count ?? 0,
-        recruitingMatches: recruitingMatches.count ?? 0,
-      });
-    }
-    fetchActiveMatches();
-  }, [supabase]);
+    adminFetchActiveMatches().then(setData);
+  }, []);
 
   return (
     <Card>
