@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { navigation } from "@/src/shared/config/navigation";
 import { useAuth } from "@/src/app/providers/auth-provider";
+import { canAccessRoute } from "@/src/shared/lib/client-roles";
 import {
   Sidebar,
   SidebarContent,
@@ -14,9 +14,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Swords } from "lucide-react";
@@ -28,12 +25,6 @@ export function AppSidebar() {
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
-  };
-
-  const canAccess = (item: { roles?: string[] }) => {
-    if (!item.roles || item.roles.length === 0) return true;
-    if (!role) return false;
-    return item.roles.includes(role);
   };
 
   return (
@@ -55,7 +46,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         {navigation.map((group, groupIndex) => {
-          const visibleItems = group.items.filter(canAccess);
+          const visibleItems = group.items.filter((item) =>
+            canAccessRoute(role, item.roles)
+          );
           if (visibleItems.length === 0) return null;
 
           return (
@@ -66,39 +59,13 @@ export function AppSidebar() {
               <SidebarMenu>
                 {visibleItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    {item.children ? (
-                      <>
-                        <SidebarMenuButton
-                          className={cn(
-                            isActive(item.href) &&
-                              "bg-sidebar-accent text-sidebar-accent-foreground"
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                        <SidebarMenuSub>
-                          {item.children.filter(canAccess).map((child) => (
-                            <SidebarMenuSubItem key={child.href}>
-                              <SidebarMenuSubButton
-                                render={<Link href={child.href} />}
-                                isActive={isActive(child.href)}
-                              >
-                                {child.title}
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </>
-                    ) : (
-                      <SidebarMenuButton
-                        render={<Link href={item.href} />}
-                        isActive={isActive(item.href)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    )}
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={isActive(item.href)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

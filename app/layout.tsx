@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SupabaseProvider } from "@/src/app/providers/supabase-provider";
 import { AuthProvider } from "@/src/app/providers/auth-provider";
+import { QueryProvider } from "@/src/app/providers/query-provider";
 import { ToastProvider } from "@/src/app/providers/toast-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AdminLayout } from "@/src/app/layouts/admin-layout";
@@ -38,10 +39,12 @@ export default function RootLayout({
       >
         <SupabaseProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <AdminLayout>{children}</AdminLayout>
-            </TooltipProvider>
-            <ToastProvider />
+            <QueryProvider>
+              <TooltipProvider>
+                <AdminLayout>{children}</AdminLayout>
+              </TooltipProvider>
+              <ToastProvider />
+            </QueryProvider>
           </AuthProvider>
         </SupabaseProvider>
       </body>

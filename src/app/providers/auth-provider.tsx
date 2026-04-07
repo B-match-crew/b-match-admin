@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useSupabase } from "./supabase-provider";
 import type { User } from "@supabase/supabase-js";
-import type { AdminRole } from "@/src/entities/admin/types";
+import type { AdminRole } from "@/src/shared/types/db";
 
 interface AuthContextType {
   user: User | null;
@@ -23,13 +23,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAdminRole = async (userId: string): Promise<AdminRole | null> => {
     const { data, error } = await supabase
-      .from("admin_users")
-      .select("role")
-      .eq("user_id", userId)
+      .from("users")
+      .select("admin_role, is_deleted")
+      .eq("id", userId)
       .single();
 
-    if (error || !data) return null;
-    return data.role as AdminRole;
+    if (error || !data || data.is_deleted) return null;
+    return (data.admin_role as AdminRole | null) ?? null;
   };
 
   useEffect(() => {
@@ -37,8 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        const adminRole = await fetchAdminRole(currentUser.id);
-        setRole(adminRole);
+        setRole(await fetchAdminRole(currentUser.id));
       }
       setIsLoading(false);
     });
@@ -49,8 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        const adminRole = await fetchAdminRole(currentUser.id);
-        setRole(adminRole);
+        setRole(await fetchAdminRole(currentUser.id));
       } else {
         setRole(null);
       }
