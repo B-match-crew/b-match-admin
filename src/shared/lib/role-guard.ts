@@ -1,49 +1,45 @@
-import type { AdminRole, RolePermissions } from "@/src/entities/admin/types";
-import { ROLE_PERMISSIONS } from "@/src/entities/admin/types";
+import "server-only";
+import type { AdminRole } from "@/src/shared/types/db";
+import { createServerSupabase } from "@/src/shared/api/supabase-server";
 
 /**
- * 특정 역할이 주어진 리소스에 대해 읽기/쓰기 권한이 있는지 확인
+ * 현재 세션의 관리자 정보. Server Action / Server Component 에서 호출.
  */
-export function hasPermission(
-  role: AdminRole | null,
-  resource: keyof RolePermissions,
-  action: "read" | "write" | "forceCancel"
-): boolean {
-  if (!role) return false;
-  const permissions = ROLE_PERMISSIONS[role];
-  const resourcePerms = permissions[resource] as Record<string, boolean>;
-  return resourcePerms?.[action] ?? false;
+export interface CurrentAdmin {
+  id: string; // == auth.uid() == users.id
+  role: AdminRole;
 }
 
 /**
- * SUPER_ADMIN 여부 확인
+ * 세션 → users 테이블에서 admin_role 검증.
+ * 관리자 아니면 throw.
  */
-export function isSuperAdmin(role: AdminRole | null): boolean {
-  return role === "SUPER_ADMIN";
+export async function requireAdmin(
+  minRole: AdminRole = "MANAGER"
+): Promise<CurrentAdmin> {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("로그인이 필요합니다");
+  }
+
+  const { data: me, error } = await supabase
+    .from("users")
+    .select("admin_role, is_deleted")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !me?.admin_role || me.is_deleted) {
+    throw new Error("관리자 권한이 없습니다");
+  }
+
+  if (minRole === "SUPER_ADMIN" && me.admin_role !== "SUPER_ADMIN") {
+    throw new Error("최고 관리자 권한이 필요합니다");
+  }
+
+  return { id: user.id, role: me.admin_role as AdminRole };
 }
 
-/**
- * 재무 쓰기 권한 확인 (정산 승인/실패 처리 등)
- */
-export function canWriteFinance(role: AdminRole | null): boolean {
-  return hasPermission(role, "finance", "write");
-}
-
-/**
- * 모임 직권 취소 권한 확인
- */
-export function canForceCancelMatch(role: AdminRole | null): boolean {
-  return hasPermission(role, "matches", "forceCancel");
-}
-
-/**
- * 네비게이션 항목 표시 여부 결정 (href 기반)
- */
-export function canAccessRoute(role: AdminRole | null, href: string): boolean {
-  if (!role) return false;
-  if (role === "SUPER_ADMIN") return true;
-
-  // MANAGER 접근 불가 경로
-  const restrictedRoutes = ["/settings"];
-  return !restrictedRoutes.some((route) => href.startsWith(route));
-}

@@ -1,0 +1,194 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/src/shared/ui/status-badge";
+import { formatDate } from "@/src/shared/lib/format-date";
+import {
+  searchUsers,
+  unsuspendUserAction,
+  type UserListItem,
+} from "@/src/features/users/actions";
+import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { UserActionDialog } from "./user-action-dialog";
+
+export function UsersClient() {
+  const queryClient = useQueryClient();
+  const [term, setTerm] = useState("");
+  const [submittedTerm, setSubmittedTerm] = useState("");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [selected, setSelected] = useState<UserListItem | null>(null);
+  const [actionMode, setActionMode] = useState<"suspend" | "ban" | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["users", submittedTerm, includeDeleted],
+    queryFn: () =>
+      searchUsers({ term: submittedTerm, includeDeleted, limit: 50 }),
+  });
+
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: ["users"] });
+  };
+
+  const handleUnsuspend = async (u: UserListItem) => {
+    try {
+      await unsuspendUserAction(u.id);
+      toast.success("정지가 해제되었습니다");
+      refetch();
+    } catch (e) {
+      toast.error(toUserMessage(e));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <form
+          className="flex flex-1 gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSubmittedTerm(term);
+          }}
+        >
+          <Input
+            placeholder="실명 / 닉네임 / 전화번호 / UUID 검색"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            className="max-w-md"
+          />
+          <Button type="submit">검색</Button>
+        </form>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={includeDeleted}
+            onCheckedChange={(v) => setIncludeDeleted(v === true)}
+          />
+          탈퇴 유저 포함
+        </label>
+      </div>
+
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>닉네임</TableHead>
+              <TableHead>실명</TableHead>
+              <TableHead>전화번호</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>역할</TableHead>
+              <TableHead>가입일</TableHead>
+              <TableHead className="text-right">액션</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  불러오는 중...
+                </TableCell>
+              </TableRow>
+            )}
+            {!isLoading && (data?.length ?? 0) === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  검색 결과가 없습니다.
+                </TableCell>
+              </TableRow>
+            )}
+            {data?.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{u.nickname ?? "-"}</span>
+                    {u.is_deleted && <StatusBadge status="DELETED" />}
+                  </div>
+                </TableCell>
+                <TableCell>{u.name ?? "-"}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {u.phone_number ?? "-"}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={u.user_status} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    {u.is_host && <Badge variant="outline">호스트</Badge>}
+                    {u.admin_role && <StatusBadge status={u.admin_role} />}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatDate(u.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    {u.user_status === "ACTIVE" && !u.is_deleted && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelected(u);
+                            setActionMode("suspend");
+                          }}
+                        >
+                          정지
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            setSelected(u);
+                            setActionMode("ban");
+                          }}
+                        >
+                          차단
+                        </Button>
+                      </>
+                    )}
+                    {u.user_status === "SUSPENDED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleUnsuspend(u)}
+                      >
+                        정지 해제
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <UserActionDialog
+        user={selected}
+        mode={actionMode}
+        onClose={() => {
+          setSelected(null);
+          setActionMode(null);
+        }}
+        onDone={() => {
+          setSelected(null);
+          setActionMode(null);
+          toast.success("처리되었습니다");
+          refetch();
+        }}
+      />
+    </div>
+  );
+}
