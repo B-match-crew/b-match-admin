@@ -1,12 +1,18 @@
 /**
- * B-Match v4.6.4 스키마 타입
- * 출처: admin_db_spec.md §2~§3
+ * B-Match v4.6.11 스키마 타입
+ * 출처: admin_db_spec.md §2~§3 + admin_v4_6_11_patch.md
+ *
+ * v4.6.11 변경:
+ * - Level 에서 'S' 제거
+ * - host_profiles.min_level_required 컬럼 제거
+ * - level_distribution: 6키 (S 제거)
+ * - age_distribution: 5키 (10대 키 없음, 합산 100)
  */
 
 // ─── ENUM ───
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 export type Gender = "MALE" | "FEMALE";
-export type Level = "S" | "A" | "B" | "C" | "D" | "NOVICE" | "BEGINNER";
+export type Level = "A" | "B" | "C" | "D" | "NOVICE" | "BEGINNER";
 export type AdminRole = "SUPER_ADMIN" | "MANAGER";
 export type GenderCondition = "MALE_ONLY" | "FEMALE_ONLY" | "ALL";
 export type MatchStatus = "RECRUITING" | "CLOSED" | "ENDED";
@@ -44,17 +50,42 @@ export interface DbUser {
   updated_at: string;
 }
 
+/**
+ * 연령 분포 (v4.6.11): 5개 키, 합산 100
+ * - DB CHECK 제약: '20s' + '30s' + '40s' + '50s' + '60s_plus' = 100
+ * - 10대는 만 14세 미만 차단 정책으로 키 자체 없음
+ */
+export interface AgeDistribution {
+  "20s": number;
+  "30s": number;
+  "40s": number;
+  "50s": number;
+  "60s_plus": number;
+}
+
+/**
+ * 급수 분포 (v4.6.11): 6개 키 (S 제거)
+ */
+export interface LevelDistribution {
+  A: number;
+  B: number;
+  C: number;
+  D: number;
+  novice: number;
+  beginner: number;
+}
+
 export interface DbHostProfile {
   id: number;
   user_id: string;
   club_name: string;
   description: string | null;
   cover_image_url: string | null;
-  min_level_required: Level;
+  // v4.6.11: min_level_required 컬럼 제거됨
   gender_ratio_male: number;
   gender_ratio_female: number;
-  age_distribution: Record<string, number>;
-  level_distribution: Record<string, number>;
+  age_distribution: AgeDistribution;
+  level_distribution: LevelDistribution;
   is_deleted: boolean;
 }
 
