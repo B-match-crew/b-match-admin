@@ -24,16 +24,21 @@ interface PostgrestErrorLike {
   hint?: string;
 }
 
+/** 클라이언트에 안전하게 노출 가능한 메시지 패턴 */
+const SAFE_MESSAGE_RE =
+  /^[\uAC00-\uD7A3a-zA-Z0-9\s.,!?()가-힣\-_:;'"]{2,200}$/;
+
 export function toUserMessage(error: unknown, fallback = "처리 중 오류가 발생했습니다"): string {
   if (!error) return fallback;
   if (typeof error === "string") return error;
 
   const e = error as PostgrestErrorLike & Error;
+  // 1) 매핑된 PG 에러 코드가 있으면 한글 메시지 반환
   if (e.code && PG_ERROR_MESSAGES[e.code]) {
     return PG_ERROR_MESSAGES[e.code];
   }
-  if (e.message) {
-    // RPC raise exception 의 메시지 그대로 노출하면 곤란할 수 있어 코드 표만 우선
+  // 2) 직접 throw 한 한글 메시지만 노출 (PG stack trace, SQL 에러 차단)
+  if (e.message && SAFE_MESSAGE_RE.test(e.message) && !e.message.includes("SQL") && !e.message.includes("pg_")) {
     return e.message;
   }
   return fallback;

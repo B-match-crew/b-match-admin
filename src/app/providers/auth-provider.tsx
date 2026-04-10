@@ -59,11 +59,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) throw error;
+
+    // admin_role 사전 검증: 일반 유저는 즉시 signOut
+    if (data.user) {
+      const adminRole = await fetchAdminRole(data.user.id);
+      if (!adminRole) {
+        await supabase.auth.signOut();
+        throw new Error("관리자 권한이 없는 계정입니다");
+      }
+    }
   };
 
   const signOut = async () => {
