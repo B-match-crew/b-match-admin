@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +20,14 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,6 +35,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/src/shared/ui/empty-state";
+import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
   PUSH_NIGHT_END_HOUR,
   PUSH_NIGHT_START_HOUR,
@@ -33,6 +46,8 @@ import { toUserMessage } from "@/src/shared/lib/error-codes";
 import {
   sendPushAction,
   sendTestPushAction,
+  fetchPushHistory,
+  fetchEstimatedRecipients,
 } from "@/src/features/push/actions";
 import type { PushTarget } from "@/src/shared/api/edge";
 
@@ -51,6 +66,23 @@ function isNightTime(): boolean {
 }
 
 export function PushClient() {
+  return (
+    <Tabs defaultValue="send">
+      <TabsList>
+        <TabsTrigger value="send">발송</TabsTrigger>
+        <TabsTrigger value="history">발송 이력</TabsTrigger>
+      </TabsList>
+      <TabsContent value="send" className="mt-4">
+        <PushSendTab />
+      </TabsContent>
+      <TabsContent value="history" className="mt-4">
+        <PushHistoryTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function PushSendTab() {
   const [pending, setPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
@@ -72,6 +104,7 @@ export function PushClient() {
   });
 
   const target = form.watch("target");
+  const userIdsText = form.watch("user_ids_text");
 
   const parseUserIds = (text?: string): string[] => {
     if (!text) return [];
@@ -80,6 +113,17 @@ export function PushClient() {
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
   };
+
+  // 예상 발송 수 미리보기
+  const { data: estimatedCount } = useQuery({
+    queryKey: ["push-estimate", target, userIdsText],
+    queryFn: () =>
+      fetchEstimatedRecipients(
+        target as PushTarget,
+        parseUserIds(userIdsText)
+      ),
+    enabled: !!target,
+  });
 
   const doSend = async (values: FormValues) => {
     setPending(true);
@@ -158,6 +202,11 @@ export function PushClient() {
                   <SelectItem value="USERS">특정 유저 (UUID 입력)</SelectItem>
                 </SelectContent>
               </Select>
+              {estimatedCount !== undefined && (
+                <p className="text-xs text-muted-foreground">
+                  예상 발송 대상: 약 {estimatedCount.toLocaleString()}명
+                </p>
+              )}
             </div>
 
             {target === "USERS" && (
@@ -269,6 +318,72 @@ export function PushClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── 발송 이력 탭 ───
+
+function PushHistoryTab() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["push-history"],
+    queryFn: () => fetchPushHistory(100),
+  });
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        ADMIN_NOTICE 발송 이력 (최근 {data?.length ?? 0}건)
+      </p>
+
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[80px]">ID</TableHead>
+              <TableHead>제목</TableHead>
+              <TableHead>본문</TableHead>
+              <TableHead>발송 시각</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </>
+            )}
+            {!isLoading && (data?.length ?? 0) === 0 && (
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <EmptyState message="발송 이력이 없습니다." />
+                </TableCell>
+              </TableRow>
+            )}
+            {data?.map((n) => (
+              <TableRow key={n.id}>
+                <TableCell className="font-mono text-xs">#{n.id}</TableCell>
+                <TableCell className="font-medium">{n.title}</TableCell>
+                <TableCell>
+                  <p className="line-clamp-2 text-sm text-muted-foreground max-w-md">
+                    {n.body}
+                  </p>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatDateTime(n.created_at)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
