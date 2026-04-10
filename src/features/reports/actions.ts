@@ -35,21 +35,88 @@ export async function fetchPendingReports(): Promise<ReportRow[]> {
 
   if (error) throw error;
 
-  // 누적 카운트 집계 (target_type + target_id)
   const rows = (data ?? []) as unknown as Array<
     DbReport & { reporter: { nickname: string | null; name: string | null } | null }
   >;
-  const keyOf = (r: { target_type: string; target_id: number }) =>
-    `${r.target_type}:${r.target_id}`;
-  const counts = new Map<string, number>();
-  for (const r of rows) {
-    counts.set(keyOf(r), (counts.get(keyOf(r)) ?? 0) + 1);
+
+  // 동일 대상에 대한 전체 신고 수 서버 집계
+  const targets = [...new Set(rows.map((r) => `${r.target_type}:${r.target_id}`))];
+  const countMap = new Map<string, number>();
+
+  if (targets.length > 0) {
+    const postIds = rows.filter((r) => r.target_type === "POST").map((r) => r.target_id);
+    const commentIds = rows.filter((r) => r.target_type === "COMMENT").map((r) => r.target_id);
+
+    const [postCounts, commentCounts] = await Promise.all([
+      postIds.length > 0
+        ? supabase
+            .from("reports")
+            .select("target_id")
+            .eq("target_type", "POST")
+            .in("target_id", [...new Set(postIds)])
+        : Promise.resolve({ data: [] }),
+      commentIds.length > 0
+        ? supabase
+            .from("reports")
+            .select("target_id")
+            .eq("target_type", "COMMENT")
+            .in("target_id", [...new Set(commentIds)])
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    for (const r of postCounts.data ?? []) {
+      const key = `POST:${r.target_id}`;
+      countMap.set(key, (countMap.get(key) ?? 0) + 1);
+    }
+    for (const r of commentCounts.data ?? []) {
+      const key = `COMMENT:${r.target_id}`;
+      countMap.set(key, (countMap.get(key) ?? 0) + 1);
+    }
   }
 
   return rows.map((r) => ({
     ...r,
-    cumulative_count: counts.get(keyOf(r)) ?? 1,
+    cumulative_count: countMap.get(`${r.target_type}:${r.target_id}`) ?? 1,
   }));
+}
+
+export interface ReportHistoryParams {
+  status?: "RESOLVED" | "REJECTED" | "ALL";
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchReportHistory(
+  params: ReportHistoryParams = {}
+): Promise<{ rows: ReportRow[]; total: number }> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
+  const statusFilter = params.status ?? "ALL";
+
+  let q = supabase
+    .from("reports")
+    .select(
+      `id, reporter_id, target_type, target_id, status, created_at,
+       reporter:users!reports_reporter_id_fkey(nickname, name)`,
+      { count: "exact" }
+    )
+    .in("status", statusFilter === "ALL" ? ["RESOLVED", "REJECTED"] : [statusFilter])
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as Array<
+    DbReport & { reporter: { nickname: string | null; name: string | null } | null }
+  >;
+
+  return {
+    rows: rows.map((r) => ({ ...r, cumulative_count: 0 })),
+    total: count ?? 0,
+  };
 }
 
 export interface ReportTargetContent {
