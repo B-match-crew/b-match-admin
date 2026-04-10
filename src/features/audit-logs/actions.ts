@@ -10,6 +10,7 @@ export interface AuditLogRow extends DbAdminAuditLog {
 
 export interface AuditLogFilter {
   actionType?: string;
+  search?: string;
   limit?: number;
 }
 
@@ -31,6 +32,10 @@ export async function fetchAuditLogs(
 
   if (filter.actionType && filter.actionType !== "ALL") {
     q = q.eq("action_type", filter.actionType);
+  }
+
+  if (filter.search && filter.search.trim().length > 0) {
+    q = q.ilike("reason", `%${filter.search.trim()}%`);
   }
 
   const { data, error } = await q;

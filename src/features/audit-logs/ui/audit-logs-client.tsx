@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,9 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchAuditLogs } from "@/src/features/audit-logs/actions";
+import {
+  fetchAuditLogs,
+  type AuditLogRow,
+} from "@/src/features/audit-logs/actions";
 
 const ACTION_TYPES = [
   "ALL",
@@ -46,14 +58,19 @@ const ACTION_LABELS: Record<string, string> = {
 
 export function AuditLogsClient() {
   const [actionType, setActionType] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [selectedLog, setSelectedLog] = useState<AuditLogRow | null>(null);
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["audit-logs", actionType],
-    queryFn: () => fetchAuditLogs({ actionType, limit: 200 }),
+    queryKey: ["audit-logs", actionType, submittedSearch],
+    queryFn: () =>
+      fetchAuditLogs({ actionType, search: submittedSearch, limit: 200 }),
   });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select
           value={actionType}
           onValueChange={(v) => v && setActionType(v)}
@@ -69,6 +86,23 @@ export function AuditLogsClient() {
             ))}
           </SelectContent>
         </Select>
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSubmittedSearch(search);
+          }}
+        >
+          <Input
+            placeholder="사유 검색..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-60"
+          />
+          <Button type="submit" variant="outline" size="sm">
+            검색
+          </Button>
+        </form>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           새로고침
         </Button>
@@ -91,21 +125,31 @@ export function AuditLogsClient() {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  불러오는 중...
-                </TableCell>
-              </TableRow>
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </>
             )}
             {!isLoading && (data?.length ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  로그가 없습니다.
+                <TableCell colSpan={6}>
+                  <EmptyState message="로그가 없습니다." />
                 </TableCell>
               </TableRow>
             )}
             {data?.map((log) => (
-              <TableRow key={log.id}>
+              <TableRow
+                key={log.id}
+                className="cursor-pointer"
+                onClick={() => setSelectedLog(log)}
+              >
                 <TableCell className="font-mono text-xs">#{log.id}</TableCell>
                 <TableCell>
                   <Badge variant="outline">
@@ -144,6 +188,82 @@ export function AuditLogsClient() {
           </TableBody>
         </Table>
       </div>
+
+      <AuditLogDetailDialog
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+      />
+    </div>
+  );
+}
+
+// ─── 상세 모달 ───
+
+function AuditLogDetailDialog({
+  log,
+  onClose,
+}: {
+  log: AuditLogRow | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={!!log} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>감사 로그 #{log?.id}</DialogTitle>
+        </DialogHeader>
+
+        {log && (
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3">
+              <Info label="액션">
+                <Badge variant="outline">
+                  {ACTION_LABELS[log.action_type] ?? log.action_type}
+                </Badge>
+              </Info>
+              <Info label="관리자">
+                {log.admin?.nickname ?? log.admin?.name ?? log.admin_id}
+              </Info>
+              <Info label="대상 타입">{log.target_type ?? "-"}</Info>
+              <Info label="대상 ID">{log.target_id ?? "-"}</Info>
+              <Info label="시각">{formatDateTime(log.created_at)}</Info>
+            </div>
+
+            {log.reason && (
+              <div className="rounded-lg border p-3 space-y-1">
+                <h4 className="font-medium">사유</h4>
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {log.reason}
+                </p>
+              </div>
+            )}
+
+            {log.detail && Object.keys(log.detail).length > 0 && (
+              <div className="rounded-lg border p-3 space-y-1">
+                <h4 className="font-medium">상세 (detail)</h4>
+                <pre className="whitespace-pre-wrap text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-64">
+                  {JSON.stringify(log.detail, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Info({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="mt-0.5">{children}</div>
     </div>
   );
 }
