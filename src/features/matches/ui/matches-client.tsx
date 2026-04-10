@@ -49,6 +49,7 @@ import {
   fetchBlindedPosts,
   deleteMatchAction,
   unblindPostAction,
+  softDeletePostAction,
   type MatchListItem,
   type MatchDetail,
   type BlindedPostItem,
@@ -500,8 +501,10 @@ function DeleteMatchDialog({
 // ─── 블라인드 게시글 탭 ───
 
 function BlindedPostsTab() {
+  const { role } = useAuth();
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<BlindedPostItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BlindedPostItem | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["blinded-posts"],
@@ -570,13 +573,24 @@ function BlindedPostsTab() {
                   {formatDateTime(p.created_at)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setTarget(p)}
-                  >
-                    블라인드 해제
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setTarget(p)}
+                    >
+                      블라인드 해제
+                    </Button>
+                    {role === "SUPER_ADMIN" && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setDeleteTarget(p)}
+                      >
+                        영구 삭제
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -593,7 +607,82 @@ function BlindedPostsTab() {
           refetch();
         }}
       />
+
+      <SoftDeletePostDialog
+        post={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDone={() => {
+          setDeleteTarget(null);
+          toast.success("게시글이 영구 삭제되었습니다");
+          refetch();
+        }}
+      />
     </div>
+  );
+}
+
+function SoftDeletePostDialog({
+  post,
+  onClose,
+  onDone,
+}: {
+  post: BlindedPostItem | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const form = useForm<ReasonForm>({
+    resolver: zodResolver(reasonSchema),
+    defaultValues: { reason: "" },
+  });
+
+  const onSubmit = async (v: ReasonForm) => {
+    if (!post) return;
+    try {
+      await softDeletePostAction({ postId: post.id, reason: v.reason });
+      onDone();
+      form.reset();
+    } catch (e) {
+      toast.error(toUserMessage(e));
+    }
+  };
+
+  return (
+    <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>게시글 영구 삭제</DialogTitle>
+          <DialogDescription>
+            #{post?.id} {post?.title}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <div className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs text-destructive">
+            ⚠ 삭제된 게시글은 복구할 수 없습니다. 연관 댓글도 함께 삭제됩니다.
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sd-reason">삭제 사유 (10자 이상)</Label>
+            <Textarea id="sd-reason" rows={3} {...form.register("reason")} />
+            {form.formState.errors.reason && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.reason.message}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={form.formState.isSubmitting}
+            >
+              영구 삭제
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

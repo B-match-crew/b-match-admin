@@ -119,6 +119,30 @@ export async function deleteMatchAction(p: { matchId: number; reason: string }) 
   revalidatePath("/matches");
 }
 
+export async function softDeletePostAction(p: { postId: number; reason: string }) {
+  if (p.reason.trim().length < REASON_MIN_LENGTH) {
+    throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
+  }
+  const admin = await requireAdmin("SUPER_ADMIN");
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_deleted: true })
+    .eq("id", p.postId);
+  if (error) throw error;
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: admin.id,
+    action_type: "DELETE_POST",
+    target_type: "POST",
+    target_id: String(p.postId),
+    reason: p.reason,
+  });
+
+  revalidatePath("/matches");
+}
+
 export async function unblindPostAction(p: { postId: number; reason: string }) {
   if (p.reason.trim().length < REASON_MIN_LENGTH) {
     throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
