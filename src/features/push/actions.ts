@@ -1,5 +1,6 @@
 "use server";
 
+import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { createServerSupabase } from "@/src/shared/api/supabase-server";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 import { callSendPush, type PushTarget } from "@/src/shared/api/edge";
@@ -56,4 +57,68 @@ export async function sendTestPushAction(input: {
     deeplink_route: "/",
     deeplink_params: {},
   });
+}
+
+// ─── 발송 이력 ───
+
+export interface PushHistoryRow {
+  id: number;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+export async function fetchPushHistory(limit = 50): Promise<PushHistoryRow[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, title, body, created_at")
+    .eq("type", "ADMIN_NOTICE")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as PushHistoryRow[];
+}
+
+// ─── 예상 발송 수 ───
+
+export async function fetchEstimatedRecipients(
+  target: PushTarget,
+  userIds?: string[]
+): Promise<number> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  if (target === "USERS") {
+    return userIds?.length ?? 0;
+  }
+
+  let q = supabase
+    .from("fcm_tokens")
+    .select("user_id", { count: "exact", head: true });
+
+  if (target === "HOSTS") {
+    // fcm_tokens 테이블에서 호스트인 유저 토큰만 카운트
+    const { data: hosts } = await supabase
+      .from("users")
+      .select("id")
+      .eq("is_host", true)
+      .eq("is_deleted", false);
+    const hostIds = (hosts ?? []).map((h) => h.id);
+    if (hostIds.length === 0) return 0;
+    q = q.in("user_id", hostIds);
+  } else if (target === "GUESTS") {
+    const { data: guests } = await supabase
+      .from("users")
+      .select("id")
+      .eq("is_host", false)
+      .eq("is_deleted", false);
+    const guestIds = (guests ?? []).map((g) => g.id);
+    if (guestIds.length === 0) return 0;
+    q = q.in("user_id", guestIds);
+  }
+
+  const { count } = await q;
+  return count ?? 0;
 }

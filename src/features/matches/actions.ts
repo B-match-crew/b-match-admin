@@ -27,6 +27,8 @@ export interface MatchSearchParams {
   status?: MatchStatus | "ALL";
   includeDeleted?: boolean;
   limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export async function fetchMatches(
@@ -51,11 +53,39 @@ export async function fetchMatches(
   if (!params.includeDeleted) {
     q = q.eq("is_deleted", false);
   }
+  if (params.dateFrom) {
+    q = q.gte("start_time", params.dateFrom);
+  }
+  if (params.dateTo) {
+    q = q.lte("start_time", params.dateTo);
+  }
 
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as MatchListItem[];
 }
+
+// ─── 매칭 상세 ───
+
+export type MatchDetail = DbMatch & {
+  host: Pick<DbUser, "id" | "nickname" | "name"> | null;
+};
+
+export async function fetchMatchDetail(matchId: number): Promise<MatchDetail> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("matches")
+    .select(
+      `*, host:users!matches_host_id_fkey(id, nickname, name)`
+    )
+    .eq("id", matchId)
+    .single();
+  if (error) throw error;
+  return data as unknown as MatchDetail;
+}
+
+// ─── 블라인드 게시글 ───
 
 export interface BlindedPostItem
   extends Pick<DbPost, "id" | "title" | "content" | "is_blind" | "created_at"> {
@@ -86,6 +116,30 @@ export async function deleteMatchAction(p: { matchId: number; reason: string }) 
   }
   await requireAdmin("SUPER_ADMIN");
   await rpcDeleteMatch({ matchId: p.matchId, reason: p.reason });
+  revalidatePath("/matches");
+}
+
+export async function softDeletePostAction(p: { postId: number; reason: string }) {
+  if (p.reason.trim().length < REASON_MIN_LENGTH) {
+    throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
+  }
+  const admin = await requireAdmin("SUPER_ADMIN");
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_deleted: true })
+    .eq("id", p.postId);
+  if (error) throw error;
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: admin.id,
+    action_type: "DELETE_POST",
+    target_type: "POST",
+    target_id: String(p.postId),
+    reason: p.reason,
+  });
+
   revalidatePath("/matches");
 }
 

@@ -7,6 +7,7 @@ import {
   rpcSuspendUser,
   rpcBanUser,
   rpcUnblindPost,
+  rpcUnblindComment,
 } from "@/src/shared/api/rpc";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import type { DbReport, DbPost, DbComment, DbUser } from "@/src/shared/types/db";
@@ -35,21 +36,75 @@ export async function fetchPendingReports(): Promise<ReportRow[]> {
 
   if (error) throw error;
 
-  // 누적 카운트 집계 (target_type + target_id)
   const rows = (data ?? []) as unknown as Array<
     DbReport & { reporter: { nickname: string | null; name: string | null } | null }
   >;
-  const keyOf = (r: { target_type: string; target_id: number }) =>
-    `${r.target_type}:${r.target_id}`;
-  const counts = new Map<string, number>();
-  for (const r of rows) {
-    counts.set(keyOf(r), (counts.get(keyOf(r)) ?? 0) + 1);
+
+  // report_target_summary 뷰로 누적 카운트 집계 (07_admin_enhancements.sql 실행 필요)
+  const targets = [...new Set(rows.map((r) => `${r.target_type}:${r.target_id}`))];
+  const countMap = new Map<string, number>();
+
+  if (targets.length > 0) {
+    const { data: summaries } = await supabase
+      .from("report_target_summary")
+      .select("target_type, target_id, total_count")
+      .or(
+        targets
+          .map((t) => {
+            const [type, id] = t.split(":");
+            return `and(target_type.eq.${type},target_id.eq.${id})`;
+          })
+          .join(",")
+      );
+
+    for (const s of summaries ?? []) {
+      countMap.set(`${s.target_type}:${s.target_id}`, s.total_count);
+    }
   }
 
   return rows.map((r) => ({
     ...r,
-    cumulative_count: counts.get(keyOf(r)) ?? 1,
+    cumulative_count: countMap.get(`${r.target_type}:${r.target_id}`) ?? 1,
   }));
+}
+
+export interface ReportHistoryParams {
+  status?: "RESOLVED" | "REJECTED" | "ALL";
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchReportHistory(
+  params: ReportHistoryParams = {}
+): Promise<{ rows: ReportRow[]; total: number }> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
+  const statusFilter = params.status ?? "ALL";
+
+  let q = supabase
+    .from("reports")
+    .select(
+      `id, reporter_id, target_type, target_id, status, created_at,
+       reporter:users!reports_reporter_id_fkey(nickname, name)`,
+      { count: "exact" }
+    )
+    .in("status", statusFilter === "ALL" ? ["RESOLVED", "REJECTED"] : [statusFilter])
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data, error, count } = await q;
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as Array<
+    DbReport & { reporter: { nickname: string | null; name: string | null } | null }
+  >;
+
+  return {
+    rows: rows.map((r) => ({ ...r, cumulative_count: 0 })),
+    total: count ?? 0,
+  };
 }
 
 export interface ReportTargetContent {
@@ -146,5 +201,17 @@ export async function unblindReportedPost(p: {
   }
   await requireAdmin("MANAGER");
   await rpcUnblindPost({ postId: p.postId, reason: p.reason });
+  revalidatePath("/reports");
+}
+
+export async function unblindReportedComment(p: {
+  commentId: number;
+  reason: string;
+}) {
+  if (p.reason.trim().length < REASON_MIN_LENGTH) {
+    throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
+  }
+  await requireAdmin("MANAGER");
+  await rpcUnblindComment({ commentId: p.commentId, reason: p.reason });
   revalidatePath("/reports");
 }

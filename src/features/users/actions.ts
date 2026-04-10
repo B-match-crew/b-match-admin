@@ -11,6 +11,12 @@ export interface UserSearchParams {
   term?: string;
   includeDeleted?: boolean;
   limit?: number;
+  offset?: number;
+}
+
+export interface UserSearchResult {
+  rows: UserListItem[];
+  total: number;
 }
 
 export type UserListItem = Pick<
@@ -33,19 +39,21 @@ const PHONE_RE = /^[0-9-]+$/;
 
 export async function searchUsers(
   params: UserSearchParams
-): Promise<UserListItem[]> {
+): Promise<UserSearchResult> {
   await requireAdmin();
   const supabase = createAdminClient();
   const term = params.term?.trim() ?? "";
   const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
 
   let q = supabase
     .from("users")
     .select(
-      "id, name, nickname, phone_number, user_status, is_host, admin_role, is_deleted, suspended_until, suspended_reason, created_at"
+      "id, name, nickname, phone_number, user_status, is_host, admin_role, is_deleted, suspended_until, suspended_reason, created_at",
+      { count: "exact" }
     )
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (!params.includeDeleted) {
     q = q.eq("is_deleted", false);
@@ -61,9 +69,9 @@ export async function searchUsers(
     }
   }
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) throw error;
-  return (data ?? []) as UserListItem[];
+  return { rows: (data ?? []) as UserListItem[], total: count ?? 0 };
 }
 
 export async function getUserReportCount(userId: string): Promise<number> {
@@ -100,6 +108,43 @@ export async function getUserReportCount(userId: string): Promise<number> {
     total += count ?? 0;
   }
   return total;
+}
+
+// ─── 상세 조회 ───
+
+export interface UserDetail {
+  user: DbUser;
+  reportCount: number;
+  auditHistory: Array<{
+    action_type: string;
+    reason: string | null;
+    created_at: string;
+  }>;
+}
+
+export async function fetchUserDetail(userId: string): Promise<UserDetail> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const [userRes, reportCount, auditRes] = await Promise.all([
+    supabase.from("users").select("*").eq("id", userId).single(),
+    getUserReportCount(userId),
+    supabase
+      .from("admin_audit_logs")
+      .select("action_type, reason, created_at")
+      .eq("target_type", "USER")
+      .eq("target_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+
+  if (userRes.error) throw userRes.error;
+
+  return {
+    user: userRes.data as DbUser,
+    reportCount,
+    auditHistory: (auditRes.data ?? []) as UserDetail["auditHistory"],
+  };
 }
 
 // ─── 액션 ───

@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
+import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDate } from "@/src/shared/lib/format-date";
 import {
   searchUsers,
@@ -24,20 +26,33 @@ import {
 } from "@/src/features/users/actions";
 import { toUserMessage } from "@/src/shared/lib/error-codes";
 import { UserActionDialog } from "./user-action-dialog";
+import { UserDetailDialog } from "./user-detail-dialog";
+import { downloadCsv } from "@/src/shared/lib/csv-export";
+
+const PAGE_SIZE = 50;
 
 export function UsersClient() {
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
   const [submittedTerm, setSubmittedTerm] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<UserListItem | null>(null);
   const [actionMode, setActionMode] = useState<"suspend" | "ban" | null>(null);
+  const [detailUser, setDetailUser] = useState<UserListItem | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["users", submittedTerm, includeDeleted],
+    queryKey: ["users", submittedTerm, includeDeleted, page],
     queryFn: () =>
-      searchUsers({ term: submittedTerm, includeDeleted, limit: 50 }),
+      searchUsers({
+        term: submittedTerm,
+        includeDeleted,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      }),
   });
+
+  const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
 
   const refetch = () => {
     queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -61,6 +76,7 @@ export function UsersClient() {
           onSubmit={(e) => {
             e.preventDefault();
             setSubmittedTerm(term);
+            setPage(0);
           }}
         >
           <Input
@@ -74,10 +90,43 @@ export function UsersClient() {
         <label className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={includeDeleted}
-            onCheckedChange={(v) => setIncludeDeleted(v === true)}
+            onCheckedChange={(v) => {
+              setIncludeDeleted(v === true);
+              setPage(0);
+            }}
           />
           탈퇴 유저 포함
         </label>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          총 {data?.total ?? 0}명
+        </p>
+        {data && data.rows.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              downloadCsv(
+                `users_${new Date().toISOString().slice(0, 10)}.csv`,
+                ["ID", "닉네임", "실명", "전화번호", "상태", "호스트", "역할", "가입일"],
+                data.rows.map((u) => [
+                  u.id,
+                  u.nickname ?? "",
+                  u.name ?? "",
+                  u.phone_number ?? "",
+                  u.user_status,
+                  u.is_host ? "Y" : "N",
+                  u.admin_role ?? "",
+                  u.created_at,
+                ])
+              );
+            }}
+          >
+            CSV 다운로드
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border">
@@ -95,21 +144,31 @@ export function UsersClient() {
           </TableHeader>
           <TableBody>
             {isLoading && (
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </>
+            )}
+            {!isLoading && (data?.rows.length ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  불러오는 중...
+                <TableCell colSpan={7}>
+                  <EmptyState message="검색 결과가 없습니다." />
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && (data?.length ?? 0) === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  검색 결과가 없습니다.
-                </TableCell>
-              </TableRow>
-            )}
-            {data?.map((u) => (
-              <TableRow key={u.id}>
+            {data?.rows.map((u) => (
+              <TableRow
+                key={u.id}
+                className="cursor-pointer"
+                onClick={() => setDetailUser(u)}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{u.nickname ?? "-"}</span>
@@ -133,7 +192,10 @@ export function UsersClient() {
                   {formatDate(u.created_at)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
+                  <div
+                    className="flex justify-end gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {u.user_status === "ACTIVE" && !u.is_deleted && (
                       <>
                         <Button
@@ -174,6 +236,35 @@ export function UsersClient() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            이전
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {page + 1} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            다음
+          </Button>
+        </div>
+      )}
+
+      <UserDetailDialog
+        user={detailUser}
+        onClose={() => setDetailUser(null)}
+      />
 
       <UserActionDialog
         user={selected}

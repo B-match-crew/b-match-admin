@@ -69,3 +69,17 @@ export async function rpcUnblindPost(p: UnblindPostParams) {
   });
   if (error) throw error;
 }
+
+export interface UnblindCommentParams {
+  commentId: number;
+  reason: string;
+}
+
+export async function rpcUnblindComment(p: UnblindCommentParams) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("fn_admin_unblind_comment", {
+    p_comment_id: p.commentId,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+}
