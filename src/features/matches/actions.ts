@@ -27,6 +27,8 @@ export interface MatchSearchParams {
   status?: MatchStatus | "ALL";
   includeDeleted?: boolean;
   limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export async function fetchMatches(
@@ -51,11 +53,39 @@ export async function fetchMatches(
   if (!params.includeDeleted) {
     q = q.eq("is_deleted", false);
   }
+  if (params.dateFrom) {
+    q = q.gte("start_time", params.dateFrom);
+  }
+  if (params.dateTo) {
+    q = q.lte("start_time", params.dateTo);
+  }
 
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as MatchListItem[];
 }
+
+// ─── 매칭 상세 ───
+
+export type MatchDetail = DbMatch & {
+  host: Pick<DbUser, "id" | "nickname" | "name"> | null;
+};
+
+export async function fetchMatchDetail(matchId: number): Promise<MatchDetail> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("matches")
+    .select(
+      `*, host:users!matches_host_id_fkey(id, nickname, name)`
+    )
+    .eq("id", matchId)
+    .single();
+  if (error) throw error;
+  return data as unknown as MatchDetail;
+}
+
+// ─── 블라인드 게시글 ───
 
 export interface BlindedPostItem
   extends Pick<DbPost, "id" | "title" | "content" | "is_blind" | "created_at"> {
