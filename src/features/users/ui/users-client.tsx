@@ -27,6 +27,7 @@ import {
 import { toUserMessage } from "@/src/shared/lib/error-codes";
 import { UserActionDialog } from "./user-action-dialog";
 import { UserDetailDialog } from "./user-detail-dialog";
+import { downloadCsv } from "@/src/shared/lib/csv-export";
 
 const PAGE_SIZE = 50;
 
@@ -102,6 +103,30 @@ export function UsersClient() {
         <p className="text-sm text-muted-foreground">
           총 {data?.total ?? 0}명
         </p>
+        {data && data.rows.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              downloadCsv(
+                `users_${new Date().toISOString().slice(0, 10)}.csv`,
+                ["ID", "닉네임", "실명", "전화번호", "상태", "호스트", "역할", "가입일"],
+                data.rows.map((u) => [
+                  u.id,
+                  u.nickname ?? "",
+                  u.name ?? "",
+                  u.phone_number ?? "",
+                  u.user_status,
+                  u.is_host ? "Y" : "N",
+                  u.admin_role ?? "",
+                  u.created_at,
+                ])
+              );
+            }}
+          >
+            CSV 다운로드
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border">

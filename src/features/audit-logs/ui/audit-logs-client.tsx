@@ -33,6 +33,7 @@ import {
   fetchAuditLogs,
   type AuditLogRow,
 } from "@/src/features/audit-logs/actions";
+import { downloadCsv } from "@/src/shared/lib/csv-export";
 
 const ACTION_TYPES = [
   "ALL",
@@ -106,6 +107,29 @@ export function AuditLogsClient() {
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           새로고침
         </Button>
+        {data && data.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              downloadCsv(
+                `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`,
+                ["ID", "액션", "관리자", "대상 타입", "대상 ID", "사유", "시각"],
+                data.map((l) => [
+                  String(l.id),
+                  ACTION_LABELS[l.action_type] ?? l.action_type,
+                  l.admin?.nickname ?? l.admin?.name ?? l.admin_id,
+                  l.target_type ?? "",
+                  l.target_id ?? "",
+                  l.reason ?? "",
+                  l.created_at,
+                ])
+              );
+            }}
+          >
+            CSV 다운로드
+          </Button>
+        )}
         <p className="ml-auto text-sm text-muted-foreground">
           최근 {data?.length ?? 0}건
         </p>
