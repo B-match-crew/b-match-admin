@@ -7,6 +7,7 @@ import {
   rpcSuspendUser,
   rpcBanUser,
   rpcUnblindPost,
+  rpcUnblindComment,
 } from "@/src/shared/api/rpc";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import type { DbReport, DbPost, DbComment, DbUser } from "@/src/shared/types/db";
@@ -39,38 +40,25 @@ export async function fetchPendingReports(): Promise<ReportRow[]> {
     DbReport & { reporter: { nickname: string | null; name: string | null } | null }
   >;
 
-  // 동일 대상에 대한 전체 신고 수 서버 집계
+  // report_target_summary 뷰로 누적 카운트 집계 (07_admin_enhancements.sql 실행 필요)
   const targets = [...new Set(rows.map((r) => `${r.target_type}:${r.target_id}`))];
   const countMap = new Map<string, number>();
 
   if (targets.length > 0) {
-    const postIds = rows.filter((r) => r.target_type === "POST").map((r) => r.target_id);
-    const commentIds = rows.filter((r) => r.target_type === "COMMENT").map((r) => r.target_id);
+    const { data: summaries } = await supabase
+      .from("report_target_summary")
+      .select("target_type, target_id, total_count")
+      .or(
+        targets
+          .map((t) => {
+            const [type, id] = t.split(":");
+            return `and(target_type.eq.${type},target_id.eq.${id})`;
+          })
+          .join(",")
+      );
 
-    const [postCounts, commentCounts] = await Promise.all([
-      postIds.length > 0
-        ? supabase
-            .from("reports")
-            .select("target_id")
-            .eq("target_type", "POST")
-            .in("target_id", [...new Set(postIds)])
-        : Promise.resolve({ data: [] }),
-      commentIds.length > 0
-        ? supabase
-            .from("reports")
-            .select("target_id")
-            .eq("target_type", "COMMENT")
-            .in("target_id", [...new Set(commentIds)])
-        : Promise.resolve({ data: [] }),
-    ]);
-
-    for (const r of postCounts.data ?? []) {
-      const key = `POST:${r.target_id}`;
-      countMap.set(key, (countMap.get(key) ?? 0) + 1);
-    }
-    for (const r of commentCounts.data ?? []) {
-      const key = `COMMENT:${r.target_id}`;
-      countMap.set(key, (countMap.get(key) ?? 0) + 1);
+    for (const s of summaries ?? []) {
+      countMap.set(`${s.target_type}:${s.target_id}`, s.total_count);
     }
   }
 
@@ -213,5 +201,17 @@ export async function unblindReportedPost(p: {
   }
   await requireAdmin("MANAGER");
   await rpcUnblindPost({ postId: p.postId, reason: p.reason });
+  revalidatePath("/reports");
+}
+
+export async function unblindReportedComment(p: {
+  commentId: number;
+  reason: string;
+}) {
+  if (p.reason.trim().length < REASON_MIN_LENGTH) {
+    throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
+  }
+  await requireAdmin("MANAGER");
+  await rpcUnblindComment({ commentId: p.commentId, reason: p.reason });
   revalidatePath("/reports");
 }

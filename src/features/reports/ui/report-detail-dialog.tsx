@@ -30,6 +30,7 @@ import {
   suspendReportedUser,
   banReportedUser,
   unblindReportedPost,
+  unblindReportedComment,
   type ReportRow,
   type ReportTargetContent,
 } from "@/src/features/reports/actions";
@@ -123,9 +124,10 @@ export function ReportDetailDialog({ report, onClose, onResolved }: Props) {
                     onDone={onResolved}
                   />
                 ) : (
-                  <p className="p-3 text-sm text-muted-foreground">
-                    댓글 블라인드 해제는 v4.6.4 RPC에서 지원하지 않습니다.
-                  </p>
+                  <UnblindCommentPanel
+                    commentId={report.target_id}
+                    onDone={onResolved}
+                  />
                 )}
               </TabsContent>
               <TabsContent value="suspend">
@@ -242,6 +244,44 @@ function RejectPanel({ reportId, onDone }: { reportId: number; onDone: () => voi
         반려 처리
       </Button>
     </div>
+  );
+}
+
+function UnblindCommentPanel({ commentId, onDone }: { commentId: number; onDone: () => void }) {
+  const form = useForm<ReasonOnlyForm>({
+    resolver: zodResolver(reasonOnlySchema),
+    defaultValues: { reason: "" },
+  });
+
+  const onSubmit = async (v: ReasonOnlyForm) => {
+    try {
+      await unblindReportedComment({ commentId, reason: v.reason });
+      onDone();
+    } catch (e) {
+      toast.error(toUserMessage(e));
+    }
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 p-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="unblind-comment-reason">해제 사유 (10자 이상)</Label>
+        <Textarea
+          id="unblind-comment-reason"
+          rows={3}
+          placeholder="예: 오인 신고 판명, 정상 댓글 확인 완료"
+          {...form.register("reason")}
+        />
+        {form.formState.errors.reason && (
+          <p className="text-xs text-destructive">
+            {form.formState.errors.reason.message}
+          </p>
+        )}
+      </div>
+      <Button type="submit" disabled={form.formState.isSubmitting}>
+        댓글 블라인드 해제
+      </Button>
+    </form>
   );
 }
 
