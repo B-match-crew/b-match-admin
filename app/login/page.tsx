@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,6 @@ import { Swords } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,11 +19,10 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signIn(email, password);
-      router.refresh();
-      router.push("/");
+      // 쿠키가 완전히 세팅된 후 전체 리로드로 proxy가 인증을 확인하도록
+      window.location.href = "/";
     } catch {
       toast.error("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
-    } finally {
       setIsLoading(false);
     }
   };

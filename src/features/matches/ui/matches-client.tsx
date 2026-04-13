@@ -54,7 +54,7 @@ import {
   type MatchDetail,
   type BlindedPostItem,
 } from "@/src/features/matches/actions";
-import type { MatchStatus } from "@/src/shared/types/db";
+import { normalizeFeeConfig, type MatchStatus } from "@/src/shared/types/db";
 
 const reasonSchema = z.object({
   reason: z
@@ -340,32 +340,37 @@ function MatchDetailDialog({
             </div>
 
             {/* 비용 정보 */}
-            <div className="rounded-lg border p-3 space-y-2">
-              <h4 className="font-medium">비용 정보</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <Info label="참가비 유형">{data.fee_config.fee.type}</Info>
-                {data.fee_config.fee.cash_male != null && (
-                  <Info label="참가비 (남)">
-                    {data.fee_config.fee.cash_male?.toLocaleString()}원
-                  </Info>
-                )}
-                {data.fee_config.fee.cash_female != null && (
-                  <Info label="참가비 (여)">
-                    {data.fee_config.fee.cash_female?.toLocaleString()}원
-                  </Info>
-                )}
-                <Info label="시설 이용료">
-                  {data.fee_config.facility_fee.enabled
-                    ? `${data.fee_config.facility_fee.amount?.toLocaleString()}원`
-                    : "없음"}
-                </Info>
-                {data.fee_config.designated_cock.brand && (
-                  <Info label="지정구 브랜드">
-                    {data.fee_config.designated_cock.brand}
-                  </Info>
-                )}
-              </div>
-            </div>
+            {(() => {
+              const fc = normalizeFeeConfig(data.fee_config);
+              return (
+                <div className="rounded-lg border p-3 space-y-2">
+                  <h4 className="font-medium">비용 정보</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <Info label="참가비 유형">{fc.fee.type}</Info>
+                    {fc.fee.cash_male != null && (
+                      <Info label="참가비 (남)">
+                        {fc.fee.cash_male?.toLocaleString()}원
+                      </Info>
+                    )}
+                    {fc.fee.cash_female != null && (
+                      <Info label="참가비 (여)">
+                        {fc.fee.cash_female?.toLocaleString()}원
+                      </Info>
+                    )}
+                    <Info label="시설 이용료">
+                      {fc.facilityFee.enabled
+                        ? `${fc.facilityFee.amount?.toLocaleString()}원`
+                        : "없음"}
+                    </Info>
+                    {fc.designatedCock.brand && (
+                      <Info label="지정구 브랜드">
+                        {fc.designatedCock.brand}
+                      </Info>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* 편의시설 */}
             <div className="rounded-lg border p-3 space-y-2">
