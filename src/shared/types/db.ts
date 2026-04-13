@@ -89,6 +89,7 @@ export interface DbHostProfile {
   is_deleted: boolean;
 }
 
+/** fee_config JSON — 앱(Flutter)에서 camelCase로 저장, spec은 snake_case */
 export interface FeeConfig {
   fee: {
     type: "NONE" | "CASH" | "COCK" | "CASH_COCK";
@@ -97,15 +98,36 @@ export interface FeeConfig {
     cock_male?: number;
     cock_female?: number;
   };
-  facility_fee: {
+  // snake_case (spec)
+  facility_fee?: {
     enabled: boolean;
     amount?: number;
     payment?: "ON_SITE";
   };
-  designated_cock: {
+  designated_cock?: {
     brand?: string;
     retail_enabled: boolean;
     retail_price?: number;
+  };
+  // camelCase (앱 실제 저장)
+  facilityFee?: {
+    enabled: boolean;
+    amount?: number;
+    payment?: "ON_SITE";
+  };
+  designatedCock?: {
+    brand?: string;
+    retail_enabled?: boolean;
+    retail_price?: number;
+  };
+}
+
+/** fee_config에서 camelCase / snake_case 키 모두 안전하게 접근 */
+export function normalizeFeeConfig(fc: FeeConfig) {
+  return {
+    fee: fc.fee ?? { type: "NONE" as const },
+    facilityFee: fc.facility_fee ?? fc.facilityFee ?? { enabled: false },
+    designatedCock: fc.designated_cock ?? fc.designatedCock ?? { retail_enabled: false },
   };
 }
 
