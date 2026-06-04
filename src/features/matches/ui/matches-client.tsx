@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -46,13 +45,8 @@ import { toUserMessage } from "@/src/shared/lib/error-codes";
 import {
   fetchMatches,
   fetchMatchDetail,
-  fetchBlindedPosts,
   deleteMatchAction,
-  unblindPostAction,
-  softDeletePostAction,
   type MatchListItem,
-  type MatchDetail,
-  type BlindedPostItem,
 } from "@/src/features/matches/actions";
 import { normalizeFeeConfig, type MatchStatus } from "@/src/shared/types/db";
 
@@ -66,20 +60,7 @@ const reasonSchema = z.object({
 type ReasonForm = z.infer<typeof reasonSchema>;
 
 export function MatchesClient() {
-  return (
-    <Tabs defaultValue="matches">
-      <TabsList>
-        <TabsTrigger value="matches">매칭</TabsTrigger>
-        <TabsTrigger value="blinded">블라인드 게시글</TabsTrigger>
-      </TabsList>
-      <TabsContent value="matches" className="mt-4">
-        <MatchesTab />
-      </TabsContent>
-      <TabsContent value="blinded" className="mt-4">
-        <BlindedPostsTab />
-      </TabsContent>
-    </Tabs>
-  );
+  return <MatchesTab />;
 }
 
 // ─── 매칭 탭 ───
@@ -213,7 +194,7 @@ function MatchesTab() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{m.title}</span>
-                    {m.is_deleted && <StatusBadge status="DELETED" />}
+                    {m.deleted_at && <StatusBadge status="DELETED" />}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {m.location_name}
@@ -229,7 +210,7 @@ function MatchesTab() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div onClick={(e) => e.stopPropagation()}>
-                    {role === "SUPER_ADMIN" && !m.is_deleted && (
+                    {role === "SUPER_ADMIN" && !m.deleted_at && (
                       <Button
                         size="sm"
                         variant="destructive"
@@ -303,7 +284,7 @@ function MatchDetailDialog({
                 <StatusBadge status={data.status} />
               </Info>
               <Info label="삭제 여부">
-                {data.is_deleted ? (
+                {data.deleted_at ? (
                   <StatusBadge status="DELETED" />
                 ) : (
                   "아니오"
@@ -407,6 +388,16 @@ function MatchDetailDialog({
               </div>
             )}
 
+            {/* 기타 안내 */}
+            {data.additional_info && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <h4 className="font-medium">기타 안내</h4>
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {data.additional_info}
+                </p>
+              </div>
+            )}
+
             {/* 연락처 */}
             <div className="rounded-lg border p-3 space-y-2">
               <h4 className="font-medium">연락처</h4>
@@ -495,255 +486,6 @@ function DeleteMatchDialog({
               disabled={form.formState.isSubmitting}
             >
               삭제
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── 블라인드 게시글 탭 ───
-
-function BlindedPostsTab() {
-  const { role } = useAuth();
-  const queryClient = useQueryClient();
-  const [target, setTarget] = useState<BlindedPostItem | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<BlindedPostItem | null>(null);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["blinded-posts"],
-    queryFn: fetchBlindedPosts,
-  });
-
-  const refetch = () =>
-    queryClient.invalidateQueries({ queryKey: ["blinded-posts"] });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          블라인드 처리된 게시글 {data?.length ?? 0}건
-        </p>
-        <Button variant="outline" size="sm" onClick={refetch}>
-          새로고침
-        </Button>
-      </div>
-
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">ID</TableHead>
-              <TableHead>제목 / 내용</TableHead>
-              <TableHead>작성자</TableHead>
-              <TableHead>작성일</TableHead>
-              <TableHead className="text-right">액션</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && (
-              <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </>
-            )}
-            {!isLoading && (data?.length ?? 0) === 0 && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <EmptyState message="블라인드된 게시글이 없습니다." />
-                </TableCell>
-              </TableRow>
-            )}
-            {data?.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-mono text-xs">#{p.id}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{p.title}</div>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {p.content}
-                  </p>
-                </TableCell>
-                <TableCell>
-                  {p.author?.nickname ?? p.author?.name ?? "-"}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatDateTime(p.created_at)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setTarget(p)}
-                    >
-                      블라인드 해제
-                    </Button>
-                    {role === "SUPER_ADMIN" && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setDeleteTarget(p)}
-                      >
-                        영구 삭제
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <UnblindPostDialog
-        post={target}
-        onClose={() => setTarget(null)}
-        onDone={() => {
-          setTarget(null);
-          toast.success("블라인드가 해제되었습니다");
-          refetch();
-        }}
-      />
-
-      <SoftDeletePostDialog
-        post={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onDone={() => {
-          setDeleteTarget(null);
-          toast.success("게시글이 영구 삭제되었습니다");
-          refetch();
-        }}
-      />
-    </div>
-  );
-}
-
-function SoftDeletePostDialog({
-  post,
-  onClose,
-  onDone,
-}: {
-  post: BlindedPostItem | null;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const form = useForm<ReasonForm>({
-    resolver: zodResolver(reasonSchema),
-    defaultValues: { reason: "" },
-  });
-
-  const onSubmit = async (v: ReasonForm) => {
-    if (!post) return;
-    try {
-      await softDeletePostAction({ postId: post.id, reason: v.reason });
-      onDone();
-      form.reset();
-    } catch (e) {
-      toast.error(toUserMessage(e));
-    }
-  };
-
-  return (
-    <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>게시글 영구 삭제</DialogTitle>
-          <DialogDescription>
-            #{post?.id} {post?.title}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <div className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs text-destructive">
-            ⚠ 삭제된 게시글은 복구할 수 없습니다. 연관 댓글도 함께 삭제됩니다.
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="sd-reason">삭제 사유 (10자 이상)</Label>
-            <Textarea id="sd-reason" rows={3} {...form.register("reason")} />
-            {form.formState.errors.reason && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.reason.message}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={form.formState.isSubmitting}
-            >
-              영구 삭제
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function UnblindPostDialog({
-  post,
-  onClose,
-  onDone,
-}: {
-  post: BlindedPostItem | null;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const form = useForm<ReasonForm>({
-    resolver: zodResolver(reasonSchema),
-    defaultValues: { reason: "" },
-  });
-
-  const onSubmit = async (v: ReasonForm) => {
-    if (!post) return;
-    try {
-      await unblindPostAction({ postId: post.id, reason: v.reason });
-      onDone();
-      form.reset();
-    } catch (e) {
-      toast.error(toUserMessage(e));
-    }
-  };
-
-  return (
-    <Dialog open={!!post} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>게시글 블라인드 해제</DialogTitle>
-          <DialogDescription>
-            #{post?.id} {post?.title}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            기존 PENDING 신고는 RESOLVED 로 자동 전환되어 재집계가 차단됩니다.
-          </p>
-          <div className="space-y-1.5">
-            <Label htmlFor="ub-reason">해제 사유 (10자 이상)</Label>
-            <Textarea id="ub-reason" rows={3} {...form.register("reason")} />
-            {form.formState.errors.reason && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.reason.message}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              해제
             </Button>
           </DialogFooter>
         </form>

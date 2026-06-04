@@ -74,31 +74,20 @@ export function UserDetailDialog({ user, onClose }: Props) {
               </Info>
             </div>
 
-            {/* 신고 / 정지 정보 */}
-            <div className="rounded-lg border p-3 text-sm space-y-2">
-              <h4 className="font-medium">제재 정보</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <Info label="누적 신고 (피신고)">
-                  {data.reportCount > 0 ? (
-                    <Badge className="bg-red-100 text-red-700 border-red-200">
-                      {data.reportCount}건
-                    </Badge>
-                  ) : (
-                    "0건"
-                  )}
-                </Info>
-                {data.user.suspended_until && (
-                  <>
-                    <Info label="정지 종료">
-                      {formatDateTime(data.user.suspended_until)}
-                    </Info>
-                    <Info label="정지 사유" className="col-span-2">
-                      {data.user.suspended_reason ?? "-"}
-                    </Info>
-                  </>
-                )}
+            {/* 정지 정보 */}
+            {data.user.suspended_until && (
+              <div className="rounded-lg border p-3 text-sm space-y-2">
+                <h4 className="font-medium">제재 정보</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <Info label="정지 종료">
+                    {formatDateTime(data.user.suspended_until)}
+                  </Info>
+                  <Info label="정지 사유" className="col-span-2">
+                    {data.user.suspended_reason ?? "-"}
+                  </Info>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 관리 이력 */}
             {data.auditHistory.length > 0 && (
