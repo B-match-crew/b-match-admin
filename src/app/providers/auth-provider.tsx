@@ -21,14 +21,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<AdminRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAdminRole = async (userId: string): Promise<AdminRole | null> => {
+  const fetchAdminRole = async (
+    authUserId: string
+  ): Promise<AdminRole | null> => {
     const { data, error } = await supabase
       .from("users")
-      .select("admin_role, is_deleted")
-      .eq("id", userId)
+      .select("admin_role, deleted_at")
+      .eq("auth_user_id", authUserId)
       .single();
 
-    if (error || !data || data.is_deleted) return null;
+    if (error || !data || data.deleted_at) return null;
     return (data.admin_role as AdminRole | null) ?? null;
   };
 

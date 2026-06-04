@@ -112,7 +112,7 @@ export function UsersClient() {
                 `users_${new Date().toISOString().slice(0, 10)}.csv`,
                 ["ID", "닉네임", "실명", "전화번호", "상태", "호스트", "역할", "가입일"],
                 data.rows.map((u) => [
-                  u.id,
+                  String(u.id),
                   u.nickname ?? "",
                   u.name ?? "",
                   u.phone_number ?? "",
@@ -172,7 +172,7 @@ export function UsersClient() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{u.nickname ?? "-"}</span>
-                    {u.is_deleted && <StatusBadge status="DELETED" />}
+                    {u.deleted_at && <StatusBadge status="DELETED" />}
                   </div>
                 </TableCell>
                 <TableCell>{u.name ?? "-"}</TableCell>
@@ -196,7 +196,7 @@ export function UsersClient() {
                     className="flex justify-end gap-1"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {u.user_status === "ACTIVE" && !u.is_deleted && (
+                    {u.user_status === "ACTIVE" && !u.deleted_at && (
                       <>
                         <Button
                           size="sm"

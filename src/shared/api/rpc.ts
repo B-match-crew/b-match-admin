@@ -11,7 +11,7 @@
 import { createAdminClient } from "./supabase-admin";
 
 export interface SuspendUserParams {
-  userId: string;
+  userId: number;
   /** ISO 8601 UTC */
   until: string;
   /** 10자 이상 */
@@ -29,7 +29,7 @@ export async function rpcSuspendUser(p: SuspendUserParams) {
 }
 
 export interface BanUserParams {
-  userId: string;
+  userId: number;
   reason: string;
 }
 
@@ -51,34 +51,6 @@ export async function rpcDeleteMatch(p: DeleteMatchParams) {
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("fn_admin_delete_match", {
     p_match_id: p.matchId,
-    p_reason: p.reason,
-  });
-  if (error) throw error;
-}
-
-export interface UnblindPostParams {
-  postId: number;
-  reason: string;
-}
-
-export async function rpcUnblindPost(p: UnblindPostParams) {
-  const supabase = createAdminClient();
-  const { error } = await supabase.rpc("fn_admin_unblind_post", {
-    p_post_id: p.postId,
-    p_reason: p.reason,
-  });
-  if (error) throw error;
-}
-
-export interface UnblindCommentParams {
-  commentId: number;
-  reason: string;
-}
-
-export async function rpcUnblindComment(p: UnblindCommentParams) {
-  const supabase = createAdminClient();
-  const { error } = await supabase.rpc("fn_admin_unblind_comment", {
-    p_comment_id: p.commentId,
     p_reason: p.reason,
   });
   if (error) throw error;

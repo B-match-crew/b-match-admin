@@ -4,9 +4,13 @@ import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 
 export interface DashboardStats {
-  todayDau: number;
-  pendingReports: number;
+  /** 전체 활성 유저 수 (deleted_at IS NULL) */
+  totalUsers: number;
+  /** 누적 게스트 디바이스 수 (fn_get_total_guest_count) */
+  totalGuests: number;
+  /** 오늘 시작 예정 모임 수 */
   todayMatches: number;
+  /** 모집 중 모임 수 */
   recruitingMatches: number;
 }
 
@@ -19,32 +23,29 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   const end = new Date();
   end.setHours(23, 59, 59, 999);
 
-  const [dauRes, pendingReportsRes, todayMatchesRes, recruitingRes] =
+  const [totalUsersRes, guestCountRes, todayMatchesRes, recruitingRes] =
     await Promise.all([
       supabase
-        .from("fcm_tokens")
-        .select("user_id", { count: "exact", head: true })
-        .gte("updated_at", start.toISOString()),
-      supabase
-        .from("reports")
+        .from("users")
         .select("id", { count: "exact", head: true })
-        .eq("status", "PENDING"),
+        .is("deleted_at", null),
+      supabase.rpc("fn_get_total_guest_count"),
       supabase
         .from("matches")
         .select("id", { count: "exact", head: true })
-        .eq("is_deleted", false)
+        .is("deleted_at", null)
         .gte("start_time", start.toISOString())
         .lte("start_time", end.toISOString()),
       supabase
         .from("matches")
         .select("id", { count: "exact", head: true })
-        .eq("is_deleted", false)
+        .is("deleted_at", null)
         .eq("status", "RECRUITING"),
     ]);
 
   return {
-    todayDau: dauRes.count ?? 0,
-    pendingReports: pendingReportsRes.count ?? 0,
+    totalUsers: totalUsersRes.count ?? 0,
+    totalGuests: (guestCountRes.data as number | null) ?? 0,
     todayMatches: todayMatchesRes.count ?? 0,
     recruitingMatches: recruitingRes.count ?? 0,
   };
@@ -54,7 +55,6 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 
 export interface DailyTrendItem {
   date: string; // yyyy-MM-dd
-  reports: number;
   matches: number;
 }
 
@@ -67,18 +67,15 @@ export async function fetchDailyTrends(
   const results: DailyTrendItem[] = [];
   const now = new Date();
 
-  // 최근 N일간 일별 신고/매칭 등록 수 집계
+  // 최근 N일간 일별 매칭 등록 수 집계
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const dayStart = new Date(d);
     dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(d);
-    dayEnd.setHours(23, 59, 59, 999);
 
     results.push({
       date: dayStart.toISOString().slice(0, 10),
-      reports: 0,
       matches: 0,
     });
   }
@@ -87,29 +84,16 @@ export async function fetchDailyTrends(
   const rangeStart = results[0].date + "T00:00:00.000Z";
   const rangeEnd = results[results.length - 1].date + "T23:59:59.999Z";
 
-  const [reportsRes, matchesRes] = await Promise.all([
-    supabase
-      .from("reports")
-      .select("created_at")
-      .gte("created_at", rangeStart)
-      .lte("created_at", rangeEnd),
-    supabase
-      .from("matches")
-      .select("created_at")
-      .eq("is_deleted", false)
-      .gte("created_at", rangeStart)
-      .lte("created_at", rangeEnd),
-  ]);
+  const { data: matchesData } = await supabase
+    .from("matches")
+    .select("created_at")
+    .is("deleted_at", null)
+    .gte("created_at", rangeStart)
+    .lte("created_at", rangeEnd);
 
   const dateMap = new Map(results.map((r) => [r.date, r]));
 
-  for (const r of reportsRes.data ?? []) {
-    const day = r.created_at.slice(0, 10);
-    const item = dateMap.get(day);
-    if (item) item.reports++;
-  }
-
-  for (const m of matchesRes.data ?? []) {
+  for (const m of matchesData ?? []) {
     const day = m.created_at.slice(0, 10);
     const item = dateMap.get(day);
     if (item) item.matches++;

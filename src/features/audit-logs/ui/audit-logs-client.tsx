@@ -40,10 +40,6 @@ const ACTION_TYPES = [
   "SUSPEND_USER",
   "BAN_USER",
   "DELETE_MATCH",
-  "BLIND_POST",
-  "UNBLIND_POST",
-  "SEND_PUSH",
-  "REJECT_REPORT",
 ] as const;
 
 const ACTION_LABELS: Record<string, string> = {
@@ -51,10 +47,6 @@ const ACTION_LABELS: Record<string, string> = {
   SUSPEND_USER: "유저 정지",
   BAN_USER: "유저 영구차단",
   DELETE_MATCH: "매칭 삭제",
-  BLIND_POST: "게시글 블라인드",
-  UNBLIND_POST: "블라인드 해제",
-  SEND_PUSH: "푸시 발송",
-  REJECT_REPORT: "신고 반려",
 };
 
 export function AuditLogsClient() {
@@ -118,7 +110,7 @@ export function AuditLogsClient() {
                 data.map((l) => [
                   String(l.id),
                   ACTION_LABELS[l.action_type] ?? l.action_type,
-                  l.admin?.nickname ?? l.admin?.name ?? l.admin_id,
+                  l.admin?.nickname ?? l.admin?.name ?? String(l.admin_id),
                   l.target_type ?? "",
                   l.target_id ?? "",
                   l.reason ?? "",
@@ -183,7 +175,7 @@ export function AuditLogsClient() {
                 <TableCell>
                   {log.admin?.nickname ?? log.admin?.name ?? (
                     <span className="font-mono text-xs text-muted-foreground">
-                      {log.admin_id.slice(0, 8)}
+                      #{log.admin_id}
                     </span>
                   )}
                 </TableCell>

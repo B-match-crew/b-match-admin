@@ -4,17 +4,22 @@
 
 export const PG_ERROR_MESSAGES: Record<string, string> = {
   "42501": "권한이 없습니다 (관리자 인증 필요)",
-  P0001: "만 14세 미만은 사용할 수 없습니다",
-  P0002: "영구 차단된 계정입니다",
-  P0003: "이미 가입된 본인인증 정보입니다",
-  P0004: "30일 이내 재가입은 불가능합니다",
-  P0005: "유저 정보를 찾을 수 없습니다",
-  P0010: "호스트 등록 자격 미달입니다",
-  P0020: "유저를 찾을 수 없습니다",
-  P0021: "진행 중인 모임이 있어 처리할 수 없습니다",
-  P0030: "모임 상태가 올바르지 않습니다 (마감 불가)",
-  P0031: "모임 상태가 올바르지 않습니다 (재모집 불가)",
-  P0040: "사유는 10자 이상 입력해야 합니다",
+  P0001: "처리 중 오류가 발생했습니다", // GUEST_NICKNAME_GEN_FAILED (내부)
+  P0002: "유저를 찾을 수 없습니다", // USER_NOT_FOUND
+  P0003: "영구 차단된 계정입니다", // PERMANENT_BLACKLIST
+  P0004: "생년월일 정보가 필요합니다", // BIRTH_YEAR_REQUIRED
+  P0005: "만 19세 미만은 가입할 수 없습니다", // AGE_BELOW_MINIMUM
+  P0006: "이미 본인인증이 완료된 계정입니다", // IDENTITY_ALREADY_VERIFIED
+  P0007: "이미 사용 중인 본인인증 정보입니다", // CI_ALREADY_IN_USE
+  P0008: "탈퇴 후 30일 이내에는 재가입할 수 없습니다", // REJOIN_COOLDOWN
+  P0010: "이미 호스트로 등록된 계정입니다", // ALREADY_HOST
+  P0011: "모임을 찾을 수 없습니다", // MATCH_NOT_FOUND
+  P0012: "본인 모임이 아닙니다", // NOT_MATCH_OWNER
+  P0013: "이미 종료된 모임입니다", // MATCH_ALREADY_ENDED
+  P0014: "이미 시작된 모임입니다", // MATCH_ALREADY_STARTED
+  P0015: "진행 중인 모임이 있어 처리할 수 없습니다", // ACTIVE_MATCH_EXISTS
+  P0020: "관리자 권한이 없습니다", // NOT_ADMIN
+  P0021: "최고 관리자 권한이 필요합니다", // NOT_SUPER_ADMIN
 };
 
 interface PostgrestErrorLike {

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Flag, CalendarDays, Megaphone } from "lucide-react";
+import { Users, Smartphone, CalendarDays, Megaphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchDashboardStats,
@@ -36,19 +36,19 @@ export function DashboardClient() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Today DAU"
-          value={data?.todayDau}
+          title="전체 유저"
+          value={data?.totalUsers}
           loading={isLoading}
           icon={<Users className="h-5 w-5 text-primary" />}
-          hint="오늘 활동 토큰 기준 (간이)"
+          href="/users"
+          hint="활성 유저 (탈퇴 제외)"
         />
         <StatCard
-          title="미처리 신고"
-          value={data?.pendingReports}
+          title="누적 게스트"
+          value={data?.totalGuests}
           loading={isLoading}
-          icon={<Flag className="h-5 w-5 text-destructive" />}
-          href="/reports"
-          highlight={Boolean(data?.pendingReports && data.pendingReports > 0)}
+          icon={<Smartphone className="h-5 w-5 text-violet-500" />}
+          hint="게스트 디바이스 누적 수"
         />
         <StatCard
           title="오늘 예정 모임"
@@ -70,7 +70,7 @@ export function DashboardClient() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            최근 14일 추이 (신고 / 매칭 등록)
+            최근 14일 매칭 등록 추이
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -94,14 +94,6 @@ export function DashboardClient() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line
-                  type="monotone"
-                  dataKey="reports"
-                  name="신고"
-                  stroke="hsl(0, 72%, 51%)"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
                 <Line
                   type="monotone"
                   dataKey="matches"

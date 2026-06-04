@@ -18,22 +18,9 @@ const statusStyles: Record<string, { label: string; style: string }> = {
   CLOSED: { label: "마감", style: "bg-yellow-50 text-yellow-700 border-yellow-200" },
   ENDED: { label: "종료", style: "bg-gray-50 text-gray-500 border-gray-200" },
 
-  // 신고 상태 (ReportStatus)
-  PENDING: { label: "처리 대기", style: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-  RESOLVED: { label: "처리완료", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  REJECTED: { label: "반려", style: "bg-blue-50 text-blue-700 border-blue-200" },
-
-  // 신고 대상 타입
-  POST: { label: "게시글", style: "bg-blue-50 text-blue-700 border-blue-200" },
-  COMMENT: { label: "댓글", style: "bg-purple-50 text-purple-700 border-purple-200" },
-
   // 권한
   SUPER_ADMIN: { label: "최고 관리자", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   MANAGER: { label: "매니저", style: "bg-blue-50 text-blue-700 border-blue-200" },
-
-  // 블라인드
-  VISIBLE: { label: "공개", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  BLINDED: { label: "블라인드", style: "bg-red-50 text-red-700 border-red-200" },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
