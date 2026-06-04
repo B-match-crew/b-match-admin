@@ -25,7 +25,7 @@ export async function fetchAuditLogs(
     .from("admin_audit_logs")
     .select(
       `id, admin_id, action_type, target_type, target_id, detail, reason, created_at,
-       admin:users!admin_audit_logs_admin_id_fkey(nickname, name)`
+       admin:users!fk_admin_audit_logs_admin(nickname, name)`
     )
     .order("created_at", { ascending: false })
     .limit(limit);
