@@ -1,24 +1,24 @@
 /**
- * B-Match v4.6.11 스키마 타입
- * 출처: admin_db_spec.md §2~§3 + admin_v4_6_11_patch.md
+ * B-Match 라이브 DB 스키마 타입 (post-migration 14)
+ * 출처: supabase/SCHEMA.md (live ground truth)
  *
- * v4.6.11 변경:
- * - Level 에서 'S' 제거
- * - host_profiles.min_level_required 컬럼 제거
- * - level_distribution: 6키 (S 제거)
- * - age_distribution: 5키 (10대 키 없음, 합산 100)
+ * 핵심 변경 (migration 09~14):
+ * - 모든 PK bigint. users.id 도 bigint (number). auth 연결은 users.auth_user_id (uuid)
+ * - soft delete 통일: deleted_at IS NULL = 살아있음 (is_deleted 컬럼 삭제됨)
+ * - 커뮤니티(posts/comments/reports) DROP
+ * - Level 에서 'S' 제거, host_profiles.min_level_required 는 라이브에 존재
+ * - matches.additional_info 추가 (migration 12)
  */
 
-// ─── ENUM ───
+// ─── ENUM (Postgres enum 아님, VARCHAR + CHECK) ───
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 export type Gender = "MALE" | "FEMALE";
 export type Level = "A" | "B" | "C" | "D" | "NOVICE" | "BEGINNER";
 export type AdminRole = "SUPER_ADMIN" | "MANAGER";
+export type Provider = "KAKAO" | "GOOGLE" | "APPLE";
 export type GenderCondition = "MALE_ONLY" | "FEMALE_ONLY" | "ALL";
 export type MatchStatus = "RECRUITING" | "CLOSED" | "ENDED";
 export type ContactType = "URL" | "PHONE";
-export type ReportTargetType = "POST" | "COMMENT";
-export type ReportStatus = "PENDING" | "RESOLVED" | "REJECTED";
 export type NotificationType =
   | "COMMUNITY_COMMENT"
   | "COMMUNITY_REPLY"
@@ -30,7 +30,12 @@ export type DeviceOs = "IOS" | "ANDROID";
 // ─── 테이블 타입 ───
 
 export interface DbUser {
-  id: string;
+  id: number; // bigint (Spring Long 호환)
+  auth_user_id: string | null; // uuid, auth.users 연결 (UNIQUE)
+  email: string;
+  /** 관리자(이메일 가입) 계정은 트리거가 'KAKAO' 더미값을 박음 — 가입경로 통계 시 admin_role IS NOT NULL 제외 */
+  provider: Provider;
+  provider_id: string;
   name: string | null;
   nickname: string | null;
   phone_number: string | null;
@@ -38,16 +43,16 @@ export interface DbUser {
   birth_year: number | null;
   level: Level | null;
   is_host: boolean;
-  user_status: UserStatus;
   ci_hash: string | null;
   marketing_opt_in: boolean;
-  is_deleted: boolean;
+  last_login_at: string | null;
+  user_status: UserStatus;
   admin_role: AdminRole | null;
   suspended_until: string | null;
   suspended_reason: string | null;
-  deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null; // NULL = 살아있음
 }
 
 /**
@@ -77,16 +82,18 @@ export interface LevelDistribution {
 
 export interface DbHostProfile {
   id: number;
-  user_id: string;
+  user_id: number;
   club_name: string;
   description: string | null;
   cover_image_url: string | null;
-  // v4.6.11: min_level_required 컬럼 제거됨
+  min_level_required: Level; // 라이브에 존재 (varchar(10), default 'BEGINNER')
   gender_ratio_male: number;
   gender_ratio_female: number;
   age_distribution: AgeDistribution;
   level_distribution: LevelDistribution;
-  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 /** fee_config JSON — 앱(Flutter)에서 camelCase로 저장, spec은 snake_case */
@@ -133,7 +140,7 @@ export function normalizeFeeConfig(fc: FeeConfig) {
 
 export interface DbMatch {
   id: number;
-  host_id: string;
+  host_id: number;
   title: string;
   start_time: string;
   end_time: string;
@@ -143,7 +150,7 @@ export interface DbMatch {
   latitude: number;
   longitude: number;
   region_1: string;
-  region_2: string;
+  region_2: string | null;
   capacity: number | null;
   gender_condition: GenderCondition;
   age_min_year: number | null;
@@ -158,52 +165,21 @@ export interface DbMatch {
     rental?: boolean;
   };
   description: string | null;
+  additional_info: string | null; // migration 12, varchar(1000)
   contact_type: ContactType;
   contact_value: string;
   status: MatchStatus;
   is_manually_closed: boolean;
-  is_deleted: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
-export interface DbPost {
-  id: number;
-  author_id: string;
-  title: string;
-  content: string;
-  comment_count: number;
-  is_blind: boolean;
-  is_edited: boolean;
-  is_deleted: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DbComment {
-  id: number;
-  post_id: number;
-  author_id: string;
-  parent_id: number | null;
-  content: string;
-  is_blind: boolean;
-  is_deleted: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DbReport {
-  id: number;
-  reporter_id: string;
-  target_type: ReportTargetType;
-  target_id: number;
-  status: ReportStatus;
-  created_at: string;
-}
+// ─── dormant 테이블 (MVP 미사용, 테이블만 보존) ───
 
 export interface DbNotification {
   id: number;
-  user_id: string;
+  user_id: number;
   type: NotificationType;
   title: string;
   body: string;
@@ -211,40 +187,42 @@ export interface DbNotification {
   deeplink_params: Record<string, unknown> | null;
   is_read: boolean;
   created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface DbFcmToken {
   id: number;
-  user_id: string;
+  user_id: number;
   token: string;
   device_os: DeviceOs;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface DbPermanentBlacklist {
+  id: number;
   ci_hash: string;
-  user_id: string | null;
+  user_id: number | null;
   reason: string;
   created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
-export type AuditActionType =
-  | "SUSPEND_USER"
-  | "BAN_USER"
-  | "DELETE_MATCH"
-  | "BLIND_POST"
-  | "UNBLIND_POST"
-  | "SEND_PUSH"
-  | "REJECT_REPORT";
+export type AuditActionType = "SUSPEND_USER" | "BAN_USER" | "DELETE_MATCH";
+// action_type 컬럼은 varchar(100) free text — DB 제약 없음 (UI 힌트용)
 
 export interface DbAdminAuditLog {
   id: number;
-  admin_id: string;
+  admin_id: number; // bigint FK → users.id
   action_type: AuditActionType | string;
   target_type: string | null;
-  target_id: string | null;
+  target_id: string | null; // varchar(50) text
   detail: Record<string, unknown> | null;
   reason: string | null;
   created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
