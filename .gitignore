@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# DB 정합성 참조 파일 (b-match-app 측 산출물 — 커밋 제외)
+/DB_ALIGNMENT_GUIDE.md
+/supabase/
