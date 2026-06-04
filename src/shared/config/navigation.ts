@@ -2,8 +2,6 @@ import {
   LayoutDashboard,
   Users,
   Swords,
-  Flag,
-  Bell,
   ClipboardList,
   type LucideIcon,
 } from "lucide-react";
@@ -29,10 +27,8 @@ export const navigation: NavGroup[] = [
   {
     label: "운영",
     items: [
-      { title: "신고 관리", href: "/reports", icon: Flag },
       { title: "유저 관리", href: "/users", icon: Users },
       { title: "매칭 관리", href: "/matches", icon: Swords },
-      { title: "푸시 발송", href: "/push", icon: Bell },
     ],
   },
   {
