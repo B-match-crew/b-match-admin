@@ -158,7 +158,7 @@ export async function unsuspendUserAction(userId: number) {
 
   await supabase.from("admin_audit_logs").insert({
     admin_id: admin.id, // number (bigint FK)
-    action_type: "SUSPEND_USER",
+    action_type: "UNSUSPEND", // 라이브 RPC 없음 — 관리자 페이지 전용 값
     target_type: "USER",
     target_id: String(userId), // text
     reason: "정지 해제",

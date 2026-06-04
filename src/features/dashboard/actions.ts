@@ -23,13 +23,17 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   const end = new Date();
   end.setHours(23, 59, 59, 999);
 
+  // 게스트 수: fn_get_total_guest_count 는 anon/authenticated 에게만 grant 되어
+  // service_role(admin client)로는 실행 불가 → guest_devices 직접 count (RLS 우회).
   const [totalUsersRes, guestCountRes, todayMatchesRes, recruitingRes] =
     await Promise.all([
       supabase
         .from("users")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null),
-      supabase.rpc("fn_get_total_guest_count"),
+      supabase
+        .from("guest_devices")
+        .select("id", { count: "exact", head: true }),
       supabase
         .from("matches")
         .select("id", { count: "exact", head: true })
@@ -45,7 +49,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 
   return {
     totalUsers: totalUsersRes.count ?? 0,
-    totalGuests: (guestCountRes.data as number | null) ?? 0,
+    totalGuests: guestCountRes.count ?? 0,
     todayMatches: todayMatchesRes.count ?? 0,
     recruitingMatches: recruitingRes.count ?? 0,
   };

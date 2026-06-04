@@ -37,16 +37,18 @@ import { downloadCsv } from "@/src/shared/lib/csv-export";
 
 const ACTION_TYPES = [
   "ALL",
-  "SUSPEND_USER",
-  "BAN_USER",
+  "SUSPEND",
+  "BAN",
   "DELETE_MATCH",
+  "UNSUSPEND",
 ] as const;
 
 const ACTION_LABELS: Record<string, string> = {
   ALL: "전체",
-  SUSPEND_USER: "유저 정지",
-  BAN_USER: "유저 영구차단",
+  SUSPEND: "유저 정지",
+  BAN: "유저 영구차단",
   DELETE_MATCH: "매칭 삭제",
+  UNSUSPEND: "정지 해제",
 };
 
 export function AuditLogsClient() {

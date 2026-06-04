@@ -1,14 +1,15 @@
 /**
- * admin_db_spec.md §4 RPC 래퍼
+ * 라이브 관리자 RPC 래퍼.
  *
- * - service_role 키 (createAdminClient) 를 사용해 호출.
- * - 권한 검증은 RPC 내부에서 처리되므로, Server Action 진입 시점에
- *   호출자(auth.uid()) 의 admin_role 을 별도로 확인한 뒤 RPC 를 호출한다.
+ * ⚠️ 반드시 유저 세션 클라이언트(createServerSupabase)로 호출한다.
+ * 라이브 함수는 `authenticated` 에게만 grant 되고 내부에서 is_admin()/
+ * is_super_admin() 를 auth.uid() 로 검사하므로, service_role(auth.uid()=null)
+ * 로 부르면 grant 부재 + 내부 검사 실패로 NOT_ADMIN/NOT_SUPER_ADMIN 이 난다.
  *
  * 모든 함수는 Server Action 내부에서만 호출해야 한다.
  */
 
-import { createAdminClient } from "./supabase-admin";
+import { createServerSupabase } from "./supabase-server";
 
 export interface SuspendUserParams {
   userId: number;
@@ -19,7 +20,7 @@ export interface SuspendUserParams {
 }
 
 export async function rpcSuspendUser(p: SuspendUserParams) {
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabase();
   const { error } = await supabase.rpc("fn_admin_suspend_user", {
     p_user_id: p.userId,
     p_until: p.until,
@@ -34,7 +35,7 @@ export interface BanUserParams {
 }
 
 export async function rpcBanUser(p: BanUserParams) {
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabase();
   const { error } = await supabase.rpc("fn_admin_ban_user", {
     p_user_id: p.userId,
     p_reason: p.reason,
@@ -48,7 +49,7 @@ export interface DeleteMatchParams {
 }
 
 export async function rpcDeleteMatch(p: DeleteMatchParams) {
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabase();
   const { error } = await supabase.rpc("fn_admin_delete_match", {
     p_match_id: p.matchId,
     p_reason: p.reason,
