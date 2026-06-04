@@ -211,8 +211,11 @@ export interface DbPermanentBlacklist {
   deleted_at: string | null;
 }
 
-export type AuditActionType = "SUSPEND_USER" | "BAN_USER" | "DELETE_MATCH";
+// 라이브 RPC 가 실제 저장하는 값 (fn_admin_suspend_user='SUSPEND',
+// fn_admin_ban_user='BAN', fn_admin_delete_match='DELETE_MATCH').
+// 'UNSUSPEND' 는 라이브 RPC 가 없어 관리자 페이지가 직접 INSERT 하는 값.
 // action_type 컬럼은 varchar(100) free text — DB 제약 없음 (UI 힌트용)
+export type AuditActionType = "SUSPEND" | "BAN" | "DELETE_MATCH" | "UNSUSPEND";
 
 export interface DbAdminAuditLog {
   id: number;
