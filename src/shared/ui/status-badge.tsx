@@ -21,6 +21,12 @@ const statusStyles: Record<string, { label: string; style: string }> = {
   // 권한
   SUPER_ADMIN: { label: "최고 관리자", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   MANAGER: { label: "매니저", style: "bg-blue-50 text-blue-700 border-blue-200" },
+
+  // 신고 처리 상태 (ReportStatus)
+  PENDING: { label: "미처리", style: "bg-orange-50 text-orange-700 border-orange-200" },
+  REVIEWED: { label: "검토중", style: "bg-blue-50 text-blue-700 border-blue-200" },
+  ACTIONED: { label: "조치완료", style: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  DISMISSED: { label: "반려", style: "bg-gray-50 text-gray-500 border-gray-200" },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
