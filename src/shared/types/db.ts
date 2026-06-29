@@ -175,6 +175,31 @@ export interface DbMatch {
   deleted_at: string | null;
 }
 
+// ─── 신고/차단 (migration 21) ───
+
+export type ReportStatus = "PENDING" | "REVIEWED" | "ACTIONED" | "DISMISSED";
+
+/** 매칭글 신고. status 흐름: PENDING → REVIEWED → ACTIONED/DISMISSED */
+export interface DbMatchReport {
+  id: number;
+  reporter_id: number;
+  match_id: number;
+  host_id: number; // 비정규화: 관리자 집계 편의
+  reason: string; // varchar(50)
+  detail: string | null; // varchar(500)
+  status: ReportStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 모임장 차단 (사용자 간, 관리자 운영 대상 아님 — 참고용 타입) */
+export interface DbUserBlock {
+  id: number;
+  blocker_id: number;
+  blocked_id: number;
+  created_at: string;
+}
+
 // ─── dormant 테이블 (MVP 미사용, 테이블만 보존) ───
 
 export interface DbNotification {

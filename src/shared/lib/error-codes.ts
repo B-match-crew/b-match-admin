@@ -20,6 +20,11 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0015: "진행 중인 모임이 있어 처리할 수 없습니다", // ACTIVE_MATCH_EXISTS
   P0020: "관리자 권한이 없습니다", // NOT_ADMIN
   P0021: "최고 관리자 권한이 필요합니다", // NOT_SUPER_ADMIN
+  // 신고/차단 (migration 21) — 관리자 페이지에서 직접 쓰진 않지만 방어
+  P0050: "자기 자신은 차단할 수 없습니다", // CANNOT_BLOCK_SELF
+  P0051: "차단 대상을 찾을 수 없습니다", // BLOCK_TARGET_NOT_FOUND
+  P0052: "신고 사유를 입력해야 합니다", // REPORT_REASON_REQUIRED
+  P0053: "본인 모임은 신고할 수 없습니다", // CANNOT_REPORT_OWN_MATCH
 };
 
 interface PostgrestErrorLike {
