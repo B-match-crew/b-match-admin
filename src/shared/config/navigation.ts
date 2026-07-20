@@ -4,6 +4,7 @@ import {
   Swords,
   Flag,
   ClipboardList,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/src/shared/types/db";
@@ -36,6 +37,7 @@ export const navigation: NavGroup[] = [
   {
     label: "시스템",
     items: [
+      { title: "버전 관리", href: "/app-version", icon: Rocket },
       {
         title: "감사 로그",
         href: "/audit-logs",
