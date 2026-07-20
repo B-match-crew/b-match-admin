@@ -56,3 +56,30 @@ export async function rpcDeleteMatch(p: DeleteMatchParams) {
   });
   if (error) throw error;
 }
+
+export interface UpdateAppVersionPolicyParams {
+  /** 'IOS' | 'ANDROID' (migration 26 에서 대문자로 정렬) */
+  platform: string;
+  recommendedVersion: string;
+  minVersion: string;
+}
+
+/**
+ * 앱 업데이트 정책 갱신 (migration 26).
+ *
+ * 이전에는 service_role 로 테이블을 직접 UPDATE 했으나, 버전 형식·"강제 ≤ 권장"
+ * 검증이 프론트엔드에만 있었고 감사 로그도 남지 않았다. 26 부터는 RPC 가
+ * 검증 + admin_audit_logs 기록을 서버에서 강제한다.
+ * 에러: P0020(NOT_ADMIN) / P0060(형식) / P0061(순서) / P0062(정책 없음)
+ */
+export async function rpcUpdateAppVersionPolicy(
+  p: UpdateAppVersionPolicyParams
+) {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("fn_update_app_version_policy", {
+    p_platform: p.platform,
+    p_recommended_version: p.recommendedVersion,
+    p_min_version: p.minVersion,
+  });
+  if (error) throw error;
+}

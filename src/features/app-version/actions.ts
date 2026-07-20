@@ -3,17 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
+import { rpcUpdateAppVersionPolicy } from "@/src/shared/api/rpc";
 
 /**
- * 앱 버전 정책 (app_version_policy 테이블, migration 25).
+ * 앱 버전 정책 (app_version_policy 테이블, migration 25 / 26).
  *
  * 앱은 스플래시에서 이 값을 읽어 현재 설치 버전과 비교한다:
  *   현재 < min_version         → 강제 업데이트 (스토어 이동만 가능)
  *   현재 < recommended_version → 권장 업데이트 팝업 (버전당 1회, 스킵 가능)
  *
- * 쓰기는 service_role(createAdminClient) 전용 — 앱 쪽 RLS 는 select 만 허용.
+ * 조회는 service_role(createAdminClient), **쓰기는 RPC**(migration 26) —
+ * 검증(형식·"강제 ≤ 권장")과 감사 로그를 서버에서 강제하기 위함.
+ * platform 값은 26 에서 소문자 → 대문자로 정렬됐다.
  */
-export type VersionPlatform = "ios" | "android";
+export type VersionPlatform = "IOS" | "ANDROID";
 
 export interface VersionPolicyRow {
   platform: VersionPlatform;
@@ -38,8 +41,12 @@ export async function fetchVersionPolicies(): Promise<VersionPolicyRow[]> {
 
 /**
  * 플랫폼별 권장/강제 버전 저장.
- * 형식이 잘못되면 앱이 fail-open 으로 게이트를 무시하므로 서버에서 선제 검증한다.
- * 강제(min) > 권장(recommended) 조합은 논리적으로 이상하므로 함께 막는다.
+ *
+ * 실제 저장은 `fn_update_app_version_policy` RPC 가 수행한다 (migration 26).
+ * 형식·순서 검증과 admin_audit_logs 기록이 DB 안에서 강제되므로, 여기 검증은
+ * 네트워크 왕복 전에 사용자에게 즉시 피드백을 주기 위한 **1차 방어**일 뿐이다.
+ * (RPC 는 유저 세션으로 호출된다 — is_admin() 이 auth.uid() 를 보기 때문에
+ *  service_role 로 부르면 NOT_ADMIN 이 난다)
  */
 export async function saveVersionPolicyAction(p: {
   platform: VersionPlatform;
@@ -56,16 +63,11 @@ export async function saveVersionPolicyAction(p: {
   }
   await requireAdmin();
 
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("app_version_policy")
-    .update({
-      recommended_version: recommended,
-      min_version: min,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("platform", p.platform);
-  if (error) throw error;
+  await rpcUpdateAppVersionPolicy({
+    platform: p.platform,
+    recommendedVersion: recommended,
+    minVersion: min,
+  });
   revalidatePath("/app-version");
 }
 
