@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Apple, Play } from "lucide-react";
@@ -26,8 +26,8 @@ import {
 } from "@/src/features/app-version/actions";
 
 const PLATFORM_LABELS: Record<VersionPlatform, string> = {
-  ios: "iOS (App Store)",
-  android: "Android (Play Store)",
+  IOS: "iOS (App Store)",
+  ANDROID: "Android (Play Store)",
 };
 
 export function AppVersionClient() {
@@ -60,7 +60,9 @@ export function AppVersionClient() {
       <div className="grid gap-6 md:grid-cols-2">
         {(data ?? []).map((row) => (
           <PlatformCard
-            key={row.platform}
+            // 서버 값이 바뀌면 카드를 리마운트해 입력 state 를 새 값으로 리셋한다.
+            // (useEffect 로 setState 동기화하면 cascading render 를 유발)
+            key={`${row.platform}:${row.recommended_version}:${row.min_version}`}
             row={row}
             onSaved={() =>
               queryClient.invalidateQueries({
@@ -85,12 +87,6 @@ function PlatformCard({
   const [min, setMin] = useState(row.min_version);
   const [saving, setSaving] = useState(false);
 
-  // 서버 재조회로 row 가 갱신되면 입력값도 동기화.
-  useEffect(() => {
-    setRecommended(row.recommended_version);
-    setMin(row.min_version);
-  }, [row.recommended_version, row.min_version]);
-
   const dirty =
     recommended.trim() !== row.recommended_version ||
     min.trim() !== row.min_version;
@@ -112,7 +108,7 @@ function PlatformCard({
     }
   };
 
-  const Icon = row.platform === "ios" ? Apple : Play;
+  const Icon = row.platform === "IOS" ? Apple : Play;
 
   return (
     <Card>

@@ -25,6 +25,10 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0051: "차단 대상을 찾을 수 없습니다", // BLOCK_TARGET_NOT_FOUND
   P0052: "신고 사유를 입력해야 합니다", // REPORT_REASON_REQUIRED
   P0053: "본인 모임은 신고할 수 없습니다", // CANNOT_REPORT_OWN_MATCH
+  // 앱 버전 정책 (migration 26)
+  P0060: "버전은 1.0.5 같은 숫자.숫자.숫자 형식이어야 합니다", // INVALID_VERSION_FORMAT
+  P0061: "강제(최소) 버전이 권장 버전보다 높을 수 없습니다", // MIN_VERSION_ABOVE_RECOMMENDED
+  P0062: "해당 플랫폼의 버전 정책이 없습니다", // APP_VERSION_POLICY_NOT_FOUND
 };
 
 interface PostgrestErrorLike {
