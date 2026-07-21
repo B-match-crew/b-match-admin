@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { WarningBox } from "@/src/shared/ui/warning-box";
 import {
   suspendUserAction,
   banUserAction,
@@ -167,10 +168,10 @@ function BanForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-      <div className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs text-destructive">
+      <WarningBox>
         ⚠ 영구차단은 되돌릴 수 없습니다. CI 해시가 영구 블랙리스트에 등록되며,
         해당 유저가 호스트라면 모든 모임이 강제 삭제됩니다.
-      </div>
+      </WarningBox>
       <div className="space-y-1.5">
         <Label htmlFor="ban-reason">차단 사유 (10자 이상)</Label>
         <Textarea id="ban-reason" rows={3} {...form.register("reason")} />

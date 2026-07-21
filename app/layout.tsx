@@ -13,9 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// 파비콘/OG 이미지는 Next 파일 컨벤션으로 자동 주입된다:
+//   app/icon.png            → <link rel="icon">
+//   app/opengraph-image.png → og:image (+ twitter:image), 크기까지 자동
+// 그래서 여기서 icons/openGraph.images 를 따로 선언하지 않는다.
 export const metadata: Metadata = {
-  title: "B-Match Admin",
-  description: "B-Match 관리자 대시보드",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  title: {
+    default: "b-match 관리자",
+    template: "%s | b-match 관리자",
+  },
+  description: "b-match 운영 관리자 콘솔",
+  openGraph: {
+    title: "b-match 관리자",
+    description: "b-match 운영 관리자 콘솔",
+    siteName: "b-match 관리자",
+    locale: "ko_KR",
+    type: "website",
+  },
+  // 관리자 콘솔은 검색 노출 대상이 아니다
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

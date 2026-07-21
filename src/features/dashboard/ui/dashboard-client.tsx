@@ -39,7 +39,7 @@ export function DashboardClient() {
           title="전체 유저"
           value={data?.totalUsers}
           loading={isLoading}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={<Users className="h-5 w-5 text-bds-primary-900" />}
           href="/users"
           hint="활성 유저 (탈퇴 제외)"
         />
@@ -47,21 +47,21 @@ export function DashboardClient() {
           title="누적 게스트"
           value={data?.totalGuests}
           loading={isLoading}
-          icon={<Smartphone className="h-5 w-5 text-violet-500" />}
+          icon={<Smartphone className="h-5 w-5 text-bds-chart-violet" />}
           hint="게스트 디바이스 누적 수"
         />
         <StatCard
           title="오늘 예정 모임"
           value={data?.todayMatches}
           loading={isLoading}
-          icon={<CalendarDays className="h-5 w-5 text-blue-500" />}
+          icon={<CalendarDays className="h-5 w-5 text-bds-chart-blue" />}
           href="/matches"
         />
         <StatCard
           title="모집 중 모임"
           value={data?.recruitingMatches}
           loading={isLoading}
-          icon={<Megaphone className="h-5 w-5 text-emerald-500" />}
+          icon={<Megaphone className="h-5 w-5 text-bds-chart-green" />}
           href="/matches"
         />
       </div>

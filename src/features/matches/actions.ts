@@ -28,25 +28,33 @@ export interface MatchSearchParams {
   status?: MatchStatus | "ALL";
   includeDeleted?: boolean;
   limit?: number;
+  offset?: number;
   dateFrom?: string;
   dateTo?: string;
 }
 
+export interface MatchSearchResult {
+  rows: MatchListItem[];
+  total: number;
+}
+
 export async function fetchMatches(
   params: MatchSearchParams
-): Promise<MatchListItem[]> {
+): Promise<MatchSearchResult> {
   await requireAdmin();
   const supabase = createAdminClient();
   const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
 
   let q = supabase
     .from("matches")
     .select(
       `id, title, host_id, start_time, location_name, region_1, status, view_count, created_at, deleted_at,
-       host:users!fk_matches_host(nickname, name)`
+       host:users!fk_matches_host(nickname, name)`,
+      { count: "exact" }
     )
     .order("start_time", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (params.status && params.status !== "ALL") {
     q = q.eq("status", params.status);
@@ -61,9 +69,12 @@ export async function fetchMatches(
     q = q.lte("start_time", params.dateTo);
   }
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) throw error;
-  return (data ?? []) as unknown as MatchListItem[];
+  return {
+    rows: (data ?? []) as unknown as MatchListItem[],
+    total: count ?? 0,
+  };
 }
 
 // ─── 매칭 상세 ───

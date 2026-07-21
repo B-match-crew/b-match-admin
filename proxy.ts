@@ -47,6 +47,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login|api).*)",
+    // 정적 이미지 확장자는 인증에서 제외한다. 로그인 화면 로고
+    // (/assets/app_logo.svg) 와 파비콘(/icon.png), OG 이미지
+    // (/opengraph-image.png) 는 미인증 상태에서도 응답해야 하기 때문.
+    // OG 는 외부 스크래퍼가 읽어가므로 특히 열려 있어야 한다.
+    "/((?!_next/static|_next/image|login|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
   fetchAuditLogs,
@@ -233,19 +234,19 @@ function AuditLogDetailDialog({
 
         {log && (
           <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3">
-              <Info label="액션">
+            <InfoGrid>
+              <InfoField label="액션">
                 <Badge variant="outline">
                   {ACTION_LABELS[log.action_type] ?? log.action_type}
                 </Badge>
-              </Info>
-              <Info label="관리자">
+              </InfoField>
+              <InfoField label="관리자">
                 {log.admin?.nickname ?? log.admin?.name ?? log.admin_id}
-              </Info>
-              <Info label="대상 타입">{log.target_type ?? "-"}</Info>
-              <Info label="대상 ID">{log.target_id ?? "-"}</Info>
-              <Info label="시각">{formatDateTime(log.created_at)}</Info>
-            </div>
+              </InfoField>
+              <InfoField label="대상 타입">{log.target_type ?? "-"}</InfoField>
+              <InfoField label="대상 ID">{log.target_id ?? "-"}</InfoField>
+              <InfoField label="시각">{formatDateTime(log.created_at)}</InfoField>
+            </InfoGrid>
 
             {log.reason && (
               <div className="rounded-lg border p-3 space-y-1">
@@ -271,17 +272,3 @@ function AuditLogDetailDialog({
   );
 }
 
-function Info({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="mt-0.5">{children}</div>
-    </div>
-  );
-}
