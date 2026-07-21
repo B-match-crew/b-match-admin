@@ -170,6 +170,7 @@ export interface DbMatch {
   contact_value: string;
   status: MatchStatus;
   is_manually_closed: boolean;
+  view_count: number; // migration 24, 상세 진입 시 +1 (호스트 본인 제외)
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

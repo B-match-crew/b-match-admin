@@ -160,6 +160,7 @@ function MatchesTab() {
               <TableHead>지역</TableHead>
               <TableHead>시작</TableHead>
               <TableHead>상태</TableHead>
+              <TableHead className="text-right">조회수</TableHead>
               <TableHead className="text-right">액션</TableHead>
             </TableRow>
           </TableHeader>
@@ -168,7 +169,7 @@ function MatchesTab() {
               <>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
@@ -179,7 +180,7 @@ function MatchesTab() {
             )}
             {!isLoading && (data?.length ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <EmptyState message="매칭이 없습니다." />
                 </TableCell>
               </TableRow>
@@ -207,6 +208,9 @@ function MatchesTab() {
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={m.status} />
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-sm">
+                  {(m.view_count ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div onClick={(e) => e.stopPropagation()}>
@@ -317,6 +321,9 @@ function MatchDetailDialog({
               </Info>
               <Info label="초보 환영">
                 {data.beginner_friendly ? "예" : "아니오"}
+              </Info>
+              <Info label="조회수">
+                {(data.view_count ?? 0).toLocaleString()}회
               </Info>
             </div>
 

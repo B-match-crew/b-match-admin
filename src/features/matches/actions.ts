@@ -17,6 +17,7 @@ export interface MatchListItem
     | "location_name"
     | "region_1"
     | "status"
+    | "view_count"
     | "created_at"
     | "deleted_at"
   > {
@@ -41,7 +42,7 @@ export async function fetchMatches(
   let q = supabase
     .from("matches")
     .select(
-      `id, title, host_id, start_time, location_name, region_1, status, created_at, deleted_at,
+      `id, title, host_id, start_time, location_name, region_1, status, view_count, created_at, deleted_at,
        host:users!fk_matches_host(nickname, name)`
     )
     .order("start_time", { ascending: false })
