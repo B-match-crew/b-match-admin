@@ -59,6 +59,8 @@ const reasonSchema = z.object({
 });
 type ReasonForm = z.infer<typeof reasonSchema>;
 
+const PAGE_SIZE = 50;
+
 export function MatchesClient() {
   return <MatchesTab />;
 }
@@ -72,20 +74,25 @@ function MatchesTab() {
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(0);
   const [target, setTarget] = useState<MatchListItem | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["matches", status, includeDeleted, dateFrom, dateTo],
+    queryKey: ["matches", status, includeDeleted, dateFrom, dateTo, page],
     queryFn: () =>
       fetchMatches({
         status,
         includeDeleted,
-        limit: 50,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
         dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
         dateTo: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : undefined,
       }),
   });
+
+  const rows = data?.rows;
+  const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
 
   const refetch = () =>
     queryClient.invalidateQueries({ queryKey: ["matches"] });
@@ -95,7 +102,10 @@ function MatchesTab() {
       <div className="flex flex-wrap items-center gap-3">
         <Select
           value={status}
-          onValueChange={(v) => setStatus(v as MatchStatus | "ALL")}
+          onValueChange={(v) => {
+            setStatus(v as MatchStatus | "ALL");
+            setPage(0);
+          }}
         >
           <SelectTrigger className="w-40">
             <SelectValue />
@@ -112,7 +122,10 @@ function MatchesTab() {
           <Input
             type="date"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(0);
+            }}
             className="w-36"
             placeholder="시작일"
           />
@@ -120,7 +133,10 @@ function MatchesTab() {
           <Input
             type="date"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(0);
+            }}
             className="w-36"
             placeholder="종료일"
           />
@@ -131,6 +147,7 @@ function MatchesTab() {
               onClick={() => {
                 setDateFrom("");
                 setDateTo("");
+                setPage(0);
               }}
             >
               초기화
@@ -141,7 +158,10 @@ function MatchesTab() {
         <label className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={includeDeleted}
-            onCheckedChange={(v) => setIncludeDeleted(v === true)}
+            onCheckedChange={(v) => {
+              setIncludeDeleted(v === true);
+              setPage(0);
+            }}
           />
           삭제된 모임 포함
         </label>
@@ -178,14 +198,14 @@ function MatchesTab() {
                 ))}
               </>
             )}
-            {!isLoading && (data?.length ?? 0) === 0 && (
+            {!isLoading && (rows?.length ?? 0) === 0 && (
               <TableRow>
                 <TableCell colSpan={8}>
                   <EmptyState message="매칭이 없습니다." />
                 </TableCell>
               </TableRow>
             )}
-            {data?.map((m) => (
+            {rows?.map((m) => (
               <TableRow
                 key={m.id}
                 className="cursor-pointer"
@@ -230,6 +250,30 @@ function MatchesTab() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            이전
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {page + 1} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            다음
+          </Button>
+        </div>
+      )}
 
       <MatchDetailDialog
         matchId={detailId}
