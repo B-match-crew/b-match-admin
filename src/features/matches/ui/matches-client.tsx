@@ -37,6 +37,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
+import { WarningBox } from "@/src/shared/ui/warning-box";
+import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { useAuth } from "@/src/app/providers/auth-provider";
@@ -323,38 +325,38 @@ function MatchDetailDialog({
           </div>
         ) : data ? (
           <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3">
-              <Info label="제목">{data.title}</Info>
-              <Info label="호스트">
+            <InfoGrid>
+              <InfoField label="제목">{data.title}</InfoField>
+              <InfoField label="호스트">
                 {data.host?.nickname ?? data.host?.name ?? "-"}
-              </Info>
-              <Info label="상태">
+              </InfoField>
+              <InfoField label="상태">
                 <StatusBadge status={data.status} />
-              </Info>
-              <Info label="삭제 여부">
+              </InfoField>
+              <InfoField label="삭제 여부">
                 {data.deleted_at ? (
                   <StatusBadge status="DELETED" />
                 ) : (
                   "아니오"
                 )}
-              </Info>
-              <Info label="시작">{formatDateTime(data.start_time)}</Info>
-              <Info label="종료">{formatDateTime(data.end_time)}</Info>
-              <Info label="장소">{data.location_name}</Info>
-              <Info label="상세 장소">{data.location_detail ?? "-"}</Info>
-              <Info label="주소">{data.address}</Info>
-              <Info label="지역">
+              </InfoField>
+              <InfoField label="시작">{formatDateTime(data.start_time)}</InfoField>
+              <InfoField label="종료">{formatDateTime(data.end_time)}</InfoField>
+              <InfoField label="장소">{data.location_name}</InfoField>
+              <InfoField label="상세 장소">{data.location_detail ?? "-"}</InfoField>
+              <InfoField label="주소">{data.address}</InfoField>
+              <InfoField label="지역">
                 {data.region_1} {data.region_2}
-              </Info>
-              <Info label="정원">{data.capacity ?? "제한 없음"}</Info>
-              <Info label="성별 조건">
+              </InfoField>
+              <InfoField label="정원">{data.capacity ?? "제한 없음"}</InfoField>
+              <InfoField label="성별 조건">
                 {data.gender_condition === "ALL"
                   ? "무관"
                   : data.gender_condition === "MALE_ONLY"
                     ? "남성만"
                     : "여성만"}
-              </Info>
-              <Info label="허용 급수">
+              </InfoField>
+              <InfoField label="허용 급수">
                 <div className="flex gap-1 flex-wrap">
                   {data.allowed_levels.map((l) => (
                     <Badge key={l} variant="outline" className="text-xs">
@@ -362,14 +364,14 @@ function MatchDetailDialog({
                     </Badge>
                   ))}
                 </div>
-              </Info>
-              <Info label="초보 환영">
+              </InfoField>
+              <InfoField label="초보 환영">
                 {data.beginner_friendly ? "예" : "아니오"}
-              </Info>
-              <Info label="조회수">
+              </InfoField>
+              <InfoField label="조회수">
                 {(data.view_count ?? 0).toLocaleString()}회
-              </Info>
-            </div>
+              </InfoField>
+            </InfoGrid>
 
             {/* 비용 정보 */}
             {(() => {
@@ -378,26 +380,26 @@ function MatchDetailDialog({
                 <div className="rounded-lg border p-3 space-y-2">
                   <h4 className="font-medium">비용 정보</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <Info label="참가비 유형">{fc.fee.type}</Info>
+                    <InfoField label="참가비 유형">{fc.fee.type}</InfoField>
                     {fc.fee.cash_male != null && (
-                      <Info label="참가비 (남)">
+                      <InfoField label="참가비 (남)">
                         {fc.fee.cash_male?.toLocaleString()}원
-                      </Info>
+                      </InfoField>
                     )}
                     {fc.fee.cash_female != null && (
-                      <Info label="참가비 (여)">
+                      <InfoField label="참가비 (여)">
                         {fc.fee.cash_female?.toLocaleString()}원
-                      </Info>
+                      </InfoField>
                     )}
-                    <Info label="시설 이용료">
+                    <InfoField label="시설 이용료">
                       {fc.facilityFee.enabled
                         ? `${fc.facilityFee.amount?.toLocaleString()}원`
                         : "없음"}
-                    </Info>
+                    </InfoField>
                     {fc.designatedCock.brand && (
-                      <Info label="지정구 브랜드">
+                      <InfoField label="지정구 브랜드">
                         {fc.designatedCock.brand}
-                      </Info>
+                      </InfoField>
                     )}
                   </div>
                 </div>
@@ -452,9 +454,9 @@ function MatchDetailDialog({
             {/* 연락처 */}
             <div className="rounded-lg border p-3 space-y-2">
               <h4 className="font-medium">연락처</h4>
-              <Info label={data.contact_type === "URL" ? "URL" : "전화번호"}>
+              <InfoField label={data.contact_type === "URL" ? "URL" : "전화번호"}>
                 {data.contact_value}
-              </Info>
+              </InfoField>
             </div>
           </div>
         ) : null}
@@ -463,20 +465,6 @@ function MatchDetailDialog({
   );
 }
 
-function Info({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="mt-0.5">{children}</div>
-    </div>
-  );
-}
 
 // ─── 매칭 삭제 다이얼로그 ───
 
@@ -515,9 +503,9 @@ function DeleteMatchDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <div className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs text-destructive">
+          <WarningBox>
             ⚠ 호스트에게 ADMIN_NOTICE 알림이 자동 발송됩니다.
-          </div>
+          </WarningBox>
           <div className="space-y-1.5">
             <Label htmlFor="del-reason">삭제 사유 (10자 이상)</Label>
             <Textarea id="del-reason" rows={3} {...form.register("reason")} />

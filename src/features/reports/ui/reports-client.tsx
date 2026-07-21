@@ -36,6 +36,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
+import { WarningBox } from "@/src/shared/ui/warning-box";
+import { InfoField } from "@/src/shared/ui/info-field";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { useAuth } from "@/src/app/providers/auth-provider";
@@ -141,7 +143,7 @@ export function ReportsClient() {
                     {r.matchReportCount > 1 && (
                       <Badge
                         variant="outline"
-                        className="border-orange-200 bg-orange-50 text-xs text-orange-700"
+                        className="border-bds-status-warning/40 bg-bds-status-warning-subtle text-bds-status-warning-text"
                       >
                         신고 {r.matchReportCount}건
                       </Badge>
@@ -247,21 +249,21 @@ function ReportDetailDialog({
           {report && (
             <div className="space-y-4 text-sm">
               {/* 신고 내용 */}
-              <div className="rounded-lg border border-orange-200 bg-orange-50/50 p-3 space-y-2">
-                <h4 className="font-medium text-orange-900">신고 내용</h4>
+              <div className="rounded-lg border border-bds-status-warning/30 bg-bds-status-warning-subtle p-3 space-y-2">
+                <h4 className="text-bds-heading3 text-bds-status-warning-text">신고 내용</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <Info label="사유">{report.reason}</Info>
-                  <Info label="신고자">
+                  <InfoField label="사유">{report.reason}</InfoField>
+                  <InfoField label="신고자">
                     {report.reporter?.nickname ??
                       report.reporter?.name ??
                       `#${report.reporter_id}`}
-                  </Info>
+                  </InfoField>
                   {report.matchReportCount > 1 && (
-                    <Info label="이 글 누적 신고">
-                      <span className="font-medium text-orange-700">
+                    <InfoField label="이 글 누적 신고">
+                      <span className="font-semibold text-bds-status-warning-text">
                         {report.matchReportCount}건
                       </span>
-                    </Info>
+                    </InfoField>
                   )}
                 </div>
                 {report.detail && (
@@ -285,15 +287,15 @@ function ReportDetailDialog({
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Info label="제목">{report.match?.title ?? "-"}</Info>
-                  <Info label="장소">{report.match?.location_name ?? "-"}</Info>
-                  <Info
+                  <InfoField label="제목">{report.match?.title ?? "-"}</InfoField>
+                  <InfoField label="장소">{report.match?.location_name ?? "-"}</InfoField>
+                  <InfoField
                     label={
                       report.match?.contact_type === "URL" ? "연락처 URL" : "연락처"
                     }
                   >
                     {report.match?.contact_value ?? "-"}
-                  </Info>
+                  </InfoField>
                 </div>
                 {report.match?.description && (
                   <div>
@@ -308,7 +310,7 @@ function ReportDetailDialog({
               {/* 호스트 */}
               <div className="rounded-lg border p-3">
                 <div className="flex items-center gap-2">
-                  <Info label="호스트">{hostName}</Info>
+                  <InfoField label="호스트">{hostName}</InfoField>
                   <StatusBadge status={report.host?.user_status ?? "ACTIVE"} />
                 </div>
               </div>
@@ -437,20 +439,6 @@ function ReportDetailDialog({
   );
 }
 
-function Info({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="mt-0.5">{children}</div>
-    </div>
-  );
-}
 
 // ─── 사유 입력 액션 다이얼로그 (삭제 / 정지 / 차단) ───
 
@@ -532,11 +520,11 @@ function ReasonDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(submit)} className="space-y-3">
-          <div className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs text-destructive">
+          <WarningBox>
             {kind === "delete"
               ? "⚠ 매칭글이 삭제되고 호스트에게 ADMIN_NOTICE 알림이 발송됩니다. 이 글의 모든 신고가 조치완료로 바뀝니다."
               : "⚠ 영구차단은 되돌릴 수 없습니다. CI 해시가 블랙리스트에 등록되고 이 호스트의 모든 모임이 강제 삭제됩니다."}
-          </div>
+          </WarningBox>
           <div className="space-y-1.5">
             <Label htmlFor="reason">사유 (10자 이상)</Label>
             <Textarea id="reason" rows={3} {...form.register("reason")} />
