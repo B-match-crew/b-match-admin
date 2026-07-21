@@ -10,7 +10,10 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input transition-colors outline-none group-has-disabled/field:opacity-50 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary",
+        // BdsCheckbox — radius 4 / border 1.5 / unchecked border gray300 /
+        // checked 는 primary500 채움 + 흰 체크. size 는 BDS small(20) 기준으로,
+        // 테이블 행 안에 들어가는 관리자 밀도에 맞춰 20px 을 쓴다.
+        "peer relative flex size-5 shrink-0 items-center justify-center rounded-[4px] border-[1.5px] border-bds-gray-300 transition-colors outline-none group-has-disabled/field:opacity-50 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-bds-interaction-disable disabled:bg-bds-interaction-disable disabled:text-bds-label-disable aria-invalid:border-bds-status-error aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-checked:border-bds-primary-500 data-checked:bg-bds-primary-500 data-checked:text-white",
         className
       )}
       {...props}
