@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  ChartColumn,
   Users,
   Swords,
   Flag,
@@ -24,7 +25,10 @@ export interface NavGroup {
 
 export const navigation: NavGroup[] = [
   {
-    items: [{ title: "대시보드", href: "/", icon: LayoutDashboard }],
+    items: [
+      { title: "대시보드", href: "/", icon: LayoutDashboard },
+      { title: "통계", href: "/stats", icon: ChartColumn },
+    ],
   },
   {
     label: "운영",
