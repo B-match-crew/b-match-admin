@@ -5,7 +5,7 @@ import { useAuth } from "@/src/app/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Swords } from "lucide-react";
+import { Logo } from "@/src/shared/ui/brand/logo";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -28,14 +28,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bm-bg-surface)]">
+    <div className="flex min-h-screen items-center justify-center bg-bds-back-base">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Swords className="h-6 w-6 text-primary-foreground" />
+          <div className="mb-4 flex justify-center">
+            <Logo height={30} />
           </div>
-          <CardTitle className="text-xl">B-Match Admin</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <CardTitle className="text-bds-heading2">관리자 콘솔</CardTitle>
+          <p className="text-bds-body3 text-bds-label-alternative">
             관리자 계정으로 로그인하세요
           </p>
         </CardHeader>

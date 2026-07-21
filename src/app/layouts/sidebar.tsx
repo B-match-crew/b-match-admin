@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { Swords } from "lucide-react";
+import { Logo } from "@/src/shared/ui/brand/logo";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -31,11 +31,9 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Swords className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold text-sidebar-foreground">
-            B-Match Admin
+          <Logo height={22} />
+          <span className="text-bds-caption1 text-bds-label-assistive">
+            Admin
           </span>
         </Link>
         {role && (
