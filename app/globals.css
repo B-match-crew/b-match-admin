@@ -2,9 +2,23 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ============================================================================
+ * B-Match Design System (BDS) — 웹 관리자 이식본
+ *
+ * 원본: b-match-app / lib/core/theme/{app_color,app_text_style,app_spacing}.dart
+ *       + lib/feat/global/presentation/widget/bds_*.dart
+ *
+ * 원칙:
+ *   - 색상·타이포·radius 수치는 앱 BDS 와 1:1 로 맞춘다.
+ *   - hover/active/focus 는 BDS 에 정의가 없다 (Flutter 는 GestureDetector 만
+ *     쓰고 ripple 도 없음). 웹 관례에 맞춰 여기서 새로 정의한다.
+ *   - 다크 모드는 BDS 원본에 팔레트가 없어 미지원 (라이트 전용).
+ * ========================================================================== */
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── shadcn 세만틱 토큰 브릿지 ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -38,66 +52,217 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── BDS 팔레트 → Tailwind 유틸리티 (bg-bds-primary-500 등) ── */
+  --color-bds-primary-100: #f0fdfa;
+  --color-bds-primary-300: #b0f6e8;
+  --color-bds-primary-400: #2ed8c1;
+  --color-bds-primary-500: #5bedd5;
+  --color-bds-primary-700: #2ed8c1;
+  --color-bds-primary-900: #0a9789;
+
+  --color-bds-gray-50: #f7f8fa;
+  --color-bds-gray-100: #eff1f4;
+  --color-bds-gray-200: #e1e5ea;
+  --color-bds-gray-300: #cdd3db;
+  --color-bds-gray-400: #a4adba;
+  --color-bds-gray-500: #7a8596;
+  --color-bds-gray-600: #5f6b7c;
+  --color-bds-gray-700: #4a5565;
+  --color-bds-gray-800: #343d4a;
+  --color-bds-gray-900: #232a33;
+  --color-bds-gray-950: #14181f;
+
+  --color-bds-accent-50: #fff0fa;
+  --color-bds-accent-100: #ffe3f7;
+  --color-bds-accent-200: #ffc6ee;
+  --color-bds-accent-400: #ff58c7;
+  --color-bds-accent-500: #ff27b0;
+  --color-bds-accent-600: #f0008c;
+
+  /* label / background / line — Figma 세만틱 레이어 */
+  --color-bds-label-normal: #171719;
+  --color-bds-label-strong: #000000;
+  --color-bds-label-neutral: #4a5565;
+  --color-bds-label-alternative: rgba(55, 56, 60, 0.61);
+  --color-bds-label-assistive: #a4adba;
+  --color-bds-label-disable: #cdd3db;
+  --color-bds-label-contrast: #ffffff;
+
+  --color-bds-back-normal: #ffffff;
+  --color-bds-back-strong: #eff1f4;
+  --color-bds-back-alternative: #f7f8fa;
+  --color-bds-back-base: #f9fafb;
+  --color-bds-back-surface-secondary: #f2f4f6;
+
+  --color-bds-border-normal: rgba(74, 85, 101, 0.22);
+  --color-bds-border-neutral: rgba(74, 85, 101, 0.16);
+  --color-bds-border-alternative: rgba(74, 85, 101, 0.1);
+
+  --color-bds-fill-alternative: rgba(112, 115, 124, 0.05);
+  --color-bds-fill-strong: rgba(112, 115, 124, 0.16);
+
+  --color-bds-interaction-disable: #e8ebef;
+
+  --color-bds-status-error: #ff4b57;
+  --color-bds-status-warning: #ffba25;
+  --color-bds-status-info: #2f80ff;
+
+  /* status tint/텍스트 짝 — BDS 원본에 없는 관리자 전용 확장.
+   * 앱은 상태색을 아이콘·보더로만 쓰지만 관리자는 배지 텍스트로 써야 해서
+   * 흰 배경 대비 4.5:1 을 넘기는 어두운 텍스트색을 따로 뽑았다.
+   * (원본 statusError #FF4B57 은 흰 배경에서 3.3:1 이라 본문에 부적합) */
+  --color-bds-status-error-subtle: #fff0f1;
+  --color-bds-status-error-text: #c9202d;
+  --color-bds-status-warning-subtle: #fff8e9;
+  --color-bds-status-warning-text: #8a6100;
+  --color-bds-status-info-subtle: #eff5ff;
+  --color-bds-status-info-text: #1d5fd6;
+
+  /* 차트 팔레트 (Figma 300 계열 토큰) */
+  --color-bds-chart-red: #fba6a6;
+  --color-bds-chart-orange: #f2ab7f;
+  --color-bds-chart-yellow: #f0d85c;
+  --color-bds-chart-green: #89eca9;
+  --color-bds-chart-blue: #93c5fd;
+  --color-bds-chart-violet: #c0b9f9;
+
+  /* ── BDS 타이포 스케일 (text-bds-heading3 등) ──
+   * letterSpacing 은 Figma % 기반이라 em 으로 옮기면 등가.
+   * 원본 fontSize 는 375px 기준 논리 px — 관리자(데스크톱)에서도 1:1 유지. */
+  --text-bds-title1: 2rem; /* 32 */
+  --text-bds-title1--line-height: 2.75rem; /* 44 */
+  --text-bds-title1--font-weight: 700;
+  --text-bds-title1--letter-spacing: -0.025em;
+
+  --text-bds-title2: 1.75rem; /* 28 */
+  --text-bds-title2--line-height: 2.375rem; /* 38 */
+  --text-bds-title2--font-weight: 700;
+  --text-bds-title2--letter-spacing: -0.024em;
+
+  --text-bds-title3: 1.5rem; /* 24 */
+  --text-bds-title3--line-height: 2rem; /* 32 */
+  --text-bds-title3--font-weight: 700;
+  --text-bds-title3--letter-spacing: -0.023em;
+
+  --text-bds-heading1: 1.25rem; /* 20 */
+  --text-bds-heading1--line-height: 1.75rem; /* 28 */
+  --text-bds-heading1--font-weight: 600;
+  --text-bds-heading1--letter-spacing: -0.012em;
+
+  --text-bds-heading2: 1.125rem; /* 18 */
+  --text-bds-heading2--line-height: 1.625rem; /* 26 */
+  --text-bds-heading2--font-weight: 600;
+  --text-bds-heading2--letter-spacing: -0.002em;
+
+  --text-bds-heading3: 1rem; /* 16 */
+  --text-bds-heading3--line-height: 1.5rem; /* 24 */
+  --text-bds-heading3--font-weight: 600;
+  --text-bds-heading3--letter-spacing: 0.006em;
+
+  --text-bds-body1: 1rem; /* 16 */
+  --text-bds-body1--line-height: 1.625rem; /* 26 */
+  --text-bds-body1--font-weight: 500;
+  --text-bds-body1--letter-spacing: 0.006em;
+
+  --text-bds-body2: 0.875rem; /* 14 */
+  --text-bds-body2--line-height: 1.25rem; /* 20 */
+  --text-bds-body2--font-weight: 600;
+  --text-bds-body2--letter-spacing: 0.0145em;
+
+  --text-bds-body3: 0.875rem; /* 14 */
+  --text-bds-body3--line-height: 1.375rem; /* 22 */
+  --text-bds-body3--font-weight: 500;
+  --text-bds-body3--letter-spacing: 0.0145em;
+
+  --text-bds-caption1: 0.8125rem; /* 13 */
+  --text-bds-caption1--line-height: 1.125rem; /* 18 */
+  --text-bds-caption1--font-weight: 600;
+  --text-bds-caption1--letter-spacing: 0.02em;
+
+  --text-bds-caption2: 0.75rem; /* 12 */
+  --text-bds-caption2--line-height: 1rem; /* 16 */
+  --text-bds-caption2--font-weight: 600;
+  --text-bds-caption2--letter-spacing: 0.025em;
+
+  --text-bds-caption3: 0.6875rem; /* 11 */
+  --text-bds-caption3--line-height: 0.875rem; /* 14 */
+  --text-bds-caption3--font-weight: 600;
+  --text-bds-caption3--letter-spacing: 0.03em;
+
+  /* ── radius (AppRadius) ── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+
+  /* ── shadow (AppShadow) — 베이스 #191F28 @ 12% ── */
+  --shadow-bds-01: 0 1px 3px rgba(25, 31, 40, 0.12);
+  --shadow-bds-02:
+    0 4px 6px -1px rgba(25, 31, 40, 0.12), 0 2px 4px -2px rgba(25, 31, 40, 0.12);
+  --shadow-bds-03:
+    0 10px 15px -3px rgba(25, 31, 40, 0.12), 0 4px 6px -2px rgba(25, 31, 40, 0.12);
+  --shadow-bds-04:
+    0 20px 32px -10px rgba(25, 31, 40, 0.12),
+    0 6px 10px -4px rgba(25, 31, 40, 0.12);
 }
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #1B211E;
-  --card: #FFFFFF;
-  --card-foreground: #1B211E;
-  --popover: #FFFFFF;
-  --popover-foreground: #1B211E;
-  --primary: #00CD72;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F2;
-  --secondary-foreground: #353C39;
-  --muted: #F1F5F2;
-  --muted-foreground: #4D5953;
-  --accent: #E6FAF1;
-  --accent-foreground: #00AB5F;
-  --destructive: #F04452;
-  --border: #E1E5E2;
-  --input: #E1E5E2;
-  --ring: #00CD72;
-  --chart-1: #00CD72;
-  --chart-2: #2B86FF;
-  --chart-3: #FFB000;
-  --chart-4: #F04452;
-  --chart-5: #8B95A1;
-  --radius: 0.625rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1B211E;
-  --sidebar-primary: #00CD72;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E6FAF1;
-  --sidebar-accent-foreground: #00AB5F;
-  --sidebar-border: #E1E5E2;
-  --sidebar-ring: #00CD72;
+  /* ── shadcn 세만틱 → BDS 매핑 ──
+   * primary 는 BDS solid primary 버튼 기준: 배경 primary500(민트) + 어두운 전경.
+   * 흰 배경 위 "텍스트/아이콘" 용 primary 는 대비가 부족하므로 primary900 을
+   * 따로 둔다 (BDS outlined primary 가 쓰는 값). */
+  --background: #ffffff;
+  --foreground: #14181f; /* textPrimaryColor */
+  --card: #ffffff;
+  --card-foreground: #14181f;
+  --popover: #ffffff;
+  --popover-foreground: #14181f;
+  --primary: #5bedd5; /* primary500 */
+  --primary-foreground: #14181f; /* solid primary 버튼은 어두운 텍스트 */
+  --secondary: #343d4a; /* secondaryMain */
+  --secondary-foreground: #ffffff;
+  --muted: #eff1f4; /* backStrong */
+  --muted-foreground: #7a8596; /* textTertiaryColor */
+  --accent: #f0fdfa; /* primary100 */
+  --accent-foreground: #0a9789; /* primary900 */
+  --destructive: #ff4b57; /* statusError */
+  --border: rgba(74, 85, 101, 0.16); /* borderNeutral */
+  --input: rgba(74, 85, 101, 0.16);
+  --ring: #2ed8c1; /* primary700 */
+  --chart-1: #2ed8c1;
+  --chart-2: #93c5fd;
+  --chart-3: #f0d85c;
+  --chart-4: #fba6a6;
+  --chart-5: #c0b9f9;
+  --radius: 12px; /* AppRadius.lg */
 
-  /* B-Match Custom Tokens */
-  --bm-primary-1: #00CD72;
-  --bm-primary-2: #00AB5F;
-  --bm-primary-3: #E6FAF1;
-  --bm-secondary-1: #1B211E;
-  --bm-secondary-2: #353C39;
-  --bm-secondary-3: #4D5953;
-  --bm-bg-surface: #F1F5F2;
-  --bm-bg-input: #F7F9F8;
-  --bm-bg-disabled: #E8EDE9;
-  --bm-line-default: #E1E5E2;
-  --bm-line-strong: #CFD6D0;
-  --bm-line-thin: #F2F4F2;
-  --bm-status-success: #2B86FF;
-  --bm-status-error: #F04452;
-  --bm-status-warning: #FFB000;
-  --bm-status-info: #8B95A1;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #14181f;
+  --sidebar-primary: #0a9789; /* 사이드바 활성 표시는 텍스트 대비 필요 */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0fdfa; /* primary100 */
+  --sidebar-accent-foreground: #0a9789;
+  --sidebar-border: rgba(74, 85, 101, 0.16);
+  --sidebar-ring: #2ed8c1;
+
+  /* ── 웹 전용 인터랙션 토큰 (BDS 원본에 없음 — 관리자에서 신규 정의) ──
+   * BDS 는 hover 개념이 없다. bgColorSurfacePressed 를 유일한 힌트로 삼아
+   * hover=한 단계 옅게 / active=한 단계 진하게 규칙을 세운다. */
+  --bds-hover-surface: #f2f4f6; /* bgColorSurfacePressed */
+  --bds-hover-overlay: rgba(74, 85, 101, 0.06);
+  --bds-active-overlay: rgba(74, 85, 101, 0.12);
+  --bds-primary-hover: #4ce4ca; /* primary500 을 약간 진하게 */
+  --bds-primary-active: #2ed8c1; /* = primary700 */
+  --bds-secondary-hover: #232a33; /* gray900 */
+  --bds-secondary-active: #14181f; /* gray950 */
+  --bds-assistive-hover: #e1e5ea; /* gray200 */
+  --bds-assistive-active: #cdd3db; /* gray300 */
+  --bds-destructive-hover: #f23643;
 }
 
 @layer base {
@@ -109,5 +274,40 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* BdsSkeleton — gray200 → gray100 → gray200 shimmer, 1200ms linear.
+   * 하이라이트 밴드 폭이 컨테이너의 60%(±0.3)인 원본 비율을 유지. */
+  @keyframes bds-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  .bds-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-bds-gray-200) 0%,
+      var(--color-bds-gray-100) 50%,
+      var(--color-bds-gray-200) 100%
+    );
+    background-size: 200% 100%;
+    animation: bds-shimmer 1.2s linear infinite;
+  }
+
+  /* BdsLoadingIndicator — 3-dot, 400ms 씩 디스크리트 전환 (fade 없음) */
+  @keyframes bds-dot-cycle {
+    0%,
+    33.32% {
+      background-color: var(--color-bds-primary-400);
+    }
+    33.33%,
+    100% {
+      background-color: var(--color-bds-gray-300);
+    }
   }
 }
