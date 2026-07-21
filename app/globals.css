@@ -119,13 +119,26 @@
   --color-bds-status-info-subtle: #eff5ff;
   --color-bds-status-info-text: #1d5fd6;
 
-  /* 차트 팔레트 (Figma 300 계열 토큰) */
+  /* 앱 BDS 차트 팔레트 (Figma 300 계열) — 큰 면적 채우기 전용.
+   * 전부 L 0.80 이상 파스텔이라 라인/얇은 마크의 카테고리 팔레트로는 쓸 수
+   * 없다(인접쌍 deutan ΔE 1.3, 정상시야 5.9 로 검증 실패). 면적 차트에서
+   * 직접 라벨과 함께 쓸 때만 유효. */
   --color-bds-chart-red: #fba6a6;
   --color-bds-chart-orange: #f2ab7f;
   --color-bds-chart-yellow: #f0d85c;
   --color-bds-chart-green: #89eca9;
   --color-bds-chart-blue: #93c5fd;
   --color-bds-chart-violet: #c0b9f9;
+
+  /* 시리즈 팔레트 — 관리자 차트용. 순서 고정, 순환 금지.
+   * scripts/validate_palette.js 로 흰 배경(#FFFFFF) 검증 통과:
+   *   명도대역 PASS / 채도하한 PASS / CVD deutan ΔE 21.5, tritan 14.3 PASS
+   *   정상시야 ΔE 36+ PASS / 대비 3:1 이상 PASS
+   * series-1 은 BDS primary900, series-2 는 violet 계열의 어두운 단계. */
+  --color-series-1: #0a9789;
+  --color-series-2: #7c3aed;
+  /* 결측('미입력') 전용 중립색 — 카테고리 색이 아니라 '데이터 없음' 표시 */
+  --color-series-muted: #a4adba;
 
   /* ── BDS 타이포 스케일 (text-bds-heading3 등) ──
    * letterSpacing 은 Figma % 기반이라 em 으로 옮기면 등가.
@@ -234,11 +247,13 @@
   --border: rgba(74, 85, 101, 0.16); /* borderNeutral */
   --input: rgba(74, 85, 101, 0.16);
   --ring: #2ed8c1; /* primary700 */
-  --chart-1: #2ed8c1;
-  --chart-2: #93c5fd;
-  --chart-3: #f0d85c;
-  --chart-4: #fba6a6;
-  --chart-5: #c0b9f9;
+  /* shadcn --chart-* 도 검증된 시리즈 값으로. 파스텔 300 계열은 얇은 마크에서
+     구분이 안 된다(위 --color-bds-chart-* 주석 참고). */
+  --chart-1: #0a9789;
+  --chart-2: #7c3aed;
+  --chart-3: #c2410c;
+  --chart-4: #1d5fd6;
+  --chart-5: #4a5565;
   --radius: 12px; /* AppRadius.lg */
 
   --sidebar: #ffffff;
