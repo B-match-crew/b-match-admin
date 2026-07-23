@@ -83,6 +83,15 @@ export async function searchUsers(
 
 export interface UserDetail {
   user: DbUser;
+  /**
+   * 이 유저가 개설한 모임(host_profiles). 유저당 최대 1개
+   * (uk_host_profiles_user). 없으면 null — is_host 여도 개설 전이면 없을 수 있다.
+   */
+  club: {
+    id: number;
+    club_name: string;
+    deleted_at: string | null;
+  } | null;
   auditHistory: Array<{
     action_type: string;
     reason: string | null;
@@ -94,8 +103,14 @@ export async function fetchUserDetail(userId: number): Promise<UserDetail> {
   await requireAdmin();
   const supabase = createAdminClient();
 
-  const [userRes, auditRes] = await Promise.all([
+  const [userRes, clubRes, auditRes] = await Promise.all([
     supabase.from("users").select("*").eq("id", userId).single(),
+    // 삭제된 모임도 가져와 화면에서 상태로 구분한다 (deleted_at 필터 안 함)
+    supabase
+      .from("host_profiles")
+      .select("id, club_name, deleted_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("admin_audit_logs")
       .select("action_type, reason, created_at")
@@ -106,9 +121,11 @@ export async function fetchUserDetail(userId: number): Promise<UserDetail> {
   ]);
 
   if (userRes.error) throw userRes.error;
+  if (clubRes.error) throw clubRes.error;
 
   return {
     user: userRes.data as DbUser,
+    club: (clubRes.data as UserDetail["club"]) ?? null,
     auditHistory: (auditRes.data ?? []) as UserDetail["auditHistory"],
   };
 }
