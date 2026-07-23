@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   ChartColumn,
   Users,
+  Users2,
   Swords,
   Flag,
   ClipboardList,
@@ -34,6 +35,7 @@ export const navigation: NavGroup[] = [
     label: "운영",
     items: [
       { title: "유저 관리", href: "/users", icon: Users },
+      { title: "모임 관리", href: "/clubs", icon: Users2 },
       { title: "매칭 관리", href: "/matches", icon: Swords },
       { title: "신고 관리", href: "/reports", icon: Flag },
     ],
