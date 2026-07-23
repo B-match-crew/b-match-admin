@@ -73,6 +73,19 @@ export function UserDetailDialog({ user, onClose }: Props) {
                   "아니오"
                 )}
               </InfoField>
+              {data.club && (
+                <InfoField label="개설 모임" className="col-span-2">
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">
+                      {data.club.club_name}
+                    </span>
+                    <span className="text-bds-caption2 text-bds-label-assistive">
+                      #{data.club.id}
+                    </span>
+                    {data.club.deleted_at && <StatusBadge status="DELETED" />}
+                  </span>
+                </InfoField>
+              )}
             </InfoGrid>
 
             {/* 정지 정보 */}
