@@ -5,8 +5,6 @@ import { SupabaseProvider } from "@/src/app/providers/supabase-provider";
 import { AuthProvider } from "@/src/app/providers/auth-provider";
 import { QueryProvider } from "@/src/app/providers/query-provider";
 import { ToastProvider } from "@/src/app/providers/toast-provider";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AdminLayout } from "@/src/app/layouts/admin-layout";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -56,12 +54,12 @@ export default function RootLayout({
         className={`${geistMono.variable} antialiased`}
         style={{ fontFamily: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif" }}
       >
+        {/* 관리자 셸(사이드바/헤더)과 인증 가드는 (admin) route group 의
+            layout 에만 있다. 로그인 페이지는 이 셸 밖에서 전체화면으로 뜬다. */}
         <SupabaseProvider>
           <AuthProvider>
             <QueryProvider>
-              <TooltipProvider>
-                <AdminLayout>{children}</AdminLayout>
-              </TooltipProvider>
+              {children}
               <ToastProvider />
             </QueryProvider>
           </AuthProvider>
