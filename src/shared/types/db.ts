@@ -171,6 +171,7 @@ export interface DbMatch {
   status: MatchStatus;
   is_manually_closed: boolean;
   view_count: number; // migration 24, 상세 진입 시 +1 (호스트 본인 제외)
+  favorite_count: number; // migration 31, match_favorites 트리거가 동기화
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
