@@ -29,6 +29,11 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0060: "버전은 1.0.5 같은 숫자.숫자.숫자 형식이어야 합니다", // INVALID_VERSION_FORMAT
   P0061: "강제(최소) 버전이 권장 버전보다 높을 수 없습니다", // MIN_VERSION_ABOVE_RECOMMENDED
   P0062: "해당 플랫폼의 버전 정책이 없습니다", // APP_VERSION_POLICY_NOT_FOUND
+  // 서버 점검 모드 (migration 29)
+  P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
+  P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START
+  P0072: "예상 종료 시각이 이미 지났습니다", // MAINTENANCE_END_IN_PAST
+  P0073: "점검 기간은 최대 7일까지 설정할 수 있습니다", // MAINTENANCE_TOO_LONG
 };
 
 interface PostgrestErrorLike {
