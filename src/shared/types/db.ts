@@ -13,7 +13,9 @@
 // ─── ENUM (Postgres enum 아님, VARCHAR + CHECK) ───
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 export type Gender = "MALE" | "FEMALE";
-export type Level = "A" | "B" | "C" | "D" | "NOVICE" | "BEGINNER";
+// migration 32 에서 'S' 재허용. 단 S 는 users.level(개인 급수) 전용 —
+// matches.allowed_levels 에는 들어가지 않는다(구버전 앱 파싱 실패 방지).
+export type Level = "S" | "A" | "B" | "C" | "D" | "NOVICE" | "BEGINNER";
 export type AdminRole = "SUPER_ADMIN" | "MANAGER";
 export type Provider = "KAKAO" | "GOOGLE" | "APPLE";
 export type GenderCondition = "MALE_ONLY" | "FEMALE_ONLY" | "ALL";
