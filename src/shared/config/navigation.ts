@@ -43,7 +43,7 @@ export const navigation: NavGroup[] = [
   {
     label: "시스템",
     items: [
-      { title: "버전 관리", href: "/app-version", icon: Rocket },
+      { title: "앱 관리", href: "/app-version", icon: Rocket },
       {
         title: "감사 로그",
         href: "/audit-logs",
