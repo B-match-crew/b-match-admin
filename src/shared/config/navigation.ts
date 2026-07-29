@@ -3,6 +3,7 @@ import {
   ChartColumn,
   Users,
   Users2,
+  Ban,
   Swords,
   Flag,
   ClipboardList,
@@ -38,6 +39,7 @@ export const navigation: NavGroup[] = [
       { title: "모임 관리", href: "/clubs", icon: Users2 },
       { title: "매칭 관리", href: "/matches", icon: Swords },
       { title: "신고 관리", href: "/reports", icon: Flag },
+      { title: "차단 관리", href: "/blocks", icon: Ban },
     ],
   },
   {
