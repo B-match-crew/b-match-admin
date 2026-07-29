@@ -236,6 +236,18 @@ function ClubDetailDialog({
               <InfoField label="개설일">
                 {formatDateTime(data.created_at)}
               </InfoField>
+              <InfoField
+                label={
+                  data.contact_type === "URL" ? "연락처 (URL)" : "연락처 (전화)"
+                }
+                className="col-span-2"
+              >
+                {data.contact_value ?? (
+                  <span className="text-bds-label-assistive">
+                    미등록 (구버전 앱에서 개설)
+                  </span>
+                )}
+              </InfoField>
             </InfoGrid>
 
             {data.description && (

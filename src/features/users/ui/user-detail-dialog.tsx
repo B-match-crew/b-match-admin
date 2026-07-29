@@ -13,6 +13,13 @@ import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { fetchUserDetail, type UserListItem } from "@/src/features/users/actions";
+import type { Provider } from "@/src/shared/types/db";
+
+const PROVIDER_LABEL: Record<Provider, string> = {
+  KAKAO: "카카오",
+  GOOGLE: "구글",
+  APPLE: "애플",
+};
 
 interface Props {
   user: UserListItem | null;
@@ -56,6 +63,12 @@ export function UserDetailDialog({ user, onClose }: Props) {
               <InfoField label="출생연도">{data.user.birth_year ?? "-"}</InfoField>
               <InfoField label="급수">{data.user.level ?? "-"}</InfoField>
               <InfoField label="가입일">{formatDate(data.user.created_at)}</InfoField>
+              <InfoField label="가입 경로">
+                {PROVIDER_LABEL[data.user.provider] ?? data.user.provider}
+              </InfoField>
+              <InfoField label="마케팅 수신">
+                {data.user.marketing_opt_in ? "동의" : "미동의"}
+              </InfoField>
               <InfoField label="상태">
                 <StatusBadge status={data.user.user_status} />
               </InfoField>

@@ -93,6 +93,8 @@ export interface DbHostProfile {
   gender_ratio_female: number;
   age_distribution: AgeDistribution;
   level_distribution: LevelDistribution;
+  contact_type: ContactType | null; // migration 30, nullable (구버전 앱 미전송)
+  contact_value: string | null; // migration 30, text
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
