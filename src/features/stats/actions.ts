@@ -207,3 +207,186 @@ export async function fetchRegionDistribution(): Promise<RegionItem[]> {
     share: total > 0 ? Math.round((r.match_count / total) * 1000) / 10 : 0,
   }));
 }
+
+// ─── 7. 신고 지표 (migration 34) ───
+
+export interface ReportSummary {
+  total: number;
+  pending: number;
+  reviewed: number;
+  actioned: number;
+  dismissed: number;
+  medianHoursToResolve: number | null;
+  /** 신고율(%) = 신고된 매칭 / 전체 매칭 */
+  reportRate: number | null;
+}
+
+export interface ReportHostItem {
+  host_id: number;
+  nickname: string | null;
+  name: string | null;
+  user_status: string;
+  reportCount: number;
+  reporterCount: number;
+}
+
+export async function fetchReportStats(): Promise<{
+  summary: ReportSummary;
+  hosts: ReportHostItem[];
+}> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const [summaryRes, hostsRes] = await Promise.all([
+    supabase.rpc("fn_admin_report_summary"),
+    supabase.rpc("fn_admin_report_host_ranking", { p_limit: 20 }),
+  ]);
+  if (summaryRes.error) throw summaryRes.error;
+  if (hostsRes.error) throw hostsRes.error;
+
+  const s = summaryRes.data as {
+    total: number;
+    pending: number;
+    reviewed: number;
+    actioned: number;
+    dismissed: number;
+    median_hours_to_resolve: number | null;
+    reported_matches: number;
+    total_matches: number;
+  };
+
+  return {
+    summary: {
+      total: s.total,
+      pending: s.pending,
+      reviewed: s.reviewed,
+      actioned: s.actioned,
+      dismissed: s.dismissed,
+      medianHoursToResolve: s.median_hours_to_resolve,
+      reportRate:
+        s.total_matches > 0
+          ? Math.round((s.reported_matches / s.total_matches) * 1000) / 10
+          : null,
+    },
+    hosts: (hostsRes.data ?? []).map(
+      (r: {
+        host_id: number;
+        nickname: string | null;
+        name: string | null;
+        user_status: string;
+        report_count: number;
+        reporter_count: number;
+      }) => ({
+        host_id: r.host_id,
+        nickname: r.nickname,
+        name: r.name,
+        user_status: r.user_status,
+        reportCount: r.report_count,
+        reporterCount: r.reporter_count,
+      })
+    ),
+  };
+}
+
+// ─── 8. 인기 매칭 (RPC 없이 단순 ORDER BY) ───
+
+export interface PopularMatchItem {
+  id: number;
+  title: string;
+  region_1: string | null;
+  view_count: number;
+  favorite_count: number;
+}
+
+export async function fetchPopularMatches(
+  limit = 10
+): Promise<PopularMatchItem[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("id, title, region_1, view_count, favorite_count")
+    .is("deleted_at", null)
+    .order("favorite_count", { ascending: false })
+    .order("view_count", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  return (data ?? []) as PopularMatchItem[];
+}
+
+// ─── 9. 매칭 시간대 분포 (요일 × 시간 히트맵) ───
+
+export interface TimeCell {
+  dow: number; // 0=일 … 6=토
+  hour: number; // 0-23
+  cnt: number;
+}
+
+export async function fetchMatchTimeDistribution(): Promise<TimeCell[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase.rpc(
+    "fn_admin_match_time_distribution"
+  );
+  if (error) throw error;
+  return (data ?? []) as TimeCell[];
+}
+
+// ─── 10. 가입 경로 + 마케팅 동의율 ───
+
+export interface SignupChannels {
+  providers: DistributionItem[];
+  marketingOptInRate: number | null;
+  marketingOptInCount: number;
+  totalUsers: number;
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  KAKAO: "카카오",
+  GOOGLE: "구글",
+  APPLE: "애플",
+};
+
+export async function fetchSignupChannels(): Promise<SignupChannels> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const [chRes, totalRes, optInRes] = await Promise.all([
+    supabase.rpc("fn_admin_signup_channels"),
+    // 마케팅 동의율은 count filter 2번이면 되므로 RPC 없이 처리
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .is("admin_role", null),
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .is("admin_role", null)
+      .eq("marketing_opt_in", true),
+  ]);
+  if (chRes.error) throw chRes.error;
+  if (totalRes.error) throw totalRes.error;
+  if (optInRes.error) throw optInRes.error;
+
+  const rows = (chRes.data ?? []) as { provider: string; cnt: number }[];
+  const total = rows.reduce((s, r) => s + r.cnt, 0);
+  const totalUsers = totalRes.count ?? 0;
+  const optIn = optInRes.count ?? 0;
+
+  return {
+    providers: rows.map((r) => ({
+      bucket: PROVIDER_LABEL[r.provider] ?? r.provider,
+      count: r.cnt,
+      share: total > 0 ? Math.round((r.cnt / total) * 1000) / 10 : 0,
+    })),
+    marketingOptInRate:
+      totalUsers > 0 ? Math.round((optIn / totalUsers) * 1000) / 10 : null,
+    marketingOptInCount: optIn,
+    totalUsers,
+  };
+}

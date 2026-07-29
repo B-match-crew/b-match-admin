@@ -18,6 +18,8 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import {
@@ -25,6 +27,10 @@ import {
   fetchDemographics,
   fetchHostStats,
   fetchRegionDistribution,
+  fetchReportStats,
+  fetchPopularMatches,
+  fetchMatchTimeDistribution,
+  fetchSignupChannels,
   type DistributionItem,
 } from "@/src/features/stats/actions";
 
@@ -65,9 +71,13 @@ export function StatsClient() {
       </div>
 
       <AcquisitionSection days={Number(days)} />
+      <SignupChannelSection />
       <HostSection />
       <DemographicsSection />
       <RegionSection />
+      <TimeDistributionSection />
+      <ReportSection />
+      <PopularMatchSection />
     </div>
   );
 }
@@ -620,5 +630,303 @@ function RegionTooltip({ active, payload }: TooltipPayload) {
         { label: "비중", value: `${d.share}%` },
       ]}
     />
+  );
+}
+
+// ─── 가입 경로 + 마케팅 동의율 ───
+
+function SignupChannelSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["stats-signup-channels"],
+    queryFn: fetchSignupChannels,
+  });
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <DistributionCard
+        title="가입 경로"
+        items={data?.providers}
+        loading={isLoading}
+        note="관리자 더미 계정은 제외됩니다."
+      />
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-bds-heading3">마케팅 수신 동의</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatTile
+              label="동의율"
+              value={data?.marketingOptInRate ?? null}
+              suffix="%"
+              hint={
+                data ? `${data.marketingOptInCount} / ${data.totalUsers}명` : undefined
+              }
+              loading={isLoading}
+            />
+            <StatTile
+              label="동의 인원"
+              value={data?.marketingOptInCount ?? null}
+              loading={isLoading}
+            />
+            <StatTile
+              label="전체 유저"
+              value={data?.totalUsers ?? null}
+              loading={isLoading}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── 매칭 시간대 분포 (요일 × 시간 히트맵) ───
+
+const DOW_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
+
+function TimeDistributionSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["stats-time-dist"],
+    queryFn: fetchMatchTimeDistribution,
+  });
+
+  // dow × hour 그리드로 펼치고 최대값으로 정규화(색 농도)
+  const grid = new Map<string, number>();
+  let max = 0;
+  for (const c of data ?? []) {
+    grid.set(`${c.dow}-${c.hour}`, c.cnt);
+    if (c.cnt > max) max = c.cnt;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-bds-heading3">매칭 시간대 분포</CardTitle>
+        <p className="text-bds-caption2 text-bds-label-alternative">
+          모임 시작 시각 기준 (KST). 색이 진할수록 그 요일·시간에 모임이 많습니다.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-[200px] w-full" />
+        ) : !data?.length ? (
+          <EmptyState message="데이터가 없습니다." />
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              {/* 시간 헤더 */}
+              <div className="flex">
+                <div className="w-8 shrink-0" />
+                {Array.from({ length: 24 }).map((_, h) => (
+                  <div
+                    key={h}
+                    className="flex-1 text-center text-[9px] text-bds-label-assistive"
+                  >
+                    {h % 3 === 0 ? h : ""}
+                  </div>
+                ))}
+              </div>
+              {DOW_LABEL.map((label, dow) => (
+                <div key={dow} className="flex items-center">
+                  <div className="w-8 shrink-0 text-bds-caption2 text-bds-label-neutral">
+                    {label}
+                  </div>
+                  {Array.from({ length: 24 }).map((_, h) => {
+                    const cnt = grid.get(`${dow}-${h}`) ?? 0;
+                    const ratio = max > 0 ? cnt / max : 0;
+                    return (
+                      <div key={h} className="flex-1 p-[1px]">
+                        <div
+                          className="aspect-square rounded-[2px]"
+                          title={`${label} ${h}시 · ${cnt}건`}
+                          style={{
+                            background:
+                              cnt === 0
+                                ? "var(--color-bds-back-strong)"
+                                : `color-mix(in srgb, var(--color-series-1) ${Math.round(
+                                    20 + ratio * 80
+                                  )}%, transparent)`,
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── 신고 지표 ───
+
+function ReportSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["stats-reports"],
+    queryFn: fetchReportStats,
+  });
+  const s = data?.summary;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-bds-heading3">신고 지표</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatTile
+              label="미처리 신고"
+              value={s?.pending ?? null}
+              hint={s ? `전체 ${s.total}건` : undefined}
+              loading={isLoading}
+            />
+            <StatTile
+              label="신고율"
+              value={s?.reportRate ?? null}
+              suffix="%"
+              hint="신고된 매칭 / 전체 매칭"
+              loading={isLoading}
+            />
+            <StatTile
+              label="처리 소요(중앙값)"
+              value={s?.medianHoursToResolve ?? null}
+              suffix="시간"
+              loading={isLoading}
+            />
+            <StatTile
+              label="조치 / 반려"
+              value={s ? s.actioned : null}
+              hint={s ? `반려 ${s.dismissed}건` : undefined}
+              loading={isLoading}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-bds-heading3">신고 많이 받은 호스트</CardTitle>
+          <p className="text-bds-caption2 text-bds-label-alternative">
+            서로 다른 신고자 수 우선. 상위 20명.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-[160px] w-full" />
+          ) : !data?.hosts.length ? (
+            <EmptyState message="신고가 없습니다." />
+          ) : (
+            <table className="w-full text-bds-caption2">
+              <thead>
+                <tr className="border-b border-bds-border-alternative text-bds-label-assistive">
+                  <th className="py-1.5 text-left font-normal">호스트</th>
+                  <th className="py-1.5 text-left font-normal">상태</th>
+                  <th className="py-1.5 text-right font-normal">신고자 수</th>
+                  <th className="py-1.5 text-right font-normal">총 신고</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.hosts.map((h) => (
+                  <tr
+                    key={h.host_id}
+                    className="border-b border-bds-border-alternative"
+                  >
+                    <td className="py-1.5">
+                      <span className="text-foreground">
+                        {h.nickname ?? h.name ?? `#${h.host_id}`}
+                      </span>
+                      <span className="ml-1.5 font-mono text-[11px] text-bds-label-assistive">
+                        #{h.host_id}
+                      </span>
+                    </td>
+                    <td className="py-1.5">
+                      <StatusBadge status={h.user_status} />
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums font-medium text-foreground">
+                      {h.reporterCount}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-bds-label-alternative">
+                      {h.reportCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── 인기 매칭 ───
+
+function PopularMatchSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["stats-popular"],
+    queryFn: () => fetchPopularMatches(10),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-bds-heading3">인기 매칭</CardTitle>
+        <p className="text-bds-caption2 text-bds-label-alternative">
+          찜 수 기준 상위 10개 (동률 시 조회수).
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-[200px] w-full" />
+        ) : !data?.length ? (
+          <EmptyState message="데이터가 없습니다." />
+        ) : (
+          <table className="w-full text-bds-caption2">
+            <thead>
+              <tr className="border-b border-bds-border-alternative text-bds-label-assistive">
+                <th className="py-1.5 text-left font-normal">#</th>
+                <th className="py-1.5 text-left font-normal">제목</th>
+                <th className="py-1.5 text-left font-normal">지역</th>
+                <th className="py-1.5 text-right font-normal">찜</th>
+                <th className="py-1.5 text-right font-normal">조회</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((m, i) => (
+                <tr
+                  key={m.id}
+                  className="border-b border-bds-border-alternative"
+                >
+                  <td className="py-1.5 font-mono text-[11px] text-bds-label-assistive">
+                    {i + 1}
+                  </td>
+                  <td className="py-1.5 max-w-xs truncate text-foreground">
+                    {m.title}
+                  </td>
+                  <td className="py-1.5">
+                    {m.region_1 ? (
+                      <Badge variant="outline">{m.region_1}</Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums font-medium text-foreground">
+                    {m.favorite_count.toLocaleString()}
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums text-bds-label-alternative">
+                    {m.view_count.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
