@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   ChartColumn,
+  Activity,
   Users,
   Users2,
   Ban,
@@ -30,6 +31,7 @@ export const navigation: NavGroup[] = [
     items: [
       { title: "대시보드", href: "/", icon: LayoutDashboard },
       { title: "통계", href: "/stats", icon: ChartColumn },
+      { title: "분석", href: "/analytics", icon: Activity },
     ],
   },
   {
