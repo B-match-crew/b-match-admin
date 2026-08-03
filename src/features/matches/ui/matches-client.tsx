@@ -49,6 +49,7 @@ import {
   fetchMatchDetail,
   deleteMatchAction,
   type MatchListItem,
+  type MatchSortBy,
 } from "@/src/features/matches/actions";
 import { normalizeFeeConfig, type MatchStatus } from "@/src/shared/types/db";
 
@@ -74,6 +75,7 @@ function MatchesTab() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<MatchStatus | "ALL">("ALL");
   const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [sortBy, setSortBy] = useState<MatchSortBy>("start_time");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
@@ -81,11 +83,12 @@ function MatchesTab() {
   const [detailId, setDetailId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["matches", status, includeDeleted, dateFrom, dateTo, page],
+    queryKey: ["matches", status, includeDeleted, sortBy, dateFrom, dateTo, page],
     queryFn: () =>
       fetchMatches({
         status,
         includeDeleted,
+        sortBy,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
         dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
@@ -117,6 +120,22 @@ function MatchesTab() {
             <SelectItem value="RECRUITING">모집중</SelectItem>
             <SelectItem value="CLOSED">마감</SelectItem>
             <SelectItem value="ENDED">종료</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={sortBy}
+          onValueChange={(v) => {
+            setSortBy(v as MatchSortBy);
+            setPage(0);
+          }}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="start_time">모집 일자순</SelectItem>
+            <SelectItem value="created_at">최신 등록순</SelectItem>
           </SelectContent>
         </Select>
 
