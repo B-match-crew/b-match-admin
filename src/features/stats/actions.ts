@@ -61,6 +61,96 @@ export async function fetchDailyAcquisition(
   );
 }
 
+// ─── 2. 누적 추이 (총 다운로드 / 총 가입 + 전일 대비 증감률) ───
+
+export interface CumulativePoint {
+  date: string; // yyyy-MM-dd (KST)
+  cumGuests: number;
+  cumSignups: number;
+}
+
+export interface CumulativeTrend {
+  /** 전체 기간 누계 (all-time) */
+  totalGuests: number;
+  totalSignups: number;
+  /** 기간 내 누적 곡선 — 마지막 점 = all-time 누계 */
+  series: CumulativePoint[];
+  /** 최근일 신규 유입 수 */
+  guestsToday: number;
+  signupsToday: number;
+  /** 전일 대비 증감률(%) — 전일 0이면 null (0으로 나누지 않음) */
+  guestsDodPct: number | null;
+  signupsDodPct: number | null;
+}
+
+const dod = (today: number, yesterday: number): number | null =>
+  yesterday > 0 ? Math.round(((today - yesterday) / yesterday) * 1000) / 10 : null;
+
+export async function fetchCumulativeTrend(
+  days = 30
+): Promise<CumulativeTrend> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  // KST 기준 오늘부터 역산 (fetchDailyAcquisition 과 동일 규칙)
+  const kstToday = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Seoul",
+  });
+  const to = kstToday;
+  const fromDate = new Date(`${kstToday}T00:00:00Z`);
+  fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
+  const from = fromDate.toISOString().slice(0, 10);
+
+  const [dailyRes, guestTotalRes, signupTotalRes] = await Promise.all([
+    supabase.rpc("fn_admin_daily_acquisition", { p_from: from, p_to: to }),
+    supabase
+      .from("guest_devices")
+      .select("id", { count: "exact", head: true }),
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .is("admin_role", null),
+  ]);
+  if (dailyRes.error) throw dailyRes.error;
+  if (guestTotalRes.error) throw guestTotalRes.error;
+  if (signupTotalRes.error) throw signupTotalRes.error;
+
+  const daily = (dailyRes.data ?? []) as {
+    day: string;
+    guests: number;
+    signups: number;
+  }[];
+  const totalGuests = guestTotalRes.count ?? 0;
+  const totalSignups = signupTotalRes.count ?? 0;
+
+  // 누적 곡선은 all-time 누계에서 역산한다: 각 날짜 종료 시점 누계 =
+  // 전체 누계 - 그 날 이후에 들어온 합. 마지막 점이 정확히 all-time 과 맞는다.
+  const sumAfterGuests = new Array(daily.length).fill(0);
+  const sumAfterSignups = new Array(daily.length).fill(0);
+  for (let i = daily.length - 2; i >= 0; i--) {
+    sumAfterGuests[i] = sumAfterGuests[i + 1] + daily[i + 1].guests;
+    sumAfterSignups[i] = sumAfterSignups[i + 1] + daily[i + 1].signups;
+  }
+  const series: CumulativePoint[] = daily.map((d, i) => ({
+    date: d.day,
+    cumGuests: totalGuests - sumAfterGuests[i],
+    cumSignups: totalSignups - sumAfterSignups[i],
+  }));
+
+  const last = daily[daily.length - 1];
+  const prev = daily[daily.length - 2];
+
+  return {
+    totalGuests,
+    totalSignups,
+    series,
+    guestsToday: last?.guests ?? 0,
+    signupsToday: last?.signups ?? 0,
+    guestsDodPct: last && prev ? dod(last.guests, prev.guests) : null,
+    signupsDodPct: last && prev ? dod(last.signups, prev.signups) : null,
+  };
+}
+
 // ─── 4. 인구통계 (성별 / 연령대 / 급수) ───
 
 export interface DistributionItem {

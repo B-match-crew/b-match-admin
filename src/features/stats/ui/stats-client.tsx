@@ -24,6 +24,7 @@ import { EmptyState } from "@/src/shared/ui/empty-state";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import {
   fetchDailyAcquisition,
+  fetchCumulativeTrend,
   fetchDemographics,
   fetchHostStats,
   fetchRegionDistribution,
@@ -70,6 +71,7 @@ export function StatsClient() {
         </div>
       </div>
 
+      <CumulativeSection days={Number(days)} />
       <AcquisitionSection days={Number(days)} />
       <SignupChannelSection />
       <HostSection />
@@ -79,6 +81,181 @@ export function StatsClient() {
       <ReportSection />
       <PopularMatchSection />
     </div>
+  );
+}
+
+// ─── 누적 추이 (총 다운로드 / 총 가입 + 전일 대비) ───
+
+function CumulativeSection({ days }: { days: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["stats-cumulative", days],
+    queryFn: () => fetchCumulativeTrend(days),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <CumulativeTile
+          label="총 다운로드"
+          total={data?.totalGuests ?? null}
+          today={data?.guestsToday}
+          dodPct={data?.guestsDodPct}
+          loading={isLoading}
+        />
+        <CumulativeTile
+          label="총 가입자"
+          total={data?.totalSignups ?? null}
+          today={data?.signupsToday}
+          dodPct={data?.signupsDodPct}
+          loading={isLoading}
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-bds-heading3">누적 추이</CardTitle>
+          <p className="text-bds-caption2 text-bds-label-alternative">
+            전체 누계 기준 (all-time). 다운로드는 앱 첫 실행(디바이스 등록) 기준.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-[280px] w-full" />
+          ) : !data?.series.length ? (
+            <EmptyState message="데이터가 없습니다." />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart
+                data={data.series}
+                margin={{ top: 8, right: 12, bottom: 0, left: -12 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-bds-gray-200)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: "var(--color-bds-label-assistive)" }}
+                  tickFormatter={(v: string) => v.slice(5)}
+                  tickLine={false}
+                  axisLine={{ stroke: "var(--color-bds-gray-200)" }}
+                  minTickGap={24}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "var(--color-bds-label-assistive)" }}
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={52}
+                />
+                <Tooltip content={<CumulativeTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                <Line
+                  type="monotone"
+                  dataKey="cumGuests"
+                  name="누적 다운로드"
+                  stroke={SERIES_1}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumSignups"
+                  name="누적 가입"
+                  stroke={SERIES_2}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CumulativeTile({
+  label,
+  total,
+  today,
+  dodPct,
+  loading,
+}: {
+  label: string;
+  total: number | null;
+  today?: number;
+  dodPct?: number | null;
+  loading?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-bds-border-alternative bg-bds-back-alternative p-4">
+      <p className="text-bds-caption2 text-bds-label-assistive">{label}</p>
+      {loading ? (
+        <Skeleton className="mt-1.5 h-9 w-28" />
+      ) : (
+        <div className="mt-1 flex items-end gap-2">
+          <p className="text-bds-title2 tabular-nums text-foreground">
+            {total == null ? "—" : total.toLocaleString()}
+          </p>
+          {today != null && (
+            <span className="mb-1 flex items-center gap-1 text-bds-caption2">
+              <span className="text-bds-label-alternative">
+                오늘 +{today.toLocaleString()}
+              </span>
+              <DeltaBadge pct={dodPct} />
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 전일 대비 증감률 배지 */
+function DeltaBadge({ pct }: { pct?: number | null }) {
+  if (pct == null) {
+    return <span className="text-bds-label-assistive">–</span>;
+  }
+  const up = pct > 0;
+  const flat = pct === 0;
+  return (
+    <span
+      className={
+        flat
+          ? "text-bds-label-assistive"
+          : up
+            ? "text-bds-status-info-text"
+            : "text-bds-status-error-text"
+      }
+    >
+      {up ? "▲" : flat ? "" : "▼"} {Math.abs(pct)}%
+    </span>
+  );
+}
+
+function CumulativeTooltip({ active, label, payload }: TooltipPayload) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <TooltipShell
+      title={String(label)}
+      rows={[
+        {
+          label: "누적 다운로드",
+          value: `${Number(d.cumGuests).toLocaleString()}`,
+          color: "#0a9789",
+        },
+        {
+          label: "누적 가입",
+          value: `${Number(d.cumSignups).toLocaleString()}`,
+          color: "#7c3aed",
+        },
+      ]}
+    />
   );
 }
 

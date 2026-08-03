@@ -25,9 +25,13 @@ export interface MatchListItem
   host: Pick<DbUser, "nickname" | "name"> | null;
 }
 
+/** 정렬 기준 — 모집(시작) 일자순 | 최신 등록순 */
+export type MatchSortBy = "start_time" | "created_at";
+
 export interface MatchSearchParams {
   status?: MatchStatus | "ALL";
   includeDeleted?: boolean;
+  sortBy?: MatchSortBy;
   limit?: number;
   offset?: number;
   dateFrom?: string;
@@ -54,7 +58,7 @@ export async function fetchMatches(
        host:users!fk_matches_host(nickname, name)`,
       { count: "exact" }
     )
-    .order("start_time", { ascending: false })
+    .order(params.sortBy ?? "start_time", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (params.status && params.status !== "ALL") {
