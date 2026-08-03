@@ -30,6 +30,11 @@ import {
   fetchViralFunnel,
   type FunnelStep,
 } from "@/src/features/analytics/actions";
+import {
+  Ga4ChannelSection,
+  Ga4CampaignSection,
+  Ga4PlatformSection,
+} from "@/src/features/analytics/ui/ga4-sections";
 
 /**
  * 시리즈 색 — globals.css 의 검증된 팔레트. 순서 고정, 순환 금지.
@@ -96,6 +101,20 @@ export function AnalyticsClient() {
       <DemandGapSection days={n} />
       <ConversionSection days={n} />
       <ViralSection days={n} />
+
+      {/* GA4 구간 — 자체 집계로는 알 수 없는 "어디서 왔는가"만 담당한다.
+          지연 24~48h, 샘플링 가능이라 자체 집계와 섞어 놓지 않고 아래로 묶는다. */}
+      <div className="space-y-2 pt-2">
+        <h2 className="text-bds-heading3 text-bds-label-normal">획득 (GA4)</h2>
+        <p className="text-bds-caption2 text-bds-label-alternative">
+          설치가 어디서 왔는지는 우리 DB 가 알 수 없다 — Play Install Referrer 를
+          읽어 귀속시키는 건 Firebase SDK 뿐이다. 단 GA4 는 24~48시간 지연되고
+          대량 쿼리는 샘플링될 수 있어, 정밀 수치는 위쪽 자체 집계를 본다.
+        </p>
+      </div>
+      <Ga4ChannelSection days={n} />
+      <Ga4CampaignSection days={n} />
+      <Ga4PlatformSection days={n} />
     </div>
   );
 }
