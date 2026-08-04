@@ -99,6 +99,12 @@ function wifAuthClient() {
   return ExternalAccountClient.fromJSON({
     type: "external_account",
     audience: `//${provider}`,
+    // 스코프를 직접 줘야 한다. 키(credentials)를 넘길 때는 gax 가 클라이언트의
+    // 기본 스코프를 붙여주지만, 만들어진 authClient 를 넘기면 그 경로를 타지
+    // 않아 cloud-platform 스코프만 붙고 Data API 가
+    // ACCESS_TOKEN_SCOPE_INSUFFICIENT 로 거절한다 (에러 문구는 그냥 403 이라
+    // GA4 권한 문제처럼 보인다).
+    scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
     subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
     token_url: "https://sts.googleapis.com/v1/token",
     service_account_impersonation_url:
@@ -340,6 +346,13 @@ function describeError(e: unknown): string {
   // ── 키/WIF 공통 ──
   if (msg.includes("has not been used") || msg.includes("is disabled")) {
     return "GCP 에서 Google Analytics Data API 를 사용 설정해야 합니다.";
+  }
+  // 스코프 부족도 403 이라 GA4 권한 문제처럼 보인다 — 먼저 갈라낸다.
+  if (
+    msg.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT") ||
+    msg.includes("insufficient authentication scopes")
+  ) {
+    return "액세스 토큰 스코프가 부족합니다 (analytics.readonly 누락) — 설정이 아니라 코드 문제입니다.";
   }
   if (msg.includes("PERMISSION_DENIED") || msg.includes("403")) {
     return "서비스 계정에 GA4 속성 뷰어 권한이 없습니다.";
