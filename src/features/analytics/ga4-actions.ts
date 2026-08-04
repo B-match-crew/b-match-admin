@@ -78,9 +78,12 @@ function loadCredentials(): { client_email: string; private_key: string } | null
 /**
  * WIF 설정이 다 있으면 ExternalAccountClient 를, 아니면 null.
  *
- * audience 는 GCP 가 권장하는 **기본 대상(default audience)** 형식을 그대로
- * 계산해 쓴다 — 별도 환경변수를 두면 오타 한 번에 원인 모를 401 이 난다.
- * STS 에 보내는 값과 Vercel 에 요청하는 토큰의 `aud` 가 반드시 같아야 한다.
+ * ⚠️ 같은 제공업체를 가리키는데도 **형식이 두 가지**다. 섞으면 STS 가
+ * `Invalid value for "audience"` 로 400 을 낸다:
+ *   - STS 요청의 `audience`: `//iam.googleapis.com/...` (스킴 없는 전체 리소스명)
+ *   - OIDC 토큰의 `aud` 클레임: `https://iam.googleapis.com/...` (GCP 가 만드는
+ *     '기본 대상' 문자열 그대로)
+ * 환경변수로 받지 않고 계산하는 이유도 이것 — 손으로 넣으면 반드시 하나를 틀린다.
  */
 function wifAuthClient() {
   const projectNumber = process.env.GCP_PROJECT_NUMBER?.trim();
@@ -89,20 +92,20 @@ function wifAuthClient() {
   const serviceAccount = process.env.GCP_SERVICE_ACCOUNT_EMAIL?.trim();
   if (!projectNumber || !poolId || !providerId || !serviceAccount) return null;
 
-  const audience =
-    `https://iam.googleapis.com/projects/${projectNumber}` +
+  const provider =
+    `iam.googleapis.com/projects/${projectNumber}` +
     `/locations/global/workloadIdentityPools/${poolId}/providers/${providerId}`;
 
   return ExternalAccountClient.fromJSON({
     type: "external_account",
-    audience,
+    audience: `//${provider}`,
     subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
     token_url: "https://sts.googleapis.com/v1/token",
     service_account_impersonation_url:
       `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/` +
       `${serviceAccount}:generateAccessToken`,
     subject_token_supplier: {
-      getSubjectToken: () => getVercelOidcToken({ audience }),
+      getSubjectToken: () => getVercelOidcToken({ audience: `https://${provider}` }),
     },
   });
 }

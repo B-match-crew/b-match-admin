@@ -69,24 +69,25 @@ function buildClient() {
           "     (토큰 유효기간은 12시간이라 만료되면 다시 pull 해야 합니다)",
       );
     }
-    const audience =
-      `https://iam.googleapis.com/projects/${projectNumber}` +
+    // STS 는 `//` 형식, 토큰의 aud 클레임은 `https://` 형식 — 섞으면 400 이다.
+    const provider =
+      `iam.googleapis.com/projects/${projectNumber}` +
       `/locations/global/workloadIdentityPools/${poolId}/providers/${providerId}`;
 
     console.log("인증  Workload Identity Federation (키 없음)");
-    console.log(`대상  ${audience}`);
+    console.log(`대상  https://${provider}`);
     console.log(`가장  ${serviceAccount}`);
 
     const authClient = ExternalAccountClient.fromJSON({
       type: "external_account",
-      audience,
+      audience: `//${provider}`,
       subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
       token_url: "https://sts.googleapis.com/v1/token",
       service_account_impersonation_url:
         `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/` +
         `${serviceAccount}:generateAccessToken`,
       subject_token_supplier: {
-        getSubjectToken: () => getVercelOidcToken({ audience }),
+        getSubjectToken: () => getVercelOidcToken({ audience: `https://${provider}` }),
       },
     });
     return new BetaAnalyticsDataClient({
