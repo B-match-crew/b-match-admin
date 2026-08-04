@@ -81,6 +81,8 @@ function buildClient() {
     const authClient = ExternalAccountClient.fromJSON({
       type: "external_account",
       audience: `//${provider}`,
+      // authClient 를 직접 넘기면 gax 가 기본 스코프를 안 붙인다 — 명시 필수.
+      scopes: ["https://www.googleapis.com/auth/analytics.readonly"],
       subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
       token_url: "https://sts.googleapis.com/v1/token",
       service_account_impersonation_url:
@@ -157,6 +159,16 @@ function diagnose(msg) {
     fail(
       "Google Analytics Data API 가 꺼져 있습니다.\n" +
         "  → API 및 서비스 → 라이브러리 → 'Google Analytics Data API' → 사용 설정",
+    );
+  }
+  // 스코프 부족도 403 이라 GA4 권한 문제처럼 보인다 — 먼저 갈라낸다.
+  if (
+    msg.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT") ||
+    msg.includes("insufficient authentication scopes")
+  ) {
+    fail(
+      "액세스 토큰의 스코프가 부족합니다 (GA4 권한 문제가 아닙니다).\n" +
+        "  → ExternalAccountClient 에 analytics.readonly 스코프를 명시해야 합니다.",
     );
   }
   if (msg.includes("PERMISSION_DENIED") || msg.includes("403")) {
