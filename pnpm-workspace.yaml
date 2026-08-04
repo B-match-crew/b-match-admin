@@ -1,3 +1,6 @@
 allowBuilds:
+  # google-gax(@google-analytics/data)가 딸려오는 protobufjs 의 postinstall 은
+  # CLI 용이라 빌드에 필요 없다 — 실행 안 해도 next build 가 통과한다.
+  protobufjs: false
   sharp: true
   unrs-resolver: true
