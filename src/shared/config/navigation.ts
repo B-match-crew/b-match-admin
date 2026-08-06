@@ -9,6 +9,7 @@ import {
   Flag,
   ClipboardList,
   Rocket,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/src/shared/types/db";
@@ -48,6 +49,7 @@ export const navigation: NavGroup[] = [
     label: "시스템",
     items: [
       { title: "앱 관리", href: "/app-version", icon: Rocket },
+      { title: "공지 발송", href: "/notices", icon: Megaphone },
       {
         title: "감사 로그",
         href: "/audit-logs",
