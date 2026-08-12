@@ -43,3 +43,8 @@ next-env.d.ts
 # DB 정합성 참조 파일 (b-match-app 측 산출물 — 커밋 제외)
 /DB_ALIGNMENT_GUIDE.md
 /supabase/
+
+# 이 프로젝트의 패키지 매니저는 pnpm 이다 (packageManager 필드 참조).
+# npm lock 이 함께 있으면 툴체인을 착각하기 쉽고 CI 가 어느 쪽을 볼지 모호해진다.
+package-lock.json
+yarn.lock
