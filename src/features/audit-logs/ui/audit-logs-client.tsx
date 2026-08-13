@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
@@ -58,10 +60,12 @@ export function AuditLogsClient() {
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [selectedLog, setSelectedLog] = useState<AuditLogRow | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["audit-logs", actionType, submittedSearch],
     queryFn: () =>
-      fetchAuditLogs({ actionType, search: submittedSearch, limit: 200 }),
+      unwrap(
+        fetchAuditLogs({ actionType, search: submittedSearch, limit: 200 })
+      ),
   });
 
   return (
@@ -130,6 +134,14 @@ export function AuditLogsClient() {
         </p>
       </div>
 
+      {isError && (
+        <QueryError
+          section="감사 로그"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      )}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -156,7 +168,7 @@ export function AuditLogsClient() {
                 ))}
               </>
             )}
-            {!isLoading && (data?.length ?? 0) === 0 && (
+            {!isLoading && !isError && (data?.length ?? 0) === 0 && (
               <TableRow>
                 <TableCell colSpan={6}>
                   <EmptyState message="로그가 없습니다." />

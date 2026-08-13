@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { fetchBlockRanking, fetchBlacklist } from "@/src/features/blocks/actions";
@@ -39,10 +41,20 @@ export function BlocksClient() {
 // ─── 차단 랭킹 ───
 
 function RankingTab() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["block-ranking"],
-    queryFn: () => fetchBlockRanking(50),
+    queryFn: () => unwrap(fetchBlockRanking(50)),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="차단 랭킹"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -107,13 +119,23 @@ const PAGE_SIZE = 50;
 
 function BlacklistTab() {
   const [page, setPage] = useState(0);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["blacklist", page],
-    queryFn: () => fetchBlacklist(PAGE_SIZE, page * PAGE_SIZE),
+    queryFn: () => unwrap(fetchBlacklist(PAGE_SIZE, page * PAGE_SIZE)),
   });
 
   const rows = data?.rows;
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
+
+  if (isError) {
+    return (
+      <QueryError
+        section="영구 차단 목록"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-2">
