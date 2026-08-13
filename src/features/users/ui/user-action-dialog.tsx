@@ -19,7 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
 import { WarningBox } from "@/src/shared/ui/warning-box";
 import {
   suspendUserAction,
@@ -102,16 +101,16 @@ function SuspendForm({
   }, []);
 
   const onSubmit = async (v: SuspendForm) => {
-    try {
-      await suspendUserAction({
-        userId: user.id,
-        until: new Date(v.until).toISOString(),
-        reason: v.reason,
-      });
-      onDone();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+    const r = await suspendUserAction({
+      userId: user.id,
+      until: new Date(v.until).toISOString(),
+      reason: v.reason,
+    });
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
     }
+    onDone();
   };
 
   return (
@@ -158,12 +157,12 @@ function BanForm({
   });
 
   const onSubmit = async (v: BanForm) => {
-    try {
-      await banUserAction({ userId: user.id, reason: v.reason });
-      onDone();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+    const r = await banUserAction({ userId: user.id, reason: v.reason });
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
     }
+    onDone();
   };
 
   return (

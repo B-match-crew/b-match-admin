@@ -23,6 +23,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { fetchClubs, fetchClubDetail } from "@/src/features/clubs/actions";
@@ -37,15 +39,17 @@ export function ClubsClient() {
   const [page, setPage] = useState(0);
   const [detailId, setDetailId] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["clubs", submittedTerm, includeDeleted, page],
     queryFn: () =>
-      fetchClubs({
-        term: submittedTerm,
-        includeDeleted,
-        limit: PAGE_SIZE,
-        offset: page * PAGE_SIZE,
-      }),
+      unwrap(
+        fetchClubs({
+          term: submittedTerm,
+          includeDeleted,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+        })
+      ),
   });
 
   const rows = data?.rows;
@@ -87,6 +91,10 @@ export function ClubsClient() {
           새로고침
         </Button>
       </div>
+
+      {isError && (
+        <QueryError section="모임 목록" error={error} onRetry={refetch} />
+      )}
 
       <div className="rounded-lg border">
         <Table>
@@ -192,9 +200,9 @@ function ClubDetailDialog({
   clubId: number | null;
   onClose: () => void;
 }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["club-detail", clubId],
-    queryFn: () => fetchClubDetail(clubId!),
+    queryFn: () => unwrap(fetchClubDetail(clubId!)),
     enabled: clubId !== null,
   });
 
@@ -211,6 +219,8 @@ function ClubDetailDialog({
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
           </div>
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : data ? (
           <div className="space-y-4 text-sm">
             <InfoGrid>

@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
+import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 
 /**
@@ -28,32 +29,36 @@ export interface BlockRankItem {
   blockerCount: number;
 }
 
-export async function fetchBlockRanking(limit = 50): Promise<BlockRankItem[]> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchBlockRanking(
+  limit = 50
+): Promise<ActionResult<BlockRankItem[]>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("fn_admin_block_ranking", {
-    p_limit: limit,
+    const { data, error } = await supabase.rpc("fn_admin_block_ranking", {
+      p_limit: limit,
+    });
+    if (error) throw error;
+
+    return (data ?? []).map(
+      (r: {
+        blocked_id: number;
+        nickname: string | null;
+        name: string | null;
+        user_status: string;
+        block_count: number;
+        blocker_count: number;
+      }) => ({
+        blocked_id: r.blocked_id,
+        nickname: r.nickname,
+        name: r.name,
+        user_status: r.user_status,
+        blockCount: r.block_count,
+        blockerCount: r.blocker_count,
+      })
+    );
   });
-  if (error) throw error;
-
-  return (data ?? []).map(
-    (r: {
-      blocked_id: number;
-      nickname: string | null;
-      name: string | null;
-      user_status: string;
-      block_count: number;
-      blocker_count: number;
-    }) => ({
-      blocked_id: r.blocked_id,
-      nickname: r.nickname,
-      name: r.name,
-      user_status: r.user_status,
-      blockCount: r.block_count,
-      blockerCount: r.blocker_count,
-    })
-  );
 }
 
 // ─── 영구 차단 목록 ───
@@ -74,24 +79,26 @@ export interface BlacklistResult {
 export async function fetchBlacklist(
   limit = 50,
   offset = 0
-): Promise<BlacklistResult> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+): Promise<ActionResult<BlacklistResult>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error, count } = await supabase
-    .from("permanent_blacklist")
-    .select(
-      `id, ci_hash, reason, created_at,
+    const { data, error, count } = await supabase
+      .from("permanent_blacklist")
+      .select(
+        `id, ci_hash, reason, created_at,
        user:users!fk_permanent_blacklist_user(id, nickname, name)`,
-      { count: "exact" }
-    )
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-  if (error) throw error;
+        { count: "exact" }
+      )
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (error) throw error;
 
-  return {
-    rows: (data ?? []) as unknown as BlacklistItem[],
-    total: count ?? 0,
-  };
+    return {
+      rows: (data ?? []) as unknown as BlacklistItem[],
+      total: count ?? 0,
+    };
+  });
 }

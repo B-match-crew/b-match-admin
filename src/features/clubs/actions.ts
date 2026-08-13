@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
+import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 import type { DbHostProfile, DbUser } from "@/src/shared/types/db";
 
@@ -45,69 +46,71 @@ export interface ClubSearchResult {
 
 export async function fetchClubs(
   params: ClubSearchParams
-): Promise<ClubSearchResult> {
-  await requireAdmin();
-  const supabase = createAdminClient();
-  const term = params.term?.trim() ?? "";
-  const limit = params.limit ?? 50;
-  const offset = params.offset ?? 0;
+): Promise<ActionResult<ClubSearchResult>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
+    const term = params.term?.trim() ?? "";
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
 
-  let q = supabase
-    .from("host_profiles")
-    .select(
-      `id, user_id, club_name, min_level_required, gender_ratio_male,
+    let q = supabase
+      .from("host_profiles")
+      .select(
+        `id, user_id, club_name, min_level_required, gender_ratio_male,
        gender_ratio_female, created_at, deleted_at,
        host:users!fk_host_profiles_user(nickname, name)`,
-      { count: "exact" }
-    )
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
-  if (!params.includeDeleted) {
-    q = q.is("deleted_at", null);
-  }
-  if (term.length > 0) {
-    q = q.ilike("club_name", `%${term}%`);
-  }
-
-  const { data, error, count } = await q;
-  if (error) throw error;
-
-  const rows = (data ?? []) as unknown as (Omit<
-    ClubListItem,
-    "matchCount" | "activeMatchCount"
-  >)[];
-
-  // 매칭 수는 모임(user_id)별로 집계해 붙인다. 목록 페이지(최대 50건)라
-  // user_id 목록으로 한 번에 받아 클라이언트에서 카운트한다.
-  const userIds = rows.map((r) => r.user_id);
-  const countByUser = new Map<number, { total: number; active: number }>();
-
-  if (userIds.length > 0) {
-    const { data: matches, error: mErr } = await supabase
-      .from("matches")
-      .select("host_id, deleted_at")
-      .in("host_id", userIds);
-    if (mErr) throw mErr;
-
-    for (const m of (matches ?? []) as {
-      host_id: number;
-      deleted_at: string | null;
-    }[]) {
-      const c = countByUser.get(m.host_id) ?? { total: 0, active: 0 };
-      c.total += 1;
-      if (!m.deleted_at) c.active += 1;
-      countByUser.set(m.host_id, c);
+    if (!params.includeDeleted) {
+      q = q.is("deleted_at", null);
     }
-  }
+    if (term.length > 0) {
+      q = q.ilike("club_name", `%${term}%`);
+    }
 
-  return {
-    rows: rows.map((r) => {
-      const c = countByUser.get(r.user_id) ?? { total: 0, active: 0 };
-      return { ...r, matchCount: c.total, activeMatchCount: c.active };
-    }),
-    total: count ?? 0,
-  };
+    const { data, error, count } = await q;
+    if (error) throw error;
+
+    const rows = (data ?? []) as unknown as Omit<
+      ClubListItem,
+      "matchCount" | "activeMatchCount"
+    >[];
+
+    // 매칭 수는 모임(user_id)별로 집계해 붙인다. 목록 페이지(최대 50건)라
+    // user_id 목록으로 한 번에 받아 클라이언트에서 카운트한다.
+    const userIds = rows.map((r) => r.user_id);
+    const countByUser = new Map<number, { total: number; active: number }>();
+
+    if (userIds.length > 0) {
+      const { data: matches, error: mErr } = await supabase
+        .from("matches")
+        .select("host_id, deleted_at")
+        .in("host_id", userIds);
+      if (mErr) throw mErr;
+
+      for (const m of (matches ?? []) as {
+        host_id: number;
+        deleted_at: string | null;
+      }[]) {
+        const c = countByUser.get(m.host_id) ?? { total: 0, active: 0 };
+        c.total += 1;
+        if (!m.deleted_at) c.active += 1;
+        countByUser.set(m.host_id, c);
+      }
+    }
+
+    return {
+      rows: rows.map((r) => {
+        const c = countByUser.get(r.user_id) ?? { total: 0, active: 0 };
+        return { ...r, matchCount: c.total, activeMatchCount: c.active };
+      }),
+      total: count ?? 0,
+    };
+  });
 }
 
 // ─── 모임 상세 ───
@@ -118,29 +121,35 @@ export type ClubDetail = DbHostProfile & {
   activeMatchCount: number;
 };
 
-export async function fetchClubDetail(clubId: number): Promise<ClubDetail> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchClubDetail(
+  clubId: number
+): Promise<ActionResult<ClubDetail>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("host_profiles")
-    .select(`*, host:users!fk_host_profiles_user(id, nickname, name, phone_number)`)
-    .eq("id", clubId)
-    .single();
-  if (error) throw error;
+    const { data, error } = await supabase
+      .from("host_profiles")
+      .select(
+        `*, host:users!fk_host_profiles_user(id, nickname, name, phone_number)`
+      )
+      .eq("id", clubId)
+      .single();
+    if (error) throw error;
 
-  const profile = data as unknown as ClubDetail;
+    const profile = data as unknown as ClubDetail;
 
-  const { data: matches, error: mErr } = await supabase
-    .from("matches")
-    .select("deleted_at")
-    .eq("host_id", profile.user_id);
-  if (mErr) throw mErr;
+    const { data: matches, error: mErr } = await supabase
+      .from("matches")
+      .select("deleted_at")
+      .eq("host_id", profile.user_id);
+    if (mErr) throw mErr;
 
-  const list = (matches ?? []) as { deleted_at: string | null }[];
-  return {
-    ...profile,
-    matchCount: list.length,
-    activeMatchCount: list.filter((m) => !m.deleted_at).length,
-  };
+    const list = (matches ?? []) as { deleted_at: string | null }[];
+    return {
+      ...profile,
+      matchCount: list.length,
+      activeMatchCount: list.filter((m) => !m.deleted_at).length,
+    };
+  });
 }

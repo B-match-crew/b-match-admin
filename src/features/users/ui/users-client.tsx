@@ -24,7 +24,8 @@ import {
   unsuspendUserAction,
   type UserListItem,
 } from "@/src/features/users/actions";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import { UserActionDialog } from "./user-action-dialog";
 import { UserDetailDialog } from "./user-detail-dialog";
 import { downloadCsv } from "@/src/shared/lib/csv-export";
@@ -41,15 +42,17 @@ export function UsersClient() {
   const [actionMode, setActionMode] = useState<"suspend" | "ban" | null>(null);
   const [detailUser, setDetailUser] = useState<UserListItem | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["users", submittedTerm, includeDeleted, page],
     queryFn: () =>
-      searchUsers({
-        term: submittedTerm,
-        includeDeleted,
-        limit: PAGE_SIZE,
-        offset: page * PAGE_SIZE,
-      }),
+      unwrap(
+        searchUsers({
+          term: submittedTerm,
+          includeDeleted,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+        })
+      ),
   });
 
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
@@ -59,13 +62,13 @@ export function UsersClient() {
   };
 
   const handleUnsuspend = async (u: UserListItem) => {
-    try {
-      await unsuspendUserAction(u.id);
-      toast.success("정지가 해제되었습니다");
-      refetch();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+    const r = await unsuspendUserAction(u.id);
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
     }
+    toast.success("정지가 해제되었습니다");
+    refetch();
   };
 
   return (
@@ -128,6 +131,10 @@ export function UsersClient() {
           </Button>
         )}
       </div>
+
+      {isError && (
+        <QueryError section="유저 목록" error={error} onRetry={refetch} />
+      )}
 
       <div className="rounded-lg border">
         <Table>

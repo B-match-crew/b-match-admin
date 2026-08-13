@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Smartphone, CalendarDays, Megaphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchDashboardStats,
   fetchDailyTrends,
@@ -21,19 +23,32 @@ import {
 } from "recharts";
 
 export function DashboardClient() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["dashboard-stats"],
-    queryFn: fetchDashboardStats,
+    queryFn: () => unwrap(fetchDashboardStats()),
     refetchInterval: 60 * 1000,
   });
 
-  const { data: trends, isLoading: trendsLoading } = useQuery({
+  const {
+    data: trends,
+    isLoading: trendsLoading,
+    isError: trendsError,
+    error: trendsErrorObj,
+    refetch: refetchTrends,
+  } = useQuery({
     queryKey: ["dashboard-trends"],
-    queryFn: () => fetchDailyTrends(14),
+    queryFn: () => unwrap(fetchDailyTrends(14)),
   });
 
   return (
     <div className="space-y-6">
+      {isError ? (
+        <QueryError
+          section="핵심 지표"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="전체 유저"
@@ -65,6 +80,7 @@ export function DashboardClient() {
           href="/matches"
         />
       </div>
+      )}
 
       {/* 시계열 차트 */}
       <Card>
@@ -76,6 +92,11 @@ export function DashboardClient() {
         <CardContent>
           {trendsLoading ? (
             <Skeleton className="h-64 w-full" />
+          ) : trendsError ? (
+            <QueryError
+              error={trendsErrorObj}
+              onRetry={() => void refetchTrends()}
+            />
           ) : trends && trends.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={trends}>

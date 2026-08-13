@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
+import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 
 /**
@@ -69,22 +70,30 @@ function withRates(rows: RawFunnel[]): FunnelStep[] {
   });
 }
 
-export async function fetchGuestFunnel(days = 30): Promise<FunnelStep[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<RawFunnel>("fn_admin_funnel_guest", {
-    p_from: from,
-    p_to: to,
+export async function fetchGuestFunnel(
+  days = 30
+): Promise<ActionResult<FunnelStep[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<RawFunnel>("fn_admin_funnel_guest", {
+      p_from: from,
+      p_to: to,
+    });
+    return withRates(rows);
   });
-  return withRates(rows);
 }
 
-export async function fetchHostFunnel(days = 30): Promise<FunnelStep[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<RawFunnel>("fn_admin_funnel_host", {
-    p_from: from,
-    p_to: to,
+export async function fetchHostFunnel(
+  days = 30
+): Promise<ActionResult<FunnelStep[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<RawFunnel>("fn_admin_funnel_host", {
+      p_from: from,
+      p_to: to,
+    });
+    return withRates(rows);
   });
-  return withRates(rows);
 }
 
 // ─── 활성 사용자 (DAU / WAU / MAU) ───
@@ -99,26 +108,30 @@ export interface ActiveUsersItem {
   mauMember: number;
 }
 
-export async function fetchActiveUsers(days = 30): Promise<ActiveUsersItem[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    day: string;
-    dau: number;
-    dau_member: number;
-    wau: number;
-    wau_member: number;
-    mau: number;
-    mau_member: number;
-  }>("fn_admin_active_users", { p_from: from, p_to: to });
-  return rows.map((r) => ({
-    date: r.day,
-    dau: r.dau,
-    dauMember: r.dau_member,
-    wau: r.wau,
-    wauMember: r.wau_member,
-    mau: r.mau,
-    mauMember: r.mau_member,
-  }));
+export async function fetchActiveUsers(
+  days = 30
+): Promise<ActionResult<ActiveUsersItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      day: string;
+      dau: number;
+      dau_member: number;
+      wau: number;
+      wau_member: number;
+      mau: number;
+      mau_member: number;
+    }>("fn_admin_active_users", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      date: r.day,
+      dau: r.dau,
+      dauMember: r.dau_member,
+      wau: r.wau,
+      wauMember: r.wau_member,
+      mau: r.mau,
+      mauMember: r.mau_member,
+    }));
+  });
 }
 
 // ─── 코호트 리텐션 ───
@@ -132,24 +145,28 @@ export interface CohortItem {
   d30: number | null;
 }
 
-export async function fetchRetentionCohort(days = 90): Promise<CohortItem[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    cohort_week: string;
-    cohort_size: number;
-    d1: number;
-    d7: number;
-    d30: number;
-  }>("fn_admin_retention_cohort", { p_from: from, p_to: to });
-  const pct = (n: number, size: number) =>
-    size > 0 ? Math.round((n / size) * 1000) / 10 : null;
-  return rows.map((r) => ({
-    week: r.cohort_week,
-    size: r.cohort_size,
-    d1: pct(r.d1, r.cohort_size),
-    d7: pct(r.d7, r.cohort_size),
-    d30: pct(r.d30, r.cohort_size),
-  }));
+export async function fetchRetentionCohort(
+  days = 90
+): Promise<ActionResult<CohortItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      cohort_week: string;
+      cohort_size: number;
+      d1: number;
+      d7: number;
+      d30: number;
+    }>("fn_admin_retention_cohort", { p_from: from, p_to: to });
+    const pct = (n: number, size: number) =>
+      size > 0 ? Math.round((n / size) * 1000) / 10 : null;
+    return rows.map((r) => ({
+      week: r.cohort_week,
+      size: r.cohort_size,
+      d1: pct(r.d1, r.cohort_size),
+      d7: pct(r.d7, r.cohort_size),
+      d30: pct(r.d30, r.cohort_size),
+    }));
+  });
 }
 
 // ─── 수급 밸런스 ───
@@ -164,20 +181,22 @@ export interface SupplyDemandItem {
 
 export async function fetchSupplyDemand(
   days = 30,
-): Promise<SupplyDemandItem[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    region_1: string;
-    supply: number;
-    demand: number;
-  }>("fn_admin_supply_demand", { p_from: from, p_to: to });
-  return rows.map((r) => ({
-    region: r.region_1 ?? "(미지정)",
-    supply: r.supply,
-    demand: r.demand,
-    demandPerSupply:
-      r.supply > 0 ? Math.round((r.demand / r.supply) * 10) / 10 : null,
-  }));
+): Promise<ActionResult<SupplyDemandItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      region_1: string;
+      supply: number;
+      demand: number;
+    }>("fn_admin_supply_demand", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      region: r.region_1 ?? "(미지정)",
+      supply: r.supply,
+      demand: r.demand,
+      demandPerSupply:
+        r.supply > 0 ? Math.round((r.demand / r.supply) * 10) / 10 : null,
+    }));
+  });
 }
 
 // ─── 빈 결과 (수요-공급 갭) ───
@@ -191,20 +210,24 @@ export interface DemandGapItem {
   emptyViews: number;
 }
 
-export async function fetchDemandGap(days = 30): Promise<DemandGapItem[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    region_1: string;
-    weekday: number;
-    level: string;
-    empty_views: number;
-  }>("fn_admin_demand_gap", { p_from: from, p_to: to });
-  return rows.map((r) => ({
-    region: r.region_1,
-    weekday: WEEKDAYS[r.weekday] ?? "?",
-    level: r.level,
-    emptyViews: r.empty_views,
-  }));
+export async function fetchDemandGap(
+  days = 30
+): Promise<ActionResult<DemandGapItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      region_1: string;
+      weekday: number;
+      level: string;
+      empty_views: number;
+    }>("fn_admin_demand_gap", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      region: r.region_1,
+      weekday: WEEKDAYS[r.weekday] ?? "?",
+      level: r.level,
+      emptyViews: r.empty_views,
+    }));
+  });
 }
 
 // ─── 매칭 전환율 랭킹 ───
@@ -222,29 +245,31 @@ export interface MatchConversionItem {
 export async function fetchMatchConversion(
   days = 30,
   minViews = 10,
-): Promise<MatchConversionItem[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    match_id: number;
-    title: string;
-    region_1: string;
-    views: number;
-    contacts: number;
-    conversion: number | null;
-  }>("fn_admin_match_conversion", {
-    p_from: from,
-    p_to: to,
-    p_min_views: minViews,
-    p_limit: 50,
+): Promise<ActionResult<MatchConversionItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      match_id: number;
+      title: string;
+      region_1: string;
+      views: number;
+      contacts: number;
+      conversion: number | null;
+    }>("fn_admin_match_conversion", {
+      p_from: from,
+      p_to: to,
+      p_min_views: minViews,
+      p_limit: 50,
+    });
+    return rows.map((r) => ({
+      matchId: r.match_id,
+      title: r.title,
+      region: r.region_1,
+      views: r.views,
+      contacts: r.contacts,
+      conversion: r.conversion,
+    }));
   });
-  return rows.map((r) => ({
-    matchId: r.match_id,
-    title: r.title,
-    region: r.region_1,
-    views: r.views,
-    contacts: r.contacts,
-    conversion: r.conversion,
-  }));
 }
 
 // ─── 바이럴 퍼널 ───
@@ -257,21 +282,25 @@ export interface ViralStep {
   conversionFromPrev: number | null;
 }
 
-export async function fetchViralFunnel(days = 30): Promise<ViralStep[]> {
-  const { from, to } = kstRange(days);
-  const rows = await callRpc<{
-    step_order: number;
-    step_name: string;
-    events: number;
-  }>("fn_admin_viral_funnel", { p_from: from, p_to: to });
-  return rows.map((r, i) => {
-    const prev = i === 0 ? null : rows[i - 1].events;
-    return {
-      stepOrder: r.step_order,
-      stepName: r.step_name,
-      events: r.events,
-      conversionFromPrev:
-        prev && prev > 0 ? Math.round((r.events / prev) * 1000) / 10 : null,
-    };
+export async function fetchViralFunnel(
+  days = 30
+): Promise<ActionResult<ViralStep[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      step_order: number;
+      step_name: string;
+      events: number;
+    }>("fn_admin_viral_funnel", { p_from: from, p_to: to });
+    return rows.map((r, i) => {
+      const prev = i === 0 ? null : rows[i - 1].events;
+      return {
+        stepOrder: r.step_order,
+        stepName: r.step_name,
+        events: r.events,
+        conversionFromPrev:
+          prev && prev > 0 ? Math.round((r.events / prev) * 1000) / 10 : null,
+      };
+    });
   });
 }

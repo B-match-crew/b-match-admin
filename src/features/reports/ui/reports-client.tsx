@@ -42,7 +42,9 @@ import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
+import type { ActionResult } from "@/src/shared/lib/action-result";
 import type { ReportStatus } from "@/src/shared/types/db";
 import {
   fetchReports,
@@ -59,9 +61,9 @@ export function ReportsClient() {
   const [status, setStatus] = useState<ReportStatus | "ALL">("PENDING");
   const [detail, setDetail] = useState<ReportListItem | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["reports", status],
-    queryFn: () => fetchReports({ status, limit: 100 }),
+    queryFn: () => unwrap(fetchReports({ status, limit: 100 })),
   });
 
   const refetch = () =>
@@ -95,6 +97,10 @@ export function ReportsClient() {
           새로고침
         </Button>
       </div>
+
+      {isError && (
+        <QueryError section="신고 목록" error={error} onRetry={refetch} />
+      )}
 
       <div className="rounded-lg border">
         <Table>
@@ -219,14 +225,19 @@ function ReportDetailDialog({
   const hostName =
     report?.host?.nickname ?? report?.host?.name ?? `#${report?.host_id}`;
 
-  const run = async (fn: () => Promise<void>, msg: string) => {
+  const run = async (
+    fn: () => Promise<ActionResult<void>>,
+    msg: string
+  ) => {
     setBusy(true);
     try {
-      await fn();
+      const r = await fn();
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
+      }
       toast.success(msg);
       onChanged();
-    } catch (e) {
-      toast.error(toUserMessage(e));
     } finally {
       setBusy(false);
     }
@@ -492,18 +503,28 @@ function ReasonDialog({
   });
 
   const submit = async (v: { reason: string }) => {
-    try {
-      if (kind === "delete") {
-        await resolveMatchAction({ matchId: report.match_id, reason: v.reason });
-        toast.success("매칭글을 삭제하고 조치완료 처리했습니다");
-      } else {
-        await banHostAction({ userId: report.host_id, reason: v.reason });
-        toast.success("호스트를 영구차단했습니다");
+    if (kind === "delete") {
+      const r = await resolveMatchAction({
+        matchId: report.match_id,
+        reason: v.reason,
+      });
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
       }
-      onDone();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+      toast.success("매칭글을 삭제하고 조치완료 처리했습니다");
+    } else {
+      const r = await banHostAction({
+        userId: report.host_id,
+        reason: v.reason,
+      });
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
+      }
+      toast.success("호스트를 영구차단했습니다");
     }
+    onDone();
   };
 
   return (
@@ -570,17 +591,17 @@ function SuspendDialog({
   });
 
   const submit = async (v: { until: string; reason: string }) => {
-    try {
-      await suspendHostAction({
-        userId: report.host_id,
-        until: new Date(v.until).toISOString(),
-        reason: v.reason,
-      });
-      toast.success("호스트를 정지했습니다");
-      onDone();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+    const r = await suspendHostAction({
+      userId: report.host_id,
+      until: new Date(v.until).toISOString(),
+      reason: v.reason,
+    });
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
     }
+    toast.success("호스트를 정지했습니다");
+    onDone();
   };
 
   return (

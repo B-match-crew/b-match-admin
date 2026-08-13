@@ -25,7 +25,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   broadcastNoticeAction,
   fetchBroadcastPreviewCount,
@@ -55,7 +56,7 @@ export function NoticeBroadcastClient() {
   // 대상 수는 발송 함수와 같은 조건을 쓴다 — 이게 없으면 실수로 전체 발송이 나간다.
   const preview = useQuery({
     queryKey: ["broadcast-preview", target],
-    queryFn: () => fetchBroadcastPreviewCount(target),
+    queryFn: () => unwrap(fetchBroadcastPreviewCount(target)),
   });
 
   const trimmedTitle = title.trim();
@@ -74,18 +75,20 @@ export function NoticeBroadcastClient() {
   const send = async () => {
     setSending(true);
     try {
-      const created = await broadcastNoticeAction({
+      const r = await broadcastNoticeAction({
         title: trimmedTitle,
         body: trimmedBody,
         target,
       });
-      toast.success(`${created.toLocaleString()}명에게 발송했습니다`);
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
+      }
+      toast.success(`${r.data.toLocaleString()}명에게 발송했습니다`);
       setConfirmOpen(false);
       setTitle("");
       setBody("");
       await preview.refetch();
-    } catch (e) {
-      toast.error(toUserMessage(e));
     } finally {
       setSending(false);
     }
@@ -162,18 +165,27 @@ export function NoticeBroadcastClient() {
           </p>
         </div>
 
-        <div className="bg-muted/50 flex items-center justify-between rounded-md px-4 py-3">
-          <span className="text-sm font-medium">발송 대상</span>
-          {preview.isLoading ? (
-            <Skeleton className="h-5 w-20" />
-          ) : preview.isError ? (
-            <span className="text-destructive text-sm">
-              대상 수를 불러오지 못했습니다
-            </span>
-          ) : (
-            <span className="text-lg font-semibold">
-              {(preview.data ?? 0).toLocaleString()} 명
-            </span>
+        <div className="space-y-2">
+          <div className="bg-muted/50 flex items-center justify-between rounded-md px-4 py-3">
+            <span className="text-sm font-medium">발송 대상</span>
+            {preview.isLoading ? (
+              <Skeleton className="h-5 w-20" />
+            ) : preview.isError ? (
+              <span className="text-destructive text-sm">
+                대상 수를 불러오지 못했습니다
+              </span>
+            ) : (
+              <span className="text-lg font-semibold">
+                {(preview.data ?? 0).toLocaleString()} 명
+              </span>
+            )}
+          </div>
+          {/* 왜 못 읽었는지가 보여야 조치가 된다 — 발송을 막는 조건이라 특히. */}
+          {preview.isError && (
+            <QueryError
+              error={preview.error}
+              onRetry={() => void preview.refetch()}
+            />
           )}
         </div>
 

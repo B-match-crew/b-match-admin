@@ -18,7 +18,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
+import { unwrap } from "@/src/shared/lib/unwrap";
+import type { ActionResult } from "@/src/shared/lib/action-result";
 import {
   fetchActiveUsers,
   fetchGuestFunnel,
@@ -122,11 +125,21 @@ export function AnalyticsClient() {
 // ─── 활성 사용자 (DAU / WAU / MAU) ───
 
 function ActiveUsersSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-active", days],
-    queryFn: () => fetchActiveUsers(days),
+    queryFn: () => unwrap(fetchActiveUsers(days)),
   });
   const latest = data?.[data.length - 1];
+
+  if (isError) {
+    return (
+      <QueryError
+        section="활성 사용자"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -218,12 +231,12 @@ function FunnelSection({
   title: string;
   description: string;
   queryKey: string;
-  fetcher: () => Promise<FunnelStep[]>;
+  fetcher: () => Promise<ActionResult<FunnelStep[]>>;
   days: number;
 }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [queryKey, days],
-    queryFn: fetcher,
+    queryFn: () => unwrap(fetcher()),
   });
 
   return (
@@ -235,6 +248,8 @@ function FunnelSection({
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[260px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !data?.length || data.every((d) => d.users === 0) ? (
           <EmptyState message="아직 이벤트가 없습니다. 계측이 포함된 앱 배포 후부터 쌓입니다." />
         ) : (
@@ -322,9 +337,9 @@ function FunnelTooltip({ active, payload }: { active?: boolean; payload?: { payl
 // ─── 코호트 리텐션 ───
 
 function RetentionSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-cohort", days],
-    queryFn: () => fetchRetentionCohort(Math.max(days, 30)),
+    queryFn: () => unwrap(fetchRetentionCohort(Math.max(days, 30))),
   });
 
   return (
@@ -338,6 +353,8 @@ function RetentionSection({ days }: { days: number }) {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[200px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !data?.length ? (
           <EmptyState message="아직 코호트를 만들 활성 기록이 없습니다." />
         ) : (
@@ -397,9 +414,9 @@ function RetentionCell({ value }: { value: number | null }) {
 // ─── 수급 밸런스 ───
 
 function SupplyDemandSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-supply-demand", days],
-    queryFn: () => fetchSupplyDemand(days),
+    queryFn: () => unwrap(fetchSupplyDemand(days)),
   });
   const chart = (data ?? []).filter((d) => d.demandPerSupply != null).slice(0, 12);
 
@@ -414,6 +431,8 @@ function SupplyDemandSection({ days }: { days: number }) {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[260px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !chart.length ? (
           <EmptyState message="아직 조회·모집글 데이터가 없습니다." />
         ) : (
@@ -461,9 +480,9 @@ function SupplyDemandSection({ days }: { days: number }) {
 // ─── 빈 결과 (수요-공급 갭) ───
 
 function DemandGapSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-demand-gap", days],
-    queryFn: () => fetchDemandGap(days),
+    queryFn: () => unwrap(fetchDemandGap(days)),
   });
   const top = (data ?? []).slice(0, 20);
 
@@ -478,6 +497,8 @@ function DemandGapSection({ days }: { days: number }) {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[200px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !top.length ? (
           <EmptyState message="빈 결과 노출이 없습니다." />
         ) : (
@@ -512,9 +533,9 @@ function DemandGapSection({ days }: { days: number }) {
 // ─── 매칭 전환율 랭킹 ───
 
 function ConversionSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-conversion", days],
-    queryFn: () => fetchMatchConversion(days),
+    queryFn: () => unwrap(fetchMatchConversion(days)),
   });
 
   return (
@@ -528,6 +549,8 @@ function ConversionSection({ days }: { days: number }) {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[200px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !data?.length ? (
           <EmptyState message="조회가 충분히 쌓인 모집글이 아직 없습니다." />
         ) : (
@@ -566,9 +589,9 @@ function ConversionSection({ days }: { days: number }) {
 // ─── 바이럴 퍼널 ───
 
 function ViralSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analytics-viral", days],
-    queryFn: () => fetchViralFunnel(days),
+    queryFn: () => unwrap(fetchViralFunnel(days)),
   });
 
   return (
@@ -583,6 +606,8 @@ function ViralSection({ days }: { days: number }) {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[240px] w-full" />
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : !data?.length || data.every((d) => d.events === 0) ? (
           <EmptyState message="아직 공유 이벤트가 없습니다." />
         ) : (
