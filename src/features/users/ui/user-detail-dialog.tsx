@@ -10,6 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { fetchUserDetail, type UserListItem } from "@/src/features/users/actions";
@@ -29,9 +31,9 @@ interface Props {
 export function UserDetailDialog({ user, onClose }: Props) {
   const open = !!user;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["user-detail", user?.id],
-    queryFn: () => fetchUserDetail(user!.id),
+    queryFn: () => unwrap(fetchUserDetail(user!.id)),
     enabled: open,
   });
 
@@ -50,6 +52,8 @@ export function UserDetailDialog({ user, onClose }: Props) {
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
           </div>
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : data ? (
           <div className="space-y-5">
             {/* 기본 정보 */}

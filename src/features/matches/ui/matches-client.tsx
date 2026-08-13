@@ -43,7 +43,8 @@ import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchMatches,
   fetchMatchDetail,
@@ -82,18 +83,22 @@ function MatchesTab() {
   const [target, setTarget] = useState<MatchListItem | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["matches", status, includeDeleted, sortBy, dateFrom, dateTo, page],
     queryFn: () =>
-      fetchMatches({
-        status,
-        includeDeleted,
-        sortBy,
-        limit: PAGE_SIZE,
-        offset: page * PAGE_SIZE,
-        dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-        dateTo: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : undefined,
-      }),
+      unwrap(
+        fetchMatches({
+          status,
+          includeDeleted,
+          sortBy,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+          dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
+          dateTo: dateTo
+            ? new Date(dateTo + "T23:59:59").toISOString()
+            : undefined,
+        })
+      ),
   });
 
   const rows = data?.rows;
@@ -190,6 +195,10 @@ function MatchesTab() {
           새로고침
         </Button>
       </div>
+
+      {isError && (
+        <QueryError section="매칭 목록" error={error} onRetry={refetch} />
+      )}
 
       <div className="rounded-lg border">
         <Table>
@@ -327,9 +336,9 @@ function MatchDetailDialog({
   matchId: number | null;
   onClose: () => void;
 }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["match-detail", matchId],
-    queryFn: () => fetchMatchDetail(matchId!),
+    queryFn: () => unwrap(fetchMatchDetail(matchId!)),
     enabled: matchId !== null,
   });
 
@@ -346,6 +355,8 @@ function MatchDetailDialog({
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
           </div>
+        ) : isError ? (
+          <QueryError error={error} onRetry={() => void refetch()} />
         ) : data ? (
           <div className="space-y-4 text-sm">
             <InfoGrid>
@@ -510,13 +521,13 @@ function DeleteMatchDialog({
 
   const onSubmit = async (v: ReasonForm) => {
     if (!match) return;
-    try {
-      await deleteMatchAction({ matchId: match.id, reason: v.reason });
-      onDone();
-      form.reset();
-    } catch (e) {
-      toast.error(toUserMessage(e));
+    const r = await deleteMatchAction({ matchId: match.id, reason: v.reason });
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
     }
+    onDone();
+    form.reset();
   };
 
   return (
