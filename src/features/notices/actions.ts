@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/src/shared/lib/role-guard";
+import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { createServerSupabase } from "@/src/shared/api/supabase-server";
 import {
   NOTICE_BODY_MAX,
@@ -29,15 +30,17 @@ import {
  */
 export async function fetchBroadcastPreviewCount(
   target: BroadcastTarget
-): Promise<number> {
-  await requireAdmin();
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc(
-    "fn_admin_broadcast_preview_count",
-    { p_target: target }
-  );
-  if (error) throw error;
-  return (data as number) ?? 0;
+): Promise<ActionResult<number>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc(
+      "fn_admin_broadcast_preview_count",
+      { p_target: target }
+    );
+    if (error) throw error;
+    return (data as number) ?? 0;
+  });
 }
 
 export interface BroadcastNoticeParams {
@@ -51,29 +54,31 @@ export interface BroadcastNoticeParams {
 /** 발송. 생성된 알림 수를 돌려준다. */
 export async function broadcastNoticeAction(
   p: BroadcastNoticeParams
-): Promise<number> {
-  // 네트워크 왕복 전 즉시 피드백을 주기 위한 1차 방어일 뿐이고,
-  // 실제 강제는 RPC(P0022~P0024)가 한다.
-  const title = p.title.trim();
-  const body = p.body.trim();
-  if (!title) throw new Error("제목을 입력해주세요");
-  if (!body) throw new Error("내용을 입력해주세요");
-  if (title.length > NOTICE_TITLE_MAX) {
-    throw new Error(`제목은 ${NOTICE_TITLE_MAX}자 이내로 입력해주세요`);
-  }
-  if (body.length > NOTICE_BODY_MAX) {
-    throw new Error(`내용은 ${NOTICE_BODY_MAX}자 이내로 입력해주세요`);
-  }
+): Promise<ActionResult<number>> {
+  return runAction(async () => {
+    // 네트워크 왕복 전 즉시 피드백을 주기 위한 1차 방어일 뿐이고,
+    // 실제 강제는 RPC(P0022~P0024)가 한다.
+    const title = p.title.trim();
+    const body = p.body.trim();
+    if (!title) throw new Error("제목을 입력해주세요");
+    if (!body) throw new Error("내용을 입력해주세요");
+    if (title.length > NOTICE_TITLE_MAX) {
+      throw new Error(`제목은 ${NOTICE_TITLE_MAX}자 이내로 입력해주세요`);
+    }
+    if (body.length > NOTICE_BODY_MAX) {
+      throw new Error(`내용은 ${NOTICE_BODY_MAX}자 이내로 입력해주세요`);
+    }
 
-  await requireAdmin();
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("fn_admin_broadcast_notice", {
-    p_title: title,
-    p_body: body,
-    p_target: p.target,
-    p_deeplink_route: p.deeplinkRoute || null,
-    p_deeplink_params: null,
+    await requireAdmin();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase.rpc("fn_admin_broadcast_notice", {
+      p_title: title,
+      p_body: body,
+      p_target: p.target,
+      p_deeplink_route: p.deeplinkRoute || null,
+      p_deeplink_params: null,
+    });
+    if (error) throw error;
+    return (data as number) ?? 0;
   });
-  if (error) throw error;
-  return (data as number) ?? 0;
 }

@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchVersionPolicies,
   saveVersionPolicyAction,
@@ -32,9 +33,9 @@ const PLATFORM_LABELS: Record<VersionPlatform, string> = {
 
 export function AppVersionClient() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["app-version-policies"],
-    queryFn: () => fetchVersionPolicies(),
+    queryFn: () => unwrap(fetchVersionPolicies()),
   });
 
   if (isLoading) {
@@ -43,6 +44,16 @@ export function AppVersionClient() {
         <Skeleton className="h-64" />
         <Skeleton className="h-64" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <QueryError
+        section="버전 정책"
+        error={error}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -94,15 +105,17 @@ function PlatformCard({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveVersionPolicyAction({
+      const r = await saveVersionPolicyAction({
         platform: row.platform,
         recommendedVersion: recommended,
         minVersion: min,
       });
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
+      }
       toast.success(`${PLATFORM_LABELS[row.platform]} 버전 정책을 저장했습니다`);
       onSaved();
-    } catch (e) {
-      toast.error(toUserMessage(e));
     } finally {
       setSaving(false);
     }

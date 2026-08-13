@@ -32,7 +32,8 @@ import {
   toKstInputValue,
   fromKstInputValue,
 } from "@/src/shared/lib/format-date";
-import { toUserMessage } from "@/src/shared/lib/error-codes";
+import { QueryError } from "@/src/shared/ui/query-error";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchAppStatus,
   setMaintenanceAction,
@@ -44,11 +45,20 @@ type ConfirmStep = null | "first" | "second";
 
 export function MaintenanceClient() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["app-status"],
-    queryFn: () => fetchAppStatus(),
+    queryFn: () => unwrap(fetchAppStatus()),
   });
 
+  if (isError) {
+    return (
+      <QueryError
+        section="서버 점검"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
   if (isLoading || !data) return <Skeleton className="h-72" />;
   return <MaintenanceCard row={data} onSaved={() => queryClient.invalidateQueries({ queryKey: ["app-status"] })} />;
 }
@@ -82,14 +92,16 @@ function MaintenanceCard({
   }) => {
     setSaving(true);
     try {
-      await setMaintenanceAction(p);
+      const r = await setMaintenanceAction(p);
+      if (!r.ok) {
+        toast.error(r.error.message);
+        return;
+      }
       toast.success(
         p.enabled ? "서버 점검을 시작했습니다" : "서버 점검을 해제했습니다"
       );
       setStep(null);
       onSaved();
-    } catch (e) {
-      toast.error(toUserMessage(e));
     } finally {
       setSaving(false);
     }
