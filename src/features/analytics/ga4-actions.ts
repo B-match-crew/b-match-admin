@@ -3,6 +3,7 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { ExternalAccountClient } from "google-auth-library";
+import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 
 /**
@@ -168,39 +169,38 @@ export interface ChannelItem {
 
 export async function fetchGa4Channels(
   days = 30,
-): Promise<Ga4Response<ChannelItem>> {
-  await requireAdmin();
-  const c = getClient();
-  if (typeof c === "string") return { configured: false, reason: c };
+): Promise<ActionResult<Ga4Response<ChannelItem>>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const c = getClient();
+    if (typeof c === "string") return { configured: false, reason: c };
 
-  try {
-    const [res] = await c.client.runReport({
-      property: c.property,
-      dateRanges: [dateRange(days)],
-      // firstUser* 는 "이 유저를 처음 데려온" 채널 — 설치 귀속에 맞는 축이다.
-      // session* 을 쓰면 재방문 경로가 섞여 획득 분석이 흐려진다.
-      dimensions: [
-        { name: "firstUserSource" },
-        { name: "firstUserMedium" },
-      ],
-      metrics: [{ name: "newUsers" }, { name: "totalUsers" }],
-      orderBys: [{ metric: { metricName: "newUsers" }, desc: true }],
-      limit: 25,
-    });
+    try {
+      const [res] = await c.client.runReport({
+        property: c.property,
+        dateRanges: [dateRange(days)],
+        // firstUser* 는 "이 유저를 처음 데려온" 채널 — 설치 귀속에 맞는 축이다.
+        // session* 을 쓰면 재방문 경로가 섞여 획득 분석이 흐려진다.
+        dimensions: [{ name: "firstUserSource" }, { name: "firstUserMedium" }],
+        metrics: [{ name: "newUsers" }, { name: "totalUsers" }],
+        orderBys: [{ metric: { metricName: "newUsers" }, desc: true }],
+        limit: 25,
+      });
 
-    return {
-      configured: true,
-      sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
-      rows: (res.rows ?? []).map((r) => ({
-        source: r.dimensionValues?.[0]?.value ?? "(없음)",
-        medium: r.dimensionValues?.[1]?.value ?? "(없음)",
-        newUsers: Number(r.metricValues?.[0]?.value ?? 0),
-        totalUsers: Number(r.metricValues?.[1]?.value ?? 0),
-      })),
-    };
-  } catch (e) {
-    return { configured: false, reason: describeError(e) };
-  }
+      return {
+        configured: true,
+        sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
+        rows: (res.rows ?? []).map((r) => ({
+          source: r.dimensionValues?.[0]?.value ?? "(없음)",
+          medium: r.dimensionValues?.[1]?.value ?? "(없음)",
+          newUsers: Number(r.metricValues?.[0]?.value ?? 0),
+          totalUsers: Number(r.metricValues?.[1]?.value ?? 0),
+        })),
+      };
+    } catch (e) {
+      return { configured: false, reason: describeError(e) };
+    }
+  });
 }
 
 // ─── #9 캠페인 성과 ───
@@ -215,47 +215,49 @@ export interface CampaignItem {
 
 export async function fetchGa4Campaigns(
   days = 30,
-): Promise<Ga4Response<CampaignItem>> {
-  await requireAdmin();
-  const c = getClient();
-  if (typeof c === "string") return { configured: false, reason: c };
+): Promise<ActionResult<Ga4Response<CampaignItem>>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const c = getClient();
+    if (typeof c === "string") return { configured: false, reason: c };
 
-  try {
-    const [res] = await c.client.runReport({
-      property: c.property,
-      dateRanges: [dateRange(days)],
-      dimensions: [
-        { name: "firstUserCampaignName" },
-        { name: "firstUserSource" },
-      ],
-      metrics: [
-        { name: "newUsers" },
-        // 이벤트별 카운트를 캠페인 축으로 쪼개려면 eventCount 에 필터를 건다.
-        { name: "eventCount" },
-      ],
-      dimensionFilter: {
-        filter: {
-          fieldName: "eventName",
-          stringFilter: { value: "sign_up_complete" },
+    try {
+      const [res] = await c.client.runReport({
+        property: c.property,
+        dateRanges: [dateRange(days)],
+        dimensions: [
+          { name: "firstUserCampaignName" },
+          { name: "firstUserSource" },
+        ],
+        metrics: [
+          { name: "newUsers" },
+          // 이벤트별 카운트를 캠페인 축으로 쪼개려면 eventCount 에 필터를 건다.
+          { name: "eventCount" },
+        ],
+        dimensionFilter: {
+          filter: {
+            fieldName: "eventName",
+            stringFilter: { value: "sign_up_complete" },
+          },
         },
-      },
-      orderBys: [{ metric: { metricName: "newUsers" }, desc: true }],
-      limit: 25,
-    });
+        orderBys: [{ metric: { metricName: "newUsers" }, desc: true }],
+        limit: 25,
+      });
 
-    return {
-      configured: true,
-      sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
-      rows: (res.rows ?? []).map((r) => ({
-        campaign: r.dimensionValues?.[0]?.value ?? "(없음)",
-        source: r.dimensionValues?.[1]?.value ?? "(없음)",
-        newUsers: Number(r.metricValues?.[0]?.value ?? 0),
-        signUps: Number(r.metricValues?.[1]?.value ?? 0),
-      })),
-    };
-  } catch (e) {
-    return { configured: false, reason: describeError(e) };
-  }
+      return {
+        configured: true,
+        sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
+        rows: (res.rows ?? []).map((r) => ({
+          campaign: r.dimensionValues?.[0]?.value ?? "(없음)",
+          source: r.dimensionValues?.[1]?.value ?? "(없음)",
+          newUsers: Number(r.metricValues?.[0]?.value ?? 0),
+          signUps: Number(r.metricValues?.[1]?.value ?? 0),
+        })),
+      };
+    } catch (e) {
+      return { configured: false, reason: describeError(e) };
+    }
+  });
 }
 
 // ─── #10 플랫폼별 참여도 ───
@@ -270,42 +272,44 @@ export interface PlatformItem {
 
 export async function fetchGa4Platforms(
   days = 30,
-): Promise<Ga4Response<PlatformItem>> {
-  await requireAdmin();
-  const c = getClient();
-  if (typeof c === "string") return { configured: false, reason: c };
+): Promise<ActionResult<Ga4Response<PlatformItem>>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const c = getClient();
+    if (typeof c === "string") return { configured: false, reason: c };
 
-  try {
-    const [res] = await c.client.runReport({
-      property: c.property,
-      dateRanges: [dateRange(days)],
-      dimensions: [{ name: "platform" }],
-      metrics: [
-        { name: "activeUsers" },
-        { name: "sessions" },
-        { name: "userEngagementDuration" },
-      ],
-      orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
-    });
+    try {
+      const [res] = await c.client.runReport({
+        property: c.property,
+        dateRanges: [dateRange(days)],
+        dimensions: [{ name: "platform" }],
+        metrics: [
+          { name: "activeUsers" },
+          { name: "sessions" },
+          { name: "userEngagementDuration" },
+        ],
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      });
 
-    return {
-      configured: true,
-      sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
-      rows: (res.rows ?? []).map((r) => {
-        const sessions = Number(r.metricValues?.[1]?.value ?? 0);
-        const engagement = Number(r.metricValues?.[2]?.value ?? 0);
-        return {
-          platform: r.dimensionValues?.[0]?.value ?? "(없음)",
-          activeUsers: Number(r.metricValues?.[0]?.value ?? 0),
-          sessions,
-          avgEngagementSec:
-            sessions > 0 ? Math.round(engagement / sessions) : 0,
-        };
-      }),
-    };
-  } catch (e) {
-    return { configured: false, reason: describeError(e) };
-  }
+      return {
+        configured: true,
+        sampled: (res.metadata?.samplingMetadatas?.length ?? 0) > 0,
+        rows: (res.rows ?? []).map((r) => {
+          const sessions = Number(r.metricValues?.[1]?.value ?? 0);
+          const engagement = Number(r.metricValues?.[2]?.value ?? 0);
+          return {
+            platform: r.dimensionValues?.[0]?.value ?? "(없음)",
+            activeUsers: Number(r.metricValues?.[0]?.value ?? 0),
+            sessions,
+            avgEngagementSec:
+              sessions > 0 ? Math.round(engagement / sessions) : 0,
+          };
+        }),
+      };
+    } catch (e) {
+      return { configured: false, reason: describeError(e) };
+    }
+  });
 }
 
 /**

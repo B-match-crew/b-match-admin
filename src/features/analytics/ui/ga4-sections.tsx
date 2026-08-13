@@ -14,7 +14,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
 import { WarningBox } from "@/src/shared/ui/warning-box";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchGa4Channels,
   fetchGa4Campaigns,
@@ -39,12 +41,18 @@ function Ga4Card<T>({
   description,
   data,
   isLoading,
+  isError,
+  error,
+  onRetry,
   children,
 }: {
   title: string;
   description: string;
   data?: Ga4Response<T>;
   isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
   children: (rows: T[]) => React.ReactNode;
 }) {
   return (
@@ -58,6 +66,10 @@ function Ga4Card<T>({
       <CardContent className="space-y-3">
         {isLoading ? (
           <Skeleton className="h-[220px] w-full" />
+        ) : isError ? (
+          // GA4 설정 문제는 data.reason 으로 오고, 여기 걸리는 건 그 앞단
+          // (권한·네트워크·서버) 실패다 — 둘을 구분해서 보여준다.
+          <QueryError error={error} onRetry={onRetry} />
         ) : !data?.configured ? (
           <WarningBox tone="caution">
             GA4 연동이 아직 설정되지 않았습니다. {data?.reason}
@@ -83,9 +95,9 @@ function Ga4Card<T>({
 // ─── #8 채널별 신규 유저 ───
 
 export function Ga4ChannelSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["ga4-channels", days],
-    queryFn: () => fetchGa4Channels(days),
+    queryFn: () => unwrap(fetchGa4Channels(days)),
   });
 
   return (
@@ -94,6 +106,9 @@ export function Ga4ChannelSection({ days }: { days: number }) {
       description="이 유저를 처음 데려온 소스/매체. 설치가 어디서 왔는지는 우리 DB 가 알 수 없어 GA4 만 답할 수 있다."
       data={data}
       isLoading={isLoading}
+      isError={isError}
+      error={error}
+      onRetry={() => void refetch()}
     >
       {(rows) => (
         <>
@@ -154,9 +169,9 @@ export function Ga4ChannelSection({ days }: { days: number }) {
 // ─── #9 캠페인 성과 ───
 
 export function Ga4CampaignSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["ga4-campaigns", days],
-    queryFn: () => fetchGa4Campaigns(days),
+    queryFn: () => unwrap(fetchGa4Campaigns(days)),
   });
 
   return (
@@ -165,6 +180,9 @@ export function Ga4CampaignSection({ days }: { days: number }) {
       description="캠페인별 신규 유저와 가입 완료. 광고를 태울 때 어느 캠페인이 실제 가입을 만들었는지 본다."
       data={data}
       isLoading={isLoading}
+      isError={isError}
+      error={error}
+      onRetry={() => void refetch()}
     >
       {(rows) => (
         <div className="overflow-x-auto">
@@ -203,9 +221,9 @@ export function Ga4CampaignSection({ days }: { days: number }) {
 // ─── #10 플랫폼별 참여도 ───
 
 export function Ga4PlatformSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["ga4-platforms", days],
-    queryFn: () => fetchGa4Platforms(days),
+    queryFn: () => unwrap(fetchGa4Platforms(days)),
   });
 
   return (
@@ -214,6 +232,9 @@ export function Ga4PlatformSection({ days }: { days: number }) {
       description="세션·참여 시간은 GA4 만 아는 값이다. 리텐션은 위쪽 자체 코호트가 더 정확하므로 여기서 중복해 보여주지 않는다."
       data={data}
       isLoading={isLoading}
+      isError={isError}
+      error={error}
+      onRetry={() => void refetch()}
     >
       {(rows) => (
         <div className="overflow-x-auto">
