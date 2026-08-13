@@ -21,7 +21,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
+import { QueryError } from "@/src/shared/ui/query-error";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
+import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchDailyAcquisition,
   fetchCumulativeTrend,
@@ -87,10 +89,20 @@ export function StatsClient() {
 // ─── 누적 추이 (총 다운로드 / 총 가입 + 전일 대비) ───
 
 function CumulativeSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-cumulative", days],
-    queryFn: () => fetchCumulativeTrend(days),
+    queryFn: () => unwrap(fetchCumulativeTrend(days)),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="누적 추이"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -262,9 +274,9 @@ function CumulativeTooltip({ active, label, payload }: TooltipPayload) {
 // ─── 1~3. 유입: 다운로드 / 가입 / 일별 비율 ───
 
 function AcquisitionSection({ days }: { days: number }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-acquisition", days],
-    queryFn: () => fetchDailyAcquisition(days),
+    queryFn: () => unwrap(fetchDailyAcquisition(days)),
   });
 
   const totalGuests = data?.reduce((s, d) => s + d.guests, 0) ?? 0;
@@ -273,6 +285,12 @@ function AcquisitionSection({ days }: { days: number }) {
     totalGuests > 0
       ? Math.round((totalSignups / totalGuests) * 1000) / 10
       : null;
+
+  if (isError) {
+    return (
+      <QueryError section="유입" error={error} onRetry={() => void refetch()} />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -412,10 +430,20 @@ function AcquisitionSection({ days }: { days: number }) {
 // ─── 4. 호스트 지표 ───
 
 function HostSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-host"],
-    queryFn: fetchHostStats,
+    queryFn: () => unwrap(fetchHostStats()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="호스트 지표"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <Card>
@@ -464,10 +492,20 @@ function HostSection() {
 // ─── 5. 인구통계 ───
 
 function DemographicsSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-demographics"],
-    queryFn: fetchDemographics,
+    queryFn: () => unwrap(fetchDemographics()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="인구통계"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -576,10 +614,20 @@ function DistributionCard({
 // ─── 6. 지역별 분포 ───
 
 function RegionSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-region"],
-    queryFn: fetchRegionDistribution,
+    queryFn: () => unwrap(fetchRegionDistribution()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="지역별 분포"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <Card>
@@ -813,10 +861,20 @@ function RegionTooltip({ active, payload }: TooltipPayload) {
 // ─── 가입 경로 + 마케팅 동의율 ───
 
 function SignupChannelSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-signup-channels"],
-    queryFn: fetchSignupChannels,
+    queryFn: () => unwrap(fetchSignupChannels()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="가입 경로 · 마케팅 수신 동의"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -863,10 +921,20 @@ function SignupChannelSection() {
 const DOW_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
 
 function TimeDistributionSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-time-dist"],
-    queryFn: fetchMatchTimeDistribution,
+    queryFn: () => unwrap(fetchMatchTimeDistribution()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="시간대 분포"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   // dow × hour 그리드로 펼치고 최대값으로 정규화(색 농도)
   const grid = new Map<string, number>();
@@ -942,10 +1010,20 @@ function TimeDistributionSection() {
 // ─── 신고 지표 ───
 
 function ReportSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-reports"],
-    queryFn: fetchReportStats,
+    queryFn: () => unwrap(fetchReportStats()),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="신고 통계"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
   const s = data?.summary;
 
   return (
@@ -1044,10 +1122,20 @@ function ReportSection() {
 // ─── 인기 매칭 ───
 
 function PopularMatchSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["stats-popular"],
-    queryFn: () => fetchPopularMatches(10),
+    queryFn: () => unwrap(fetchPopularMatches(10)),
   });
+
+  if (isError) {
+    return (
+      <QueryError
+        section="인기 매칭"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <Card>

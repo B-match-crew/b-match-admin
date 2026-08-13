@@ -1,6 +1,10 @@
 "use server";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
+import {
+  runAction,
+  type ActionResult,
+} from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
 
 /**
@@ -12,6 +16,10 @@ import { requireAdmin } from "@/src/shared/lib/role-guard";
  *
  * 일자 버킷은 RPC 가 KST 로 끊는다 — 서버(Vercel)는 UTC 라 JS 로컬시각을
  * 쓰면 하루가 밀린다.
+ *
+ * 모든 액션은 ActionResult 를 반환한다(throw 하지 않는다). Next.js 가 서버
+ * 액션의 throw 를 프로덕션에서 마스킹해 원인이 화면에 닿지 못하기 때문 —
+ * 자세한 배경은 src/shared/lib/action-result.ts 참고.
  */
 
 // ─── 1~3. 일자별 유입 (다운로드 / 가입 / 비율) ───
@@ -32,33 +40,36 @@ export interface DailyAcquisitionItem {
 
 export async function fetchDailyAcquisition(
   days = 30
-): Promise<DailyAcquisitionItem[]> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+): Promise<ActionResult<DailyAcquisitionItem[]>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  // KST 기준 오늘부터 역산. toLocaleDateString('en-CA') 가 yyyy-MM-dd 를 준다.
-  const kstToday = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Seoul",
+    // KST 기준 오늘부터 역산. toLocaleDateString('en-CA') 가 yyyy-MM-dd 를 준다.
+    const kstToday = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Asia/Seoul",
+    });
+    const to = kstToday;
+    const fromDate = new Date(`${kstToday}T00:00:00Z`);
+    fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
+    const from = fromDate.toISOString().slice(0, 10);
+
+    const { data, error } = await supabase.rpc("fn_admin_daily_acquisition", {
+      p_from: from,
+      p_to: to,
+    });
+    if (error) throw error;
+
+    return (data ?? []).map(
+      (r: { day: string; guests: number; signups: number }) => ({
+        date: r.day,
+        guests: r.guests,
+        signups: r.signups,
+        ratio:
+          r.guests > 0 ? Math.round((r.signups / r.guests) * 1000) / 10 : null,
+      })
+    );
   });
-  const to = kstToday;
-  const fromDate = new Date(`${kstToday}T00:00:00Z`);
-  fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
-  const from = fromDate.toISOString().slice(0, 10);
-
-  const { data, error } = await supabase.rpc("fn_admin_daily_acquisition", {
-    p_from: from,
-    p_to: to,
-  });
-  if (error) throw error;
-
-  return (data ?? []).map(
-    (r: { day: string; guests: number; signups: number }) => ({
-      date: r.day,
-      guests: r.guests,
-      signups: r.signups,
-      ratio: r.guests > 0 ? Math.round((r.signups / r.guests) * 1000) / 10 : null,
-    })
-  );
 }
 
 // ─── 2. 누적 추이 (총 다운로드 / 총 가입 + 전일 대비 증감률) ───
@@ -88,67 +99,67 @@ const dod = (today: number, yesterday: number): number | null =>
 
 export async function fetchCumulativeTrend(
   days = 30
-): Promise<CumulativeTrend> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+): Promise<ActionResult<CumulativeTrend>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  // KST 기준 오늘부터 역산 (fetchDailyAcquisition 과 동일 규칙)
-  const kstToday = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Seoul",
+    // KST 기준 오늘부터 역산 (fetchDailyAcquisition 과 동일 규칙)
+    const kstToday = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Asia/Seoul",
+    });
+    const to = kstToday;
+    const fromDate = new Date(`${kstToday}T00:00:00Z`);
+    fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
+    const from = fromDate.toISOString().slice(0, 10);
+
+    const [dailyRes, guestTotalRes, signupTotalRes] = await Promise.all([
+      supabase.rpc("fn_admin_daily_acquisition", { p_from: from, p_to: to }),
+      supabase.from("guest_devices").select("id", { count: "exact", head: true }),
+      supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .is("admin_role", null),
+    ]);
+    if (dailyRes.error) throw dailyRes.error;
+    if (guestTotalRes.error) throw guestTotalRes.error;
+    if (signupTotalRes.error) throw signupTotalRes.error;
+
+    const daily = (dailyRes.data ?? []) as {
+      day: string;
+      guests: number;
+      signups: number;
+    }[];
+    const totalGuests = guestTotalRes.count ?? 0;
+    const totalSignups = signupTotalRes.count ?? 0;
+
+    // 누적 곡선은 all-time 누계에서 역산한다: 각 날짜 종료 시점 누계 =
+    // 전체 누계 - 그 날 이후에 들어온 합. 마지막 점이 정확히 all-time 과 맞는다.
+    const sumAfterGuests = new Array(daily.length).fill(0);
+    const sumAfterSignups = new Array(daily.length).fill(0);
+    for (let i = daily.length - 2; i >= 0; i--) {
+      sumAfterGuests[i] = sumAfterGuests[i + 1] + daily[i + 1].guests;
+      sumAfterSignups[i] = sumAfterSignups[i + 1] + daily[i + 1].signups;
+    }
+    const series: CumulativePoint[] = daily.map((d, i) => ({
+      date: d.day,
+      cumGuests: totalGuests - sumAfterGuests[i],
+      cumSignups: totalSignups - sumAfterSignups[i],
+    }));
+
+    const last = daily[daily.length - 1];
+    const prev = daily[daily.length - 2];
+
+    return {
+      totalGuests,
+      totalSignups,
+      series,
+      guestsToday: last?.guests ?? 0,
+      signupsToday: last?.signups ?? 0,
+      guestsDodPct: last && prev ? dod(last.guests, prev.guests) : null,
+      signupsDodPct: last && prev ? dod(last.signups, prev.signups) : null,
+    };
   });
-  const to = kstToday;
-  const fromDate = new Date(`${kstToday}T00:00:00Z`);
-  fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
-  const from = fromDate.toISOString().slice(0, 10);
-
-  const [dailyRes, guestTotalRes, signupTotalRes] = await Promise.all([
-    supabase.rpc("fn_admin_daily_acquisition", { p_from: from, p_to: to }),
-    supabase
-      .from("guest_devices")
-      .select("id", { count: "exact", head: true }),
-    supabase
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .is("admin_role", null),
-  ]);
-  if (dailyRes.error) throw dailyRes.error;
-  if (guestTotalRes.error) throw guestTotalRes.error;
-  if (signupTotalRes.error) throw signupTotalRes.error;
-
-  const daily = (dailyRes.data ?? []) as {
-    day: string;
-    guests: number;
-    signups: number;
-  }[];
-  const totalGuests = guestTotalRes.count ?? 0;
-  const totalSignups = signupTotalRes.count ?? 0;
-
-  // 누적 곡선은 all-time 누계에서 역산한다: 각 날짜 종료 시점 누계 =
-  // 전체 누계 - 그 날 이후에 들어온 합. 마지막 점이 정확히 all-time 과 맞는다.
-  const sumAfterGuests = new Array(daily.length).fill(0);
-  const sumAfterSignups = new Array(daily.length).fill(0);
-  for (let i = daily.length - 2; i >= 0; i--) {
-    sumAfterGuests[i] = sumAfterGuests[i + 1] + daily[i + 1].guests;
-    sumAfterSignups[i] = sumAfterSignups[i + 1] + daily[i + 1].signups;
-  }
-  const series: CumulativePoint[] = daily.map((d, i) => ({
-    date: d.day,
-    cumGuests: totalGuests - sumAfterGuests[i],
-    cumSignups: totalSignups - sumAfterSignups[i],
-  }));
-
-  const last = daily[daily.length - 1];
-  const prev = daily[daily.length - 2];
-
-  return {
-    totalGuests,
-    totalSignups,
-    series,
-    guestsToday: last?.guests ?? 0,
-    signupsToday: last?.signups ?? 0,
-    guestsDodPct: last && prev ? dod(last.guests, prev.guests) : null,
-    signupsDodPct: last && prev ? dod(last.signups, prev.signups) : null,
-  };
 }
 
 // ─── 4. 인구통계 (성별 / 연령대 / 급수) ───
@@ -207,25 +218,27 @@ function toItems(
   return items.sort((a, b) => rank(a.bucket) - rank(b.bucket));
 }
 
-export async function fetchDemographics(): Promise<Demographics> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchDemographics(): Promise<ActionResult<Demographics>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("fn_admin_user_demographics");
-  if (error) throw error;
+    const { data, error } = await supabase.rpc("fn_admin_user_demographics");
+    if (error) throw error;
 
-  const rows = (data ?? []) as {
-    dimension: string;
-    bucket: string;
-    cnt: number;
-  }[];
-  const pick = (d: string) => rows.filter((r) => r.dimension === d);
+    const rows = (data ?? []) as {
+      dimension: string;
+      bucket: string;
+      cnt: number;
+    }[];
+    const pick = (d: string) => rows.filter((r) => r.dimension === d);
 
-  return {
-    gender: toItems(pick("gender"), undefined, GENDER_LABEL),
-    age: toItems(pick("age"), AGE_ORDER),
-    level: toItems(pick("level"), LEVEL_ORDER),
-  };
+    return {
+      gender: toItems(pick("gender"), undefined, GENDER_LABEL),
+      age: toItems(pick("age"), AGE_ORDER),
+      level: toItems(pick("level"), LEVEL_ORDER),
+    };
+  });
 }
 
 // ─── 5. 호스트 지표 ───
@@ -241,26 +254,28 @@ export interface HostStats {
   hostConversionRate: number;
 }
 
-export async function fetchHostStats(): Promise<HostStats> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchHostStats(): Promise<ActionResult<HostStats>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("fn_admin_host_stats");
-  if (error) throw error;
+    const { data, error } = await supabase.rpc("fn_admin_host_stats");
+    if (error) throw error;
 
-  const r = (Array.isArray(data) ? data[0] : data) ?? {};
-  const totalUsers = r.total_users ?? 0;
-  const totalHosts = r.total_hosts ?? 0;
+    const r = (Array.isArray(data) ? data[0] : data) ?? {};
+    const totalUsers = r.total_users ?? 0;
+    const totalHosts = r.total_hosts ?? 0;
 
-  return {
-    totalUsers,
-    totalHosts,
-    hostsWithMatch: r.hosts_with_match ?? 0,
-    totalMatches: r.total_matches ?? 0,
-    avgMatchesPerHost: Number(r.avg_matches_per_host ?? 0),
-    hostConversionRate:
-      totalUsers > 0 ? Math.round((totalHosts / totalUsers) * 1000) / 10 : 0,
-  };
+    return {
+      totalUsers,
+      totalHosts,
+      hostsWithMatch: r.hosts_with_match ?? 0,
+      totalMatches: r.total_matches ?? 0,
+      avgMatchesPerHost: Number(r.avg_matches_per_host ?? 0),
+      hostConversionRate:
+        totalUsers > 0 ? Math.round((totalHosts / totalUsers) * 1000) / 10 : 0,
+    };
+  });
 }
 
 // ─── 6. 지역별 분포 ───
@@ -274,28 +289,32 @@ export interface RegionItem {
   share: number;
 }
 
-export async function fetchRegionDistribution(): Promise<RegionItem[]> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchRegionDistribution(): Promise<
+  ActionResult<RegionItem[]>
+> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("fn_admin_region_distribution");
-  if (error) throw error;
+    const { data, error } = await supabase.rpc("fn_admin_region_distribution");
+    if (error) throw error;
 
-  const rows = (data ?? []) as {
-    region: string;
-    match_count: number;
-    host_count: number;
-    recruiting_count: number;
-  }[];
-  const total = rows.reduce((s, r) => s + r.match_count, 0);
+    const rows = (data ?? []) as {
+      region: string;
+      match_count: number;
+      host_count: number;
+      recruiting_count: number;
+    }[];
+    const total = rows.reduce((s, r) => s + r.match_count, 0);
 
-  return rows.map((r) => ({
-    region: r.region,
-    matches: r.match_count,
-    hosts: r.host_count,
-    recruiting: r.recruiting_count,
-    share: total > 0 ? Math.round((r.match_count / total) * 1000) / 10 : 0,
-  }));
+    return rows.map((r) => ({
+      region: r.region,
+      matches: r.match_count,
+      hosts: r.host_count,
+      recruiting: r.recruiting_count,
+      share: total > 0 ? Math.round((r.match_count / total) * 1000) / 10 : 0,
+    }));
+  });
 }
 
 // ─── 7. 신고 지표 (migration 34) ───
@@ -320,62 +339,63 @@ export interface ReportHostItem {
   reporterCount: number;
 }
 
-export async function fetchReportStats(): Promise<{
-  summary: ReportSummary;
-  hosts: ReportHostItem[];
-}> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchReportStats(): Promise<
+  ActionResult<{ summary: ReportSummary; hosts: ReportHostItem[] }>
+> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const [summaryRes, hostsRes] = await Promise.all([
-    supabase.rpc("fn_admin_report_summary"),
-    supabase.rpc("fn_admin_report_host_ranking", { p_limit: 20 }),
-  ]);
-  if (summaryRes.error) throw summaryRes.error;
-  if (hostsRes.error) throw hostsRes.error;
+    const [summaryRes, hostsRes] = await Promise.all([
+      supabase.rpc("fn_admin_report_summary"),
+      supabase.rpc("fn_admin_report_host_ranking", { p_limit: 20 }),
+    ]);
+    if (summaryRes.error) throw summaryRes.error;
+    if (hostsRes.error) throw hostsRes.error;
 
-  const s = summaryRes.data as {
-    total: number;
-    pending: number;
-    reviewed: number;
-    actioned: number;
-    dismissed: number;
-    median_hours_to_resolve: number | null;
-    reported_matches: number;
-    total_matches: number;
-  };
+    const s = summaryRes.data as {
+      total: number;
+      pending: number;
+      reviewed: number;
+      actioned: number;
+      dismissed: number;
+      median_hours_to_resolve: number | null;
+      reported_matches: number;
+      total_matches: number;
+    };
 
-  return {
-    summary: {
-      total: s.total,
-      pending: s.pending,
-      reviewed: s.reviewed,
-      actioned: s.actioned,
-      dismissed: s.dismissed,
-      medianHoursToResolve: s.median_hours_to_resolve,
-      reportRate:
-        s.total_matches > 0
-          ? Math.round((s.reported_matches / s.total_matches) * 1000) / 10
-          : null,
-    },
-    hosts: (hostsRes.data ?? []).map(
-      (r: {
-        host_id: number;
-        nickname: string | null;
-        name: string | null;
-        user_status: string;
-        report_count: number;
-        reporter_count: number;
-      }) => ({
-        host_id: r.host_id,
-        nickname: r.nickname,
-        name: r.name,
-        user_status: r.user_status,
-        reportCount: r.report_count,
-        reporterCount: r.reporter_count,
-      })
-    ),
-  };
+    return {
+      summary: {
+        total: s.total,
+        pending: s.pending,
+        reviewed: s.reviewed,
+        actioned: s.actioned,
+        dismissed: s.dismissed,
+        medianHoursToResolve: s.median_hours_to_resolve,
+        reportRate:
+          s.total_matches > 0
+            ? Math.round((s.reported_matches / s.total_matches) * 1000) / 10
+            : null,
+      },
+      hosts: (hostsRes.data ?? []).map(
+        (r: {
+          host_id: number;
+          nickname: string | null;
+          name: string | null;
+          user_status: string;
+          report_count: number;
+          reporter_count: number;
+        }) => ({
+          host_id: r.host_id,
+          nickname: r.nickname,
+          name: r.name,
+          user_status: r.user_status,
+          reportCount: r.report_count,
+          reporterCount: r.reporter_count,
+        })
+      ),
+    };
+  });
 }
 
 // ─── 8. 인기 매칭 (RPC 없이 단순 ORDER BY) ───
@@ -390,20 +410,22 @@ export interface PopularMatchItem {
 
 export async function fetchPopularMatches(
   limit = 10
-): Promise<PopularMatchItem[]> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+): Promise<ActionResult<PopularMatchItem[]>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("matches")
-    .select("id, title, region_1, view_count, favorite_count")
-    .is("deleted_at", null)
-    .order("favorite_count", { ascending: false })
-    .order("view_count", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
+    const { data, error } = await supabase
+      .from("matches")
+      .select("id, title, region_1, view_count, favorite_count")
+      .is("deleted_at", null)
+      .order("favorite_count", { ascending: false })
+      .order("view_count", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
 
-  return (data ?? []) as PopularMatchItem[];
+    return (data ?? []) as PopularMatchItem[];
+  });
 }
 
 // ─── 9. 매칭 시간대 분포 (요일 × 시간 히트맵) ───
@@ -414,15 +436,19 @@ export interface TimeCell {
   cnt: number;
 }
 
-export async function fetchMatchTimeDistribution(): Promise<TimeCell[]> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchMatchTimeDistribution(): Promise<
+  ActionResult<TimeCell[]>
+> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc(
-    "fn_admin_match_time_distribution"
-  );
-  if (error) throw error;
-  return (data ?? []) as TimeCell[];
+    const { data, error } = await supabase.rpc(
+      "fn_admin_match_time_distribution"
+    );
+    if (error) throw error;
+    return (data ?? []) as TimeCell[];
+  });
 }
 
 // ─── 10. 가입 경로 + 마케팅 동의율 ───
@@ -440,43 +466,47 @@ const PROVIDER_LABEL: Record<string, string> = {
   APPLE: "애플",
 };
 
-export async function fetchSignupChannels(): Promise<SignupChannels> {
-  await requireAdmin();
-  const supabase = createAdminClient();
+export async function fetchSignupChannels(): Promise<
+  ActionResult<SignupChannels>
+> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
 
-  const [chRes, totalRes, optInRes] = await Promise.all([
-    supabase.rpc("fn_admin_signup_channels"),
-    // 마케팅 동의율은 count filter 2번이면 되므로 RPC 없이 처리
-    supabase
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null)
-      .is("admin_role", null),
-    supabase
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null)
-      .is("admin_role", null)
-      .eq("marketing_opt_in", true),
-  ]);
-  if (chRes.error) throw chRes.error;
-  if (totalRes.error) throw totalRes.error;
-  if (optInRes.error) throw optInRes.error;
+    const [chRes, totalRes, optInRes] = await Promise.all([
+      supabase.rpc("fn_admin_signup_channels"),
+      // 마케팅 동의율은 count filter 2번이면 되므로 RPC 없이 처리
+      supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("admin_role", null),
+      supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("admin_role", null)
+        .eq("marketing_opt_in", true),
+    ]);
+    if (chRes.error) throw chRes.error;
+    if (totalRes.error) throw totalRes.error;
+    if (optInRes.error) throw optInRes.error;
 
-  const rows = (chRes.data ?? []) as { provider: string; cnt: number }[];
-  const total = rows.reduce((s, r) => s + r.cnt, 0);
-  const totalUsers = totalRes.count ?? 0;
-  const optIn = optInRes.count ?? 0;
+    const rows = (chRes.data ?? []) as { provider: string; cnt: number }[];
+    const total = rows.reduce((s, r) => s + r.cnt, 0);
+    const totalUsers = totalRes.count ?? 0;
+    const optIn = optInRes.count ?? 0;
 
-  return {
-    providers: rows.map((r) => ({
-      bucket: PROVIDER_LABEL[r.provider] ?? r.provider,
-      count: r.cnt,
-      share: total > 0 ? Math.round((r.cnt / total) * 1000) / 10 : 0,
-    })),
-    marketingOptInRate:
-      totalUsers > 0 ? Math.round((optIn / totalUsers) * 1000) / 10 : null,
-    marketingOptInCount: optIn,
-    totalUsers,
-  };
+    return {
+      providers: rows.map((r) => ({
+        bucket: PROVIDER_LABEL[r.provider] ?? r.provider,
+        count: r.cnt,
+        share: total > 0 ? Math.round((r.cnt / total) * 1000) / 10 : 0,
+      })),
+      marketingOptInRate:
+        totalUsers > 0 ? Math.round((optIn / totalUsers) * 1000) / 10 : null,
+      marketingOptInCount: optIn,
+      totalUsers,
+    };
+  });
 }
