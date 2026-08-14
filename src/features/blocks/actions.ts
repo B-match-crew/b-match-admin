@@ -27,6 +27,15 @@ export interface BlockRankItem {
   blockCount: number;
   /** 서로 다른 차단자 수 — 실질 신뢰도 지표 */
   blockerCount: number;
+  /**
+   * 출처별 내역 (app migration 67).
+   *
+   * 매칭과 채팅이 같은 `user_blocks` 를 쓴다. 이 랭킹은 원래 "반복 차단당한
+   * **모임장**"을 찾는 지표였는데, 채팅 차단이 섞이면서 합계만으로는 그 차이를
+   * 알 수 없게 됐다 — 일반 신청자가 채팅에서 차단당해도 같은 목록에 오른다.
+   */
+  matchBlockCount: number;
+  chatBlockCount: number;
 }
 
 export async function fetchBlockRanking(
@@ -49,6 +58,8 @@ export async function fetchBlockRanking(
         user_status: string;
         block_count: number;
         blocker_count: number;
+        match_block_count: number | null;
+        chat_block_count: number | null;
       }) => ({
         blocked_id: r.blocked_id,
         nickname: r.nickname,
@@ -56,6 +67,10 @@ export async function fetchBlockRanking(
         user_status: r.user_status,
         blockCount: r.block_count,
         blockerCount: r.blocker_count,
+        // 67 적용 전 서버가 응답하면 필드가 없다 — 합계를 매칭으로 본다
+        // (그 시점엔 채팅 차단이 존재하지 않았으므로 사실과 같다).
+        matchBlockCount: r.match_block_count ?? r.block_count,
+        chatBlockCount: r.chat_block_count ?? 0,
       })
     );
   });

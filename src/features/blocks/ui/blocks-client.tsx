@@ -60,7 +60,8 @@ function RankingTab() {
     <div className="space-y-2">
       <p className="text-bds-caption2 text-bds-label-alternative">
         여러 명에게 반복 차단당한 유저일수록 위에 옵니다. 서로 다른 차단자
-        수(신뢰도)를 우선 정렬합니다. 상위 50명.
+        수(신뢰도)를 우선 정렬합니다. 상위 50명. 매칭 차단과 채팅 차단은 같은
+        기록이라, 어느 경로에서 쌓였는지 내역으로 갈라 봅니다.
       </p>
       <div className="rounded-lg border">
         <Table>
@@ -71,13 +72,15 @@ function RankingTab() {
               <TableHead>상태</TableHead>
               <TableHead className="text-right">차단자 수</TableHead>
               <TableHead className="text-right">총 차단</TableHead>
+              <TableHead className="text-right">매칭</TableHead>
+              <TableHead className="text-right">채팅</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <SkeletonRows cols={5} />}
+            {isLoading && <SkeletonRows cols={7} />}
             {!isLoading && (data?.length ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={7}>
                   <EmptyState message="차단 기록이 없습니다." />
                 </TableCell>
               </TableRow>
@@ -103,6 +106,18 @@ function RankingTab() {
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">
                   {r.blockCount}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">
+                  {r.matchBlockCount}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">
+                  {r.chatBlockCount > 0 ? (
+                    <span className="font-medium text-bds-status-warning-text">
+                      {r.chatBlockCount}
+                    </span>
+                  ) : (
+                    0
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -155,7 +170,7 @@ function BlacklistTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <SkeletonRows cols={5} />}
+            {isLoading && <SkeletonRows cols={7} />}
             {!isLoading && (rows?.length ?? 0) === 0 && (
               <TableRow>
                 <TableCell colSpan={5}>
