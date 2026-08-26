@@ -112,3 +112,32 @@ export async function rpcSetMaintenance(p: SetMaintenanceParams) {
   });
   if (error) throw error;
 }
+
+export interface CloseChatRoomParams {
+  roomId: number;
+  /** 10자 이상 */
+  reason: string;
+}
+
+/**
+ * 관리자 채팅방 강제 종료 (migration 88).
+ *
+ * 신고를 검토한 운영자가 쓸 수 있는 조치는 정지·영구차단뿐이었다. 둘 다 사람
+ * 단위라 "이 대화만 멈춰 달라" 는 신고에는 과하다. 방을 닫으면 입력이 잠기고
+ * 안내 메시지가 남는다 — 사용자가 직접 나갔을 때(74)와 같은 상태다.
+ *
+ * **차단이 아니다.** 상대가 다시 문의하면 새 방이 열린다. 반복되면 그때
+ * 사람 단위 조치로 올라가야 한다.
+ *
+ * 47 과 같이 **유저 세션으로 호출**한다 — service_role 은 auth.uid() 가 null 이라
+ * is_admin() 도 감사 로그의 admin_id 도 만들 수 없다.
+ * 에러: P0020(NOT_ADMIN) / P0040(사유 부족) / P0080(채팅 미적용) / P0081(방 없음)
+ */
+export async function rpcCloseChatRoom(p: CloseChatRoomParams) {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("fn_admin_close_chat_room", {
+    p_room_id: p.roomId,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+}

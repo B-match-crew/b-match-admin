@@ -52,6 +52,7 @@ import {
   setChatReportStatusAction,
   suspendChatUserAction,
   banChatUserAction,
+  closeChatRoomAction,
   type ChatReportListItem,
 } from "@/src/features/chat-reports/actions";
 
@@ -196,7 +197,11 @@ export function ChatReportsClient() {
 
 // ─── 상세 + 액션 ───
 
-type ActionMode = { kind: "suspend" } | { kind: "ban" } | null;
+type ActionMode =
+  | { kind: "suspend" }
+  | { kind: "ban" }
+  | { kind: "closeRoom" }
+  | null;
 
 function ChatReportDetailDialog({
   report,
@@ -345,6 +350,19 @@ function ChatReportDetailDialog({
                       </Button>
                     )}
 
+                  {/* 방이 남아 있을 때만. room_id 는 방이 파기되면 SET NULL 이라
+                      신고 이력은 있는데 닫을 대상이 없는 상태가 정상적으로 생긴다. */}
+                  {report.room_id !== null && report.status !== "ACTIONED" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => setAction({ kind: "closeRoom" })}
+                    >
+                      대화 종료 + 조치완료
+                    </Button>
+                  )}
+
                   {report.target?.user_status === "ACTIVE" && (
                     <Button
                       size="sm"
@@ -371,7 +389,8 @@ function ChatReportDetailDialog({
                 <p className="text-xs text-muted-foreground">
                   채팅 신고에는 &quot;글 삭제&quot; 같은 대상 제재가 없습니다 —
                   지울 대상이 대화뿐이고, 대화를 지우면 증적이 사라집니다.
-                  조치는 사람에게만 합니다.
+                  조치는 <b>대화</b> 또는 <b>사람</b>에게 합니다. 대화 종료는
+                  차단이 아니어서, 상대가 다시 문의하면 새 대화가 열립니다.
                 </p>
               </div>
             </div>
@@ -422,11 +441,88 @@ function ActionDialog({
   if (action.kind === "suspend") {
     return <SuspendDialog report={report} onClose={onClose} onDone={onDone} />;
   }
+  if (action.kind === "closeRoom") {
+    return <CloseRoomDialog report={report} onClose={onClose} onDone={onDone} />;
+  }
   return <BanDialog report={report} onClose={onClose} onDone={onDone} />;
 }
 
 function targetLabel(report: ChatReportListItem) {
   return report.target?.nickname ?? report.target?.name ?? `#${report.target_id}`;
+}
+
+function CloseRoomDialog({
+  report,
+  onClose,
+  onDone,
+}: {
+  report: ChatReportListItem;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const form = useForm<{ reason: string }>({
+    resolver: zodResolver(banSchema),
+    defaultValues: { reason: "" },
+  });
+
+  const submit = async (v: { reason: string }) => {
+    if (report.room_id === null) {
+      toast.error("원본 대화방이 이미 파기되어 종료할 수 없습니다");
+      return;
+    }
+    const r = await closeChatRoomAction({
+      reportId: report.id,
+      roomId: report.room_id,
+      reason: v.reason,
+    });
+    if (!r.ok) {
+      toast.error(r.error.message);
+      return;
+    }
+    toast.success("대화를 종료하고 조치완료 처리했습니다");
+    onDone();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>대화 종료</DialogTitle>
+          <DialogDescription>
+            {targetLabel(report)} 님과의 신고된 대화 #{report.room_id}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(submit)} className="space-y-3">
+          <WarningBox tone="caution">
+            입력이 잠기고 양쪽에 &quot;운영자가 이 대화를 종료했습니다&quot;
+            안내가 남습니다. <b>차단이 아닙니다</b> — 상대가 다시 문의하면 새
+            대화가 열립니다. 반복되면 사람 단위 조치(정지·차단)로 올라가세요.
+          </WarningBox>
+          <div className="space-y-1.5">
+            <Label htmlFor="cr-close-reason">사유 (10자 이상)</Label>
+            <Textarea
+              id="cr-close-reason"
+              rows={3}
+              {...form.register("reason")}
+            />
+            {form.formState.errors.reason && (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.reason.message}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              대화 종료
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function BanDialog({
