@@ -31,6 +31,7 @@ import {
   broadcastNoticeAction,
   fetchBroadcastPreviewCount,
 } from "@/src/features/notices/actions";
+import { fetchPushReach } from "@/src/features/notifications/actions";
 import {
   NOTICE_BODY_MAX,
   NOTICE_TITLE_MAX,
@@ -58,6 +59,24 @@ export function NoticeBroadcastClient() {
     queryKey: ["broadcast-preview", target],
     queryFn: () => unwrap(fetchBroadcastPreviewCount(target)),
   });
+
+  // 대상 수와 **실제 푸시가 닿는 수**는 다르다. 미리보기는 정회원만 세고
+  // 토큰 유무를 보지 않아, 토큰이 없는 사람에게는 알림함 행만 남는다(SKIPPED).
+  // 그 차이가 안 보이면 "1,247명에게 보냈다" 를 도달 수로 착각하게 된다.
+  const reach = useQuery({
+    queryKey: ["push-reach"],
+    queryFn: () => unwrap(fetchPushReach()),
+  });
+  const reachable =
+    reach.data === undefined
+      ? null
+      : target === "HOST"
+        ? reach.data.reachableHost
+        : reach.data.reachableAll;
+  const unreachable =
+    reachable === null || preview.data === undefined
+      ? null
+      : Math.max(0, preview.data - reachable);
 
   const trimmedTitle = title.trim();
   const trimmedBody = body.trim();
@@ -180,6 +199,24 @@ export function NoticeBroadcastClient() {
               </span>
             )}
           </div>
+          {/* 도달 가능 수는 발송을 막지 않는다 — 못 읽어도 공지는 나가야 한다.
+              알림함에는 어차피 남으므로, 모르면 조용히 비워 둔다. */}
+          {reachable !== null && !preview.isError && (
+            <div className="flex items-center justify-between rounded-md px-4 py-2 text-sm">
+              <span className="text-muted-foreground">
+                이 중 푸시가 닿는 인원
+              </span>
+              <span>
+                <b>{reachable.toLocaleString()} 명</b>
+                {unreachable !== null && unreachable > 0 && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {unreachable.toLocaleString()}명은 알림함에만 남습니다
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
           {/* 왜 못 읽었는지가 보여야 조치가 된다 — 발송을 막는 조건이라 특히. */}
           {preview.isError && (
             <QueryError
