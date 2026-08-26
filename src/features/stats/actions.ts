@@ -497,3 +497,87 @@ export async function fetchSignupChannels(): Promise<
     };
   });
 }
+
+// ─── 11. 채팅 (app migration 61~87) ───
+
+export interface ChatDailyPoint {
+  day: string; // yyyy-MM-dd (KST)
+  messages: number;
+  rooms: number;
+  senders: number;
+}
+
+export interface ChatStats {
+  /**
+   * 채팅 스키마가 있는 DB 인지.
+   *
+   * 채팅(61~87)은 앱 릴리즈가 늦어 **prod 에 아직 없다.** 없는 테이블을 읽으면
+   * 화면이 통째로 에러가 되므로, 서버가 존재 여부를 판정해 내려준다.
+   */
+  available: boolean;
+  roomsTotal: number;
+  roomsActive: number;
+  roomsClosed: number;
+  /** 열렸지만 한 마디도 오가지 않은 방 */
+  roomsEmpty: number;
+  messagesTotal: number;
+  messagesRanged: number;
+  /** 기간 내 시스템 메시지(일정 안내·나가기 안내) */
+  messagesSystem: number;
+  sendersRanged: number;
+  roomsRanged: number;
+  daily: ChatDailyPoint[];
+  reportsTotal: number;
+  reportsPending: number;
+  /** 30일이 지나 파기됐어야 할 메시지 — 크론이 죽으면 계속 는다 */
+  purgeDue: number;
+}
+
+export async function fetchChatStats(
+  days = 30
+): Promise<ActionResult<ChatStats>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
+    const { from, to } = kstRange(days);
+
+    const { data, error } = await supabase.rpc("fn_admin_chat_stats", {
+      p_from: from,
+      p_to: to,
+    });
+    if (error) throw error;
+
+    const r = (data ?? {}) as {
+      available?: boolean;
+      rooms_total?: number;
+      rooms_active?: number;
+      rooms_closed?: number;
+      rooms_empty?: number;
+      messages_total?: number;
+      messages_ranged?: number;
+      messages_system?: number;
+      senders_ranged?: number;
+      rooms_ranged?: number;
+      daily?: ChatDailyPoint[];
+      reports?: { total: number; pending: number };
+      purge_due?: number;
+    };
+
+    return {
+      available: r.available === true,
+      roomsTotal: r.rooms_total ?? 0,
+      roomsActive: r.rooms_active ?? 0,
+      roomsClosed: r.rooms_closed ?? 0,
+      roomsEmpty: r.rooms_empty ?? 0,
+      messagesTotal: r.messages_total ?? 0,
+      messagesRanged: r.messages_ranged ?? 0,
+      messagesSystem: r.messages_system ?? 0,
+      sendersRanged: r.senders_ranged ?? 0,
+      roomsRanged: r.rooms_ranged ?? 0,
+      daily: r.daily ?? [],
+      reportsTotal: r.reports?.total ?? 0,
+      reportsPending: r.reports?.pending ?? 0,
+      purgeDue: r.purge_due ?? 0,
+    };
+  });
+}

@@ -16,7 +16,13 @@ import {
   Legend,
   LabelList,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
@@ -34,6 +40,7 @@ import {
   fetchPopularMatches,
   fetchMatchTimeDistribution,
   fetchSignupChannels,
+  fetchChatStats,
   type DistributionItem,
 } from "@/src/features/stats/actions";
 
@@ -80,6 +87,7 @@ export function StatsClient() {
       <DemographicsSection />
       <RegionSection />
       <TimeDistributionSection />
+      <ChatSection days={Number(days)} />
       <ReportSection />
       <PopularMatchSection />
     </div>
@@ -1004,6 +1012,154 @@ function TimeDistributionSection() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── 채팅 (61~87) ───
+
+/**
+ * 채팅은 제품의 큰 축이 됐는데(61~87) 어드민에는 신고 화면만 있었다.
+ * 여기서는 **운영이 봐야 하는 최소치**만 본다 — 대화 내용은 신고가 있을 때만
+ * 신고 화면의 스냅샷으로 본다(30일 파기 고지와 어긋나지 않기 위해).
+ */
+function ChatSection({ days }: { days: number }) {
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["stats-chat", days],
+    queryFn: () => unwrap(fetchChatStats(days)),
+  });
+
+  if (isError) {
+    return (
+      <QueryError section="채팅" error={error} onRetry={() => void refetch()} />
+    );
+  }
+
+  // 채팅 미적용 DB(=prod)에서는 섹션 자체를 접는다. 0 으로 채운 카드를 보여주면
+  // "채팅을 아무도 안 쓴다" 로 읽힌다.
+  if (!isLoading && data && !data.available) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>채팅</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            message="이 환경에는 채팅 스키마가 없습니다"
+            description="채팅 마이그레이션이 적용되면 방·메시지 지표가 여기에 표시됩니다."
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>채팅</CardTitle>
+        <CardDescription>
+          방은 전체 기준, 메시지 추이는 선택 기간 기준입니다.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading || !data ? (
+          <Skeleton className="h-64" />
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ChatTile label="전체 방" value={data.roomsTotal} />
+              <ChatTile label="열린 방" value={data.roomsActive} />
+              <ChatTile
+                label="빈 방"
+                value={data.roomsEmpty}
+                hint="한 마디도 오가지 않음"
+              />
+              <ChatTile
+                label="미처리 신고"
+                value={data.reportsPending}
+                hint={`전체 ${data.reportsTotal}건`}
+                warn={data.reportsPending > 0}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ChatTile label="기간 내 메시지" value={data.messagesRanged} />
+              <ChatTile label="기간 내 대화한 사람" value={data.sendersRanged} />
+              <ChatTile label="기간 내 활성 방" value={data.roomsRanged} />
+              <ChatTile
+                label="파기 대기 메시지"
+                value={data.purgeDue}
+                hint="30일 경과"
+                warn={data.purgeDue > 0}
+              />
+            </div>
+
+            {data.purgeDue > 0 && (
+              <p className="text-bds-caption2 text-bds-status-warning-text">
+                30일이 지난 메시지가 남아 있습니다. 매일 04:40 KST 파기 크론이
+                도는 구조이므로, 이 수가 계속 늘면 크론을 확인해야 합니다 —
+                &quot;30일 보관&quot; 고지와 어긋난 상태입니다.
+              </p>
+            )}
+
+            {data.daily.length === 0 ? (
+              <EmptyState message="기간 내 주고받은 메시지가 없습니다." />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={data.daily}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="messages"
+                    name="메시지"
+                    stroke={SERIES_1}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="senders"
+                    name="대화한 사람"
+                    stroke={SERIES_2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChatTile({
+  label,
+  value,
+  hint,
+  warn,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  warn?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="text-bds-caption2 text-bds-label-assistive">{label}</div>
+      <div
+        className={`mt-0.5 text-bds-title3 tabular-nums ${
+          warn ? "text-bds-status-warning-text" : "text-foreground"
+        }`}
+      >
+        {value.toLocaleString()}
+      </div>
+      {hint && (
+        <div className="text-bds-caption2 text-bds-label-alternative">{hint}</div>
+      )}
+    </div>
   );
 }
 
