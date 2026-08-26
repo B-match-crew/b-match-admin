@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
-import { rpcSuspendUser, rpcBanUser } from "@/src/shared/api/rpc";
+import {
+  rpcSuspendUser,
+  rpcBanUser,
+  rpcCloseChatRoom,
+} from "@/src/shared/api/rpc";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import type { ReportStatus, UserStatus } from "@/src/shared/types/db";
 
@@ -235,6 +239,32 @@ export async function banChatUserAction(p: {
     await markActioned(p.reportId);
     revalidatePath("/chat-reports");
     revalidatePath("/users");
+  });
+}
+
+/**
+ * 대화만 종료 (MANAGER 이상) + 해당 신고를 ACTIONED 로.
+ *
+ * 사람을 정지시키기엔 과하고 반려하기엔 방치인 신고가 있다. 방을 닫으면 그
+ * 대화의 입력이 잠기고 양쪽에 안내가 남는다 — 사용자가 직접 나갔을 때와 같은
+ * 상태다. **차단이 아니므로** 상대가 다시 문의하면 새 방이 열린다.
+ *
+ * 방이 이미 파기됐거나(30일) 신고 시점에 room_id 가 없으면 닫을 대상이 없다 —
+ * 신고 이력은 남지만 원본 방은 SET NULL 되기 때문이다.
+ */
+export async function closeChatRoomAction(p: {
+  reportId: number;
+  roomId: number;
+  reason: string;
+}): Promise<ActionResult<void>> {
+  return runAction(async () => {
+    if (p.reason.trim().length < REASON_MIN_LENGTH) {
+      throw new Error(`사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`);
+    }
+    await requireAdmin("MANAGER");
+    await rpcCloseChatRoom({ roomId: p.roomId, reason: p.reason });
+    await markActioned(p.reportId);
+    revalidatePath("/chat-reports");
   });
 }
 

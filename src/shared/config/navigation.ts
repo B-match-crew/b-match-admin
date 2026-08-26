@@ -11,6 +11,9 @@ import {
   ClipboardList,
   Rocket,
   Megaphone,
+  BellRing,
+  ShieldCheck,
+  HeartPulse,
   type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/src/shared/types/db";
@@ -52,6 +55,9 @@ export const navigation: NavGroup[] = [
     items: [
       { title: "앱 관리", href: "/app-version", icon: Rocket },
       { title: "공지 발송", href: "/notices", icon: Megaphone },
+      { title: "알림 발송", href: "/notifications", icon: BellRing },
+      { title: "동의·파기", href: "/compliance", icon: ShieldCheck },
+      { title: "운영 상태", href: "/ops", icon: HeartPulse },
       {
         title: "감사 로그",
         href: "/audit-logs",

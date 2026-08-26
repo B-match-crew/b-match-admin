@@ -100,6 +100,19 @@ export interface UserDetail {
     reason: string | null;
     created_at: string;
   }>;
+  /**
+   * 이 유저가 **차단당한** 횟수. 차단은 신고와 달리 운영자에게 아무 신호를
+   * 주지 않아서, 상세 화면에 숫자로라도 있어야 사각지대가 줄어든다.
+   */
+  blockedCount: number;
+  /** 이 유저의 모집글이 신고당한 횟수 */
+  reportedCount: number;
+  /**
+   * 참여 중인 채팅방 수. **채팅 스키마가 없는 환경에서는 null** —
+   * 채팅(61~87)은 앱 릴리즈가 늦어 아직 없는 DB 가 있고, 그 때문에 유저 상세
+   * 전체가 못 열리면 안 된다.
+   */
+  chatRoomCount: number | null;
 }
 
 export async function fetchUserDetail(
@@ -109,7 +122,8 @@ export async function fetchUserDetail(
     await requireAdmin();
     const supabase = createAdminClient();
 
-    const [userRes, clubRes, auditRes] = await Promise.all([
+    const [userRes, clubRes, auditRes, blockedRes, reportedRes, chatRes] =
+      await Promise.all([
       supabase.from("users").select("*").eq("id", userId).single(),
       // 삭제된 모임도 가져와 화면에서 상태로 구분한다 (deleted_at 필터 안 함)
       supabase
@@ -124,17 +138,37 @@ export async function fetchUserDetail(
         .eq("target_id", String(userId)) // target_id 는 text
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase
+        .from("user_blocks")
+        .select("id", { count: "exact", head: true })
+        .eq("blocked_id", userId),
+      supabase
+        .from("match_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", userId),
+      supabase
+        .from("chat_room_members")
+        .select("room_id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("left_at", null),
     ]);
 
     if (userRes.error) throw userRes.error;
     if (clubRes.error) throw clubRes.error;
     // 조치 이력이 실패하면 "이력 없음"과 구분되지 않는다 — 드러낸다.
     if (auditRes.error) throw auditRes.error;
+    if (blockedRes.error) throw blockedRes.error;
+    if (reportedRes.error) throw reportedRes.error;
 
     return {
       user: userRes.data as DbUser,
       club: (clubRes.data as UserDetail["club"]) ?? null,
       auditHistory: (auditRes.data ?? []) as UserDetail["auditHistory"],
+      blockedCount: blockedRes.count ?? 0,
+      reportedCount: reportedRes.count ?? 0,
+      // 채팅 테이블이 없는 DB 에서는 에러가 온다. 그 하나 때문에 상세 전체를
+      // 못 열게 하지 않는다 — 모르는 값은 null 로 두고 화면에서 감춘다.
+      chatRoomCount: chatRes.error ? null : (chatRes.count ?? 0),
     };
   });
 }

@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
+import { kstRange } from "@/src/shared/lib/kst-range";
 
 /**
  * 분석 페이지 데이터 소스 — `app_events` / `user_daily_active` 기반.
@@ -18,16 +19,6 @@ import { requireAdmin } from "@/src/shared/lib/role-guard";
  * 기간은 RPC 가 KST 로 끊는다 — 서버(Vercel)는 UTC 라 JS 로컬시각을 쓰면
  * 하루가 밀린다.
  */
-
-/** KST 기준 오늘부터 [days]일 범위. */
-function kstRange(days: number): { from: string; to: string } {
-  const today = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Asia/Seoul",
-  });
-  const fromDate = new Date(`${today}T00:00:00Z`);
-  fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
-  return { from: fromDate.toISOString().slice(0, 10), to: today };
-}
 
 async function callRpc<T>(
   fn: string,

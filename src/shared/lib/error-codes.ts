@@ -29,6 +29,11 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0060: "버전은 1.0.5 같은 숫자.숫자.숫자 형식이어야 합니다", // INVALID_VERSION_FORMAT
   P0061: "강제(최소) 버전이 권장 버전보다 높을 수 없습니다", // MIN_VERSION_ABOVE_RECOMMENDED
   P0062: "해당 플랫폼의 버전 정책이 없습니다", // APP_VERSION_POLICY_NOT_FOUND
+  // 관리자 조치 공통
+  P0040: "사유를 10자 이상 입력해야 합니다", // REASON_REQUIRED
+  // 채팅 방 강제 종료 (migration 88)
+  P0080: "이 환경에는 채팅 기능이 없습니다", // CHAT_NOT_AVAILABLE
+  P0081: "채팅방을 찾을 수 없습니다", // ROOM_NOT_FOUND
   // 서버 점검 모드 (migration 29)
   P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
   P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START

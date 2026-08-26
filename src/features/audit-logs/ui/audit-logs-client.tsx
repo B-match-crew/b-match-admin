@@ -38,12 +38,23 @@ import {
 } from "@/src/features/audit-logs/actions";
 import { downloadCsv } from "@/src/shared/lib/csv-export";
 
+/**
+ * 필터 목록은 **DB 가 실제로 기록하는 값**과 같아야 한다. 여기 없는 종류는
+ * 필터로 찾을 수 없고, 목록에서는 영문 코드로만 보인다 — 유저 제재 4종만
+ * 적혀 있어 공지 발송·버전 정책·점검 이력이 필터에서 빠져 있었다.
+ */
 const ACTION_TYPES = [
   "ALL",
   "SUSPEND",
   "BAN",
   "DELETE_MATCH",
   "UNSUSPEND",
+  "CLOSE_CHAT_ROOM",
+  "BROADCAST_NOTICE",
+  "UPDATE_NOTIFICATION_CATEGORY",
+  "UPDATE_APP_VERSION_POLICY",
+  "ENABLE_MAINTENANCE",
+  "DISABLE_MAINTENANCE",
 ] as const;
 
 const ACTION_LABELS: Record<string, string> = {
@@ -52,6 +63,12 @@ const ACTION_LABELS: Record<string, string> = {
   BAN: "유저 영구차단",
   DELETE_MATCH: "매칭 삭제",
   UNSUSPEND: "정지 해제",
+  CLOSE_CHAT_ROOM: "대화 종료",
+  BROADCAST_NOTICE: "공지 발송",
+  UPDATE_NOTIFICATION_CATEGORY: "알림 카테고리 수정",
+  UPDATE_APP_VERSION_POLICY: "앱 버전 정책 변경",
+  ENABLE_MAINTENANCE: "서버 점검 시작",
+  DISABLE_MAINTENANCE: "서버 점검 해제",
 };
 
 export function AuditLogsClient() {
