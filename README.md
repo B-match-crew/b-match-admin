@@ -24,9 +24,14 @@
 | 유저 관리 | `/users` | 유저 검색·상세, 정지/영구차단/해제 |
 | 모임 관리 | `/clubs` | 개설된 모임(클럽) 조회 (`host_profiles`) |
 | 매칭 관리 | `/matches` | 모집글 조회·검색·정렬, 직권 삭제 |
-| 신고 관리 | `/reports` | 신고 접수 검토 및 조치 |
+| 신고 관리 | `/reports` | 모집글 신고 접수 검토 및 조치 |
+| 채팅 신고 | `/chat-reports` | 채팅 신고 + 보존된 대화 증적, 대화 종료·유저 제재 |
 | 차단 관리 | `/blocks` | 차단 랭킹(문제 유저 식별) + 영구 차단 목록 |
 | 앱 관리 | `/app-version` | 강제 업데이트 정책 + 서버 점검(maintenance) 토글 |
+| 공지 발송 | `/notices` | 전체·모임장 대상 긴급공지 (대상 수·도달 가능 수 미리보기) |
+| 알림 발송 | `/notifications` | 푸시 발송 결과·실패 사유, 토큰 도달률, 알림 카테고리 편집 |
+| 동의·파기 | `/compliance` | 약관·광고성 동의 이력 현황, 개인정보 파기 대기 |
+| 운영 상태 | `/ops` | 크론 실행 결과, 수집 중인 앱 이벤트 이름 |
 | 감사 로그 | `/audit-logs` | 관리자 행위 이력 (SUPER_ADMIN 전용) |
 
 > 매칭(matches)은 모임(host_profiles)이 올리는 개별 모집글입니다 — "모임"이 상위 개념입니다.
@@ -44,8 +49,9 @@ app/
 ├── (admin)/            # 인증 필요 — 그룹 레이아웃이 셸 + 가드 담당
 │   ├── layout.tsx      # AuthGuard + AdminLayout
 │   ├── page.tsx        # 대시보드
-│   └── users, clubs, matches, reports, blocks,
-│       stats, analytics, app-version, audit-logs
+│   └── users, clubs, matches, reports, chat-reports, blocks,
+│       stats, analytics, app-version, notices, notifications,
+│       compliance, ops, audit-logs
 ├── login/              # 셸 밖 전체화면 로그인
 ├── layout.tsx          # 루트: 프로바이더만
 ├── icon.png            # 파비콘 (Next 파일 컨벤션)
@@ -90,3 +96,8 @@ GA4_SA_KEY=                     # 서비스 계정 키 JSON
 ## 데이터베이스
 
 DB 마이그레이션과 스키마 문서는 `supabase/`에 있으나 **git으로 추적하지 않습니다**(`.gitignore`의 `/supabase/`). 앱 저장소(b-match-app)와 공유되는 산출물이기 때문입니다. 관리자 화면이 의존하는 집계는 대부분 `fn_admin_*` RPC(service_role 전용)로 구현되어 있으며, 새 기능을 추가할 때는 해당 마이그레이션을 별도로 적용해야 합니다.
+
+> ⚠️ **알림 발송 / 동의·파기 / 운영 상태 / 통계의 채팅 섹션 / 채팅 대화 종료**는
+> `88_admin_ops_rpc.sql` 이 적용된 DB 에서만 동작합니다. 미적용 상태에서는 해당
+> 화면이 `PGRST202` 로 실패하며, 그 코드는 화면에 그대로 표시됩니다.
+> 로컬 검증: `./supabase/local_verify/run_88.sh`
