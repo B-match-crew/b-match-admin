@@ -1,5 +1,5 @@
 /**
- * B-Match 라이브 DB 스키마 타입 (post-migration 14)
+ * B-Match 라이브 DB 스키마 타입
  * 출처: supabase/SCHEMA.md (live ground truth)
  *
  * 핵심 변경 (migration 09~14):
@@ -21,13 +21,21 @@ export type Provider = "KAKAO" | "GOOGLE" | "APPLE";
 export type GenderCondition = "MALE_ONLY" | "FEMALE_ONLY" | "ALL";
 export type MatchStatus = "RECRUITING" | "CLOSED" | "ENDED";
 export type ContactType = "URL" | "PHONE";
-export type NotificationType =
-  | "COMMUNITY_COMMENT"
-  | "COMMUNITY_REPLY"
-  | "COMMUNITY_BLIND"
-  | "SYSTEM_SUSPEND"
-  | "ADMIN_NOTICE";
+/**
+ * notifications.type 의 CHECK 값.
+ *
+ * COMMUNITY_* 는 커뮤니티가 제거되면서 migration 26 이 CHECK 에서 뺐다 —
+ * 딥링크가 끊긴 죽은 값이라 기존 행과 함께 정리됐다. 새 타입을 추가하려면
+ * DB CHECK 를 먼저 확장해야 한다.
+ */
+export type NotificationType = "SYSTEM_SUSPEND" | "ADMIN_NOTICE";
 export type DeviceOs = "IOS" | "ANDROID";
+
+/** notifications.send_status (migration 43). NULL = 43 이전에 만들어진 행 */
+export type SendStatus = "PENDING" | "SENDING" | "SENT" | "FAILED" | "SKIPPED";
+
+/** 차단이 일어난 경로 (migration 67). 어드민 랭킹이 이 값으로 갈린다 */
+export type BlockSource = "MATCH" | "CHAT";
 
 // ─── 테이블 타입 ───
 
@@ -198,25 +206,45 @@ export interface DbMatchReport {
   updated_at: string;
 }
 
-/** 모임장 차단 (사용자 간, 관리자 운영 대상 아님 — 참고용 타입) */
+/** 모임장 차단 (사용자 간). 어드민은 랭킹으로만 본다 */
 export interface DbUserBlock {
   id: number;
   blocker_id: number;
   blocked_id: number;
+  /** migration 67. 매칭 차단과 채팅 차단이 같은 테이블을 쓰므로 출처로 가른다 */
+  source: BlockSource;
   created_at: string;
 }
 
-// ─── dormant 테이블 (MVP 미사용, 테이블만 보존) ───
+// ─── 알림 / 푸시 (migration 41~54 · 64 — **운영 중**) ───
 
+/**
+ * 알림.
+ *
+ * 오래 "dormant" 로 적혀 있었지만 **푸시는 2026-08-12 서울 컷오버로 운영에
+ * 올라갔다.** 발송 경로는 fn_enqueue_notification → 이 테이블 →
+ * fn_dispatch_push → Edge notify-push 다.
+ */
 export interface DbNotification {
   id: number;
   user_id: number;
   type: NotificationType;
+  /** notification_categories.code (49). 발송 규칙·수신 토글 판정의 기준 */
+  category: string | null;
   title: string;
   body: string;
   deeplink_route: string | null;
   deeplink_params: Record<string, unknown> | null;
   is_read: boolean;
+  /** 알림함에 남길지. 푸시만 쏘고 목록엔 안 남기는 종류가 있다(채팅) */
+  show_in_center: boolean;
+  sent_at: string | null;
+  send_status: SendStatus | null;
+  /** 실패 사유 — **조용히 실패하는 종류라 이 값이 유일한 단서다** */
+  fail_reason: string | null;
+  read_at: string | null;
+  /** FCM 에 실어 보낸 원본 */
+  payload: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -227,9 +255,67 @@ export interface DbFcmToken {
   user_id: number;
   token: string;
   device_os: DeviceOs;
+  /** 마지막 사용 시각 — 죽은 토큰 정리 판단용 */
+  last_used_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+/**
+ * 알림 카테고리 (migration 49 / 52 / 54 / 68).
+ *
+ * 카테고리를 **코드가 아니라 데이터**로 둔다 — 추가가 DDL 없이 INSERT 한 줄이고,
+ * 문구 변경이 앱 배포 없이 반영된다. 어드민 `시스템 > 알림 발송`에서 편집한다.
+ */
+export interface DbNotificationCategory {
+  code: string;
+  label: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  /** true 면 사용자가 끌 수 없다 (SYSTEM) */
+  is_mandatory: boolean;
+  default_enabled: boolean;
+  /** SETTINGS = notification_settings / MARKETING_CONSENT = 동의 이력 + 미러 */
+  storage: "SETTINGS" | "MARKETING_CONSENT";
+  android_channel_id: string | null;
+  android_channel_name: string | null;
+  android_channel_importance: number;
+  ios_interruption_level: string | null;
+  /** 모임장에게만 보이는 카테고리인지 (migration 68) */
+  requires_host: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── 동의 이력 (migration 52 / 55 / 57) ───
+
+/** 광고성 수신 동의 **이력(정본, append-only)**. users.marketing_opt_in 은 미러 */
+export interface DbMarketingConsent {
+  id: number;
+  user_id: number;
+  agreed: boolean;
+  source:
+    | "SIGNUP"
+    | "SETTINGS"
+    | "ADMIN"
+    | "BACKFILL"
+    | "RECONFIRM"
+    | "UNKNOWN";
+  created_at: string;
+}
+
+/** 필수 약관 동의 이력(정본, append-only). 개인정보보호법 §22 입증책임 */
+export interface DbUserAgreement {
+  id: number;
+  user_id: number;
+  agreement: "AGE_19" | "SERVICE" | "PRIVACY" | "LOCATION";
+  agreed: boolean;
+  /** 동의 시점의 약관 버전. **버전제 도입 전 데이터는 null** — 소급 추정하지 않는다 */
+  version: string | null;
+  source: "SIGNUP" | "REVERIFY" | "LEGACY" | "BACKFILL" | "ADMIN" | "UNKNOWN";
+  created_at: string;
 }
 
 export interface DbPermanentBlacklist {
@@ -243,10 +329,25 @@ export interface DbPermanentBlacklist {
 }
 
 // 라이브 RPC 가 실제 저장하는 값 (fn_admin_suspend_user='SUSPEND',
-// fn_admin_ban_user='BAN', fn_admin_delete_match='DELETE_MATCH').
-// 'UNSUSPEND' 는 라이브 RPC 가 없어 관리자 페이지가 직접 INSERT 하는 값.
+// fn_admin_ban_user='BAN', fn_admin_delete_match='DELETE_MATCH',
+// fn_admin_broadcast_notice='BROADCAST_NOTICE',
+// fn_update_app_version_policy='UPDATE_APP_VERSION_POLICY',
+// fn_set_maintenance='ENABLE_MAINTENANCE'/'DISABLE_MAINTENANCE',
+// fn_admin_close_chat_room='CLOSE_CHAT_ROOM').
+// 'UNSUSPEND' 와 'UPDATE_NOTIFICATION_CATEGORY' 는 라이브 RPC 가 없어 관리자
+// 페이지가 직접 INSERT 하는 값.
 // action_type 컬럼은 varchar(100) free text — DB 제약 없음 (UI 힌트용)
-export type AuditActionType = "SUSPEND" | "BAN" | "DELETE_MATCH" | "UNSUSPEND";
+export type AuditActionType =
+  | "SUSPEND"
+  | "BAN"
+  | "DELETE_MATCH"
+  | "UNSUSPEND"
+  | "CLOSE_CHAT_ROOM"
+  | "BROADCAST_NOTICE"
+  | "UPDATE_NOTIFICATION_CATEGORY"
+  | "UPDATE_APP_VERSION_POLICY"
+  | "ENABLE_MAINTENANCE"
+  | "DISABLE_MAINTENANCE";
 
 export interface DbAdminAuditLog {
   id: number;
