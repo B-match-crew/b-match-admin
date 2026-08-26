@@ -6,6 +6,7 @@ import {
   type ActionResult,
 } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
+import { kstRange } from "@/src/shared/lib/kst-range";
 
 /**
  * 통계 페이지 데이터 소스.
@@ -45,14 +46,7 @@ export async function fetchDailyAcquisition(
     await requireAdmin();
     const supabase = createAdminClient();
 
-    // KST 기준 오늘부터 역산. toLocaleDateString('en-CA') 가 yyyy-MM-dd 를 준다.
-    const kstToday = new Date().toLocaleDateString("en-CA", {
-      timeZone: "Asia/Seoul",
-    });
-    const to = kstToday;
-    const fromDate = new Date(`${kstToday}T00:00:00Z`);
-    fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
-    const from = fromDate.toISOString().slice(0, 10);
+    const { from, to } = kstRange(days);
 
     const { data, error } = await supabase.rpc("fn_admin_daily_acquisition", {
       p_from: from,
@@ -104,14 +98,7 @@ export async function fetchCumulativeTrend(
     await requireAdmin();
     const supabase = createAdminClient();
 
-    // KST 기준 오늘부터 역산 (fetchDailyAcquisition 과 동일 규칙)
-    const kstToday = new Date().toLocaleDateString("en-CA", {
-      timeZone: "Asia/Seoul",
-    });
-    const to = kstToday;
-    const fromDate = new Date(`${kstToday}T00:00:00Z`);
-    fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1));
-    const from = fromDate.toISOString().slice(0, 10);
+    const { from, to } = kstRange(days);
 
     const [dailyRes, guestTotalRes, signupTotalRes] = await Promise.all([
       supabase.rpc("fn_admin_daily_acquisition", { p_from: from, p_to: to }),
