@@ -566,9 +566,15 @@ export interface ChatStats {
   response: ChatResponseStats | null;
   reportsTotal: number;
   reportsPending: number;
-  /** 30일이 지나 파기됐어야 할 메시지 — 크론이 죽으면 계속 는다 */
-  purgeDue: number;
 }
+
+/**
+ * ⚠️ 파기 대기 수는 여기 없다.
+ *
+ * 88 은 그 값을 이 함수와 `fn_admin_purge_status` 두 곳에서 셌는데, 보관 규칙은
+ * 바뀐다 — 90일(방 단위)로 옮겨지면서 한쪽만 고쳐졌고 남은 사본은 정상 보관분을
+ * "파기 지연" 으로 보고했다. 정의는 한 곳(`시스템 > 동의·파기`)에만 둔다.
+ */
 
 export async function fetchChatStats(
   days = 30
@@ -606,7 +612,6 @@ export async function fetchChatStats(
         median_minutes: number | null;
       };
       reports?: { total: number; pending: number };
-      purge_due?: number;
     };
 
     return {
@@ -635,7 +640,6 @@ export async function fetchChatStats(
         : null,
       reportsTotal: r.reports?.total ?? 0,
       reportsPending: r.reports?.pending ?? 0,
-      purgeDue: r.purge_due ?? 0,
     };
   });
 }

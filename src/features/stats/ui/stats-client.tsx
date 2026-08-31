@@ -1058,7 +1058,9 @@ function ChatSection({ days }: { days: number }) {
       <CardHeader>
         <CardTitle>채팅</CardTitle>
         <CardDescription>
-          방은 전체 기준, 메시지 추이는 선택 기간 기준입니다.
+          방은 전체 기준, 메시지 추이는 선택 기간 기준입니다. 보관 기간이 지난
+          대화의 파기 현황은 <b>시스템 &gt; 동의·파기</b>에서 봅니다 — 보관 규칙은
+          바뀌므로 정의를 한 곳에만 둡니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1099,22 +1101,6 @@ function ChatSection({ days }: { days: number }) {
 
             <ChatResponseBlock response={data.response} />
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <ChatTile
-                label="파기 대기 메시지"
-                value={data.purgeDue}
-                hint="보관 기간 경과"
-                warn={data.purgeDue > 0}
-              />
-            </div>
-
-            {data.purgeDue > 0 && (
-              <p className="text-bds-caption2 text-bds-status-warning-text">
-                보관 기간이 지난 메시지가 남아 있습니다. 매일 04:40 KST 파기
-                크론이 도는 구조이므로, 이 수가 계속 늘면 크론을 확인해야
-                합니다 — 보관 기간 고지와 어긋난 상태입니다.
-              </p>
-            )}
 
             {data.daily.length === 0 ? (
               <EmptyState message="기간 내 주고받은 메시지가 없습니다." />
