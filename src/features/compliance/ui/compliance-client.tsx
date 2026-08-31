@@ -266,7 +266,7 @@ function MarketingSection() {
   );
 }
 
-// ─── 파기 대기 (56 · 57 · 63) ───
+// ─── 파기 대기 (56 · 57 · 91 · 92) ───
 
 function PurgeSection() {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -307,14 +307,32 @@ function PurgeSection() {
             hint="탈퇴 30일 미경과"
           />
           <Tile label="고아 커버 이미지" value={data.coversDue} hint="모임만 삭제" />
+          {/*
+            삭제 단위는 **방**이다(app migration 91). 메시지 수만 보여주면
+            "메시지를 골라 지운다"고 읽히는데, 실제로는 방이 통째로 사라진다.
+          */}
           <Tile
             label="채팅 파기 대상"
-            value={data.chatMessagesDue ?? 0}
+            value={data.chatRoomsDue ?? 0}
             hint={
-              data.chatMessagesDue === null
+              data.chatRoomsDue === null
                 ? "채팅 미적용 DB"
-                : "30일 경과 메시지"
+                : `마지막 대화 90일 경과 · 메시지 ${formatNumber(
+                    data.chatMessagesDue ?? 0,
+                  )}건`
             }
+          />
+          <Tile
+            label="채팅 신고 파기 대상"
+            value={data.chatReportsDue ?? 0}
+            hint={
+              data.chatReportsDue === null ? "채팅 미적용 DB" : "처리 후 1년 경과"
+            }
+          />
+          <Tile
+            label="매칭 신고 파기 대상"
+            value={data.matchReportsDue}
+            hint="처리 후 1년 경과"
           />
         </div>
 
@@ -327,12 +345,18 @@ function PurgeSection() {
             개인정보보호법 제21조는 보유기간 경과 시 지체 없는 파기를 요구합니다.
           </WarningBox>
         )}
-        {data.chatMessagesDue === null && (
+        {data.chatRoomsDue === null && (
           <p className="text-bds-caption2 text-bds-label-alternative">
-            채팅 스키마가 없는 DB 입니다(채팅 마이그레이션 미적용). 적용되면 30일
-            rolling 파기 대기분이 여기에 표시됩니다.
+            채팅 스키마가 없는 DB 입니다(채팅 마이그레이션 미적용). 적용되면 파기
+            대기분이 여기에 표시됩니다.
           </p>
         )}
+        <p className="text-bds-caption2 text-bds-label-alternative">
+          채팅은 <b>마지막 메시지로부터 90일</b>이 지난 방을 통째로 지웁니다(약관
+          2026-08-31 개정). 최근에 대화한 방은 옛 메시지라도 남습니다. 신고 자료와
+          처리 이력은 <b>처리 완료 후 1년</b>이며, 미처리 신고는 오래돼도 파기하지
+          않습니다.
+        </p>
       </CardContent>
     </Card>
   );

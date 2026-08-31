@@ -41,6 +41,7 @@ import {
   fetchMatchTimeDistribution,
   fetchSignupChannels,
   fetchChatStats,
+  type ChatStats,
   type DistributionItem,
 } from "@/src/features/stats/actions";
 
@@ -1057,7 +1058,9 @@ function ChatSection({ days }: { days: number }) {
       <CardHeader>
         <CardTitle>채팅</CardTitle>
         <CardDescription>
-          방은 전체 기준, 메시지 추이는 선택 기간 기준입니다.
+          방은 전체 기준, 메시지 추이는 선택 기간 기준입니다. 보관 기간이 지난
+          대화의 파기 현황은 <b>시스템 &gt; 동의·파기</b>에서 봅니다 — 보관 규칙은
+          바뀌므로 정의를 한 곳에만 둡니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1082,24 +1085,22 @@ function ChatSection({ days }: { days: number }) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ChatTile
+                label="신규 문의"
+                value={data.roomsCreated}
+                hint="기간 내 새로 열린 방"
+              />
               <ChatTile label="기간 내 메시지" value={data.messagesRanged} />
               <ChatTile label="기간 내 대화한 사람" value={data.sendersRanged} />
-              <ChatTile label="기간 내 활성 방" value={data.roomsRanged} />
               <ChatTile
-                label="파기 대기 메시지"
-                value={data.purgeDue}
-                hint="30일 경과"
-                warn={data.purgeDue > 0}
+                label="기간 내 활성 방"
+                value={data.roomsRanged}
+                hint="예전 방의 대화 포함"
               />
             </div>
 
-            {data.purgeDue > 0 && (
-              <p className="text-bds-caption2 text-bds-status-warning-text">
-                30일이 지난 메시지가 남아 있습니다. 매일 04:40 KST 파기 크론이
-                도는 구조이므로, 이 수가 계속 늘면 크론을 확인해야 합니다 —
-                &quot;30일 보관&quot; 고지와 어긋난 상태입니다.
-              </p>
-            )}
+            <ChatResponseBlock response={data.response} />
+
 
             {data.daily.length === 0 ? (
               <EmptyState message="기간 내 주고받은 메시지가 없습니다." />
@@ -1135,26 +1136,122 @@ function ChatSection({ days }: { days: number }) {
   );
 }
 
+/**
+ * 응답 지표 — 문의가 **답을 받는가**.
+ *
+ * 방은 유저가 첫 메시지를 보내는 순간 생기므로(app migration 82) 위쪽 지표는
+ * 모임장 답장과 무관하다. 문의가 얼마나 들어오는지는 보여도 답 없는 문의가
+ * 쌓이는 것은 보이지 않아서, 이 블록이 그 답을 맡는다.
+ */
+function ChatResponseBlock({
+  response,
+}: {
+  response: ChatStats["response"];
+}) {
+  // 90 미적용 DB. 0% 로 그리면 "아무도 답을 안 한다" 로 읽히므로 감춘다.
+  if (!response) return null;
+
+  const rate =
+    response.rooms > 0
+      ? Math.round((response.answered / response.rooms) * 1000) / 10
+      : null;
+  const unanswered = response.rooms - response.answered;
+
+  return (
+    <div className="space-y-2 rounded-lg border border-bds-border-alternative bg-bds-back-alternative p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h4 className="text-bds-heading3">문의 응답</h4>
+        <span className="text-bds-caption2 text-bds-label-alternative">
+          {response.from} 이후 열린 방 {response.rooms.toLocaleString()}개 기준
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ChatTile
+          label="응답률"
+          value={rate ?? 0}
+          suffix="%"
+          hint={`${response.answered.toLocaleString()} / ${response.rooms.toLocaleString()}개 방`}
+          warn={rate !== null && rate < 50}
+        />
+        <ChatTile
+          label="첫 응답까지 (중앙값)"
+          value={response.medianMinutes ?? 0}
+          formatted={
+            response.medianMinutes === null
+              ? "-"
+              : formatMinutes(response.medianMinutes)
+          }
+        />
+        <ChatTile
+          label="답 없는 문의"
+          value={unanswered}
+          warn={unanswered > 0}
+        />
+        <ChatTile
+          label="아직 24시간 이내"
+          value={response.unansweredRecent}
+          hint="답할 시간이 남음"
+        />
+      </div>
+
+      {response.unansweredRecent > 0 && (
+        <p className="text-bds-caption2 text-bds-label-alternative">
+          답 없는 문의 {unanswered.toLocaleString()}개 중{" "}
+          {response.unansweredRecent.toLocaleString()}개는 열린 지 24시간이 지나지
+          않았습니다 — 아직 미응답으로 단정할 수 없습니다.
+        </p>
+      )}
+
+      {response.windowCapped && (
+        <p className="text-bds-caption2 text-bds-status-warning-text">
+          선택한 기간이 남아 있는 대화보다 깁니다. 보관 기간이 지난 대화는
+          파기되어 답장 여부를 알 수 없으므로, 응답률은 <b>{response.from}</b>{" "}
+          이후에 열린 방만으로 계산했습니다.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** 분 → 사람이 읽는 길이. 응답 시간은 분·시간·일 단위가 모두 나온다. */
+function formatMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes}분`;
+  if (minutes < 60 * 24) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+  }
+  const d = Math.floor(minutes / (60 * 24));
+  const h = Math.round((minutes % (60 * 24)) / 60);
+  return h === 0 ? `${d}일` : `${d}일 ${h}시간`;
+}
+
 function ChatTile({
   label,
   value,
   hint,
   warn,
+  suffix,
+  formatted,
 }: {
   label: string;
   value: number;
   hint?: string;
   warn?: boolean;
+  suffix?: string;
+  /** 숫자 대신 그대로 그릴 문자열 (기간처럼 단위가 섞이는 값) */
+  formatted?: string;
 }) {
   return (
-    <div className="rounded-lg border p-3">
+    <div className="rounded-lg border bg-background p-3">
       <div className="text-bds-caption2 text-bds-label-assistive">{label}</div>
       <div
         className={`mt-0.5 text-bds-title3 tabular-nums ${
           warn ? "text-bds-status-warning-text" : "text-foreground"
         }`}
       >
-        {value.toLocaleString()}
+        {formatted ?? `${value.toLocaleString()}${suffix ?? ""}`}
       </div>
       {hint && (
         <div className="text-bds-caption2 text-bds-label-alternative">{hint}</div>
