@@ -507,6 +507,33 @@ export interface ChatDailyPoint {
   senders: number;
 }
 
+/**
+ * 응답 지표 (app migration 90).
+ *
+ * 90 이 적용되지 않은 DB 에서는 이 값이 통째로 없다 — 88 만 있어도 화면이
+ * 죽지 않도록 null 로 두고, 화면은 카드를 감춘다. 0% 로 그리면 "아무도 답을
+ * 안 한다" 로 읽힌다.
+ */
+export interface ChatResponseStats {
+  /** 응답 지표를 실제로 센 시작일 (yyyy-MM-dd, KST) */
+  from: string;
+  /**
+   * 요청한 기간이 남아 있는 기록보다 넓어 잘렸는가.
+   *
+   * 보관 기간이 지난 대화는 지워지므로 그 구간에서는 답장이 이미 없다. 세면
+   * 응답률이 실제보다 낮게 나오고, 그 숫자로 모임장을 평가하게 된다.
+   */
+  windowCapped: boolean;
+  /** 분모 — 창 안에서 새로 열린 방 */
+  rooms: number;
+  /** 문의받은 쪽이 한 번이라도 보낸 방 */
+  answered: number;
+  /** 미응답이지만 아직 24시간이 안 지난 방 = 판정 유보 */
+  unansweredRecent: number;
+  /** 첫 응답까지 걸린 시간의 중앙값(분). 답한 방이 없으면 null */
+  medianMinutes: number | null;
+}
+
 export interface ChatStats {
   /**
    * 채팅 스키마가 있는 DB 인지.
@@ -526,7 +553,17 @@ export interface ChatStats {
   messagesSystem: number;
   sendersRanged: number;
   roomsRanged: number;
+  /**
+   * 기간 내 **새로 열린** 방 = 신규 문의 건수.
+   *
+   * 방은 유저가 첫 메시지를 보내는 순간 만들어지므로(app migration 82) 모임장
+   * 답장 여부와 무관하다. roomsRanged(메시지가 오간 방)와 다른 값이다 —
+   * 저쪽은 예전에 열린 방의 대화도 센다.
+   */
+  roomsCreated: number;
   daily: ChatDailyPoint[];
+  /** 90 미적용 DB 에서는 null */
+  response: ChatResponseStats | null;
   reportsTotal: number;
   reportsPending: number;
   /** 30일이 지나 파기됐어야 할 메시지 — 크론이 죽으면 계속 는다 */
@@ -558,7 +595,16 @@ export async function fetchChatStats(
       messages_system?: number;
       senders_ranged?: number;
       rooms_ranged?: number;
+      rooms_created?: number;
       daily?: ChatDailyPoint[];
+      response?: {
+        from: string;
+        window_capped: boolean;
+        rooms: number;
+        answered: number;
+        unanswered_recent: number;
+        median_minutes: number | null;
+      };
       reports?: { total: number; pending: number };
       purge_due?: number;
     };
@@ -574,7 +620,19 @@ export async function fetchChatStats(
       messagesSystem: r.messages_system ?? 0,
       sendersRanged: r.senders_ranged ?? 0,
       roomsRanged: r.rooms_ranged ?? 0,
+      roomsCreated: r.rooms_created ?? 0,
       daily: r.daily ?? [],
+      // 90 미적용이면 키 자체가 없다. 0 으로 채우지 않는다.
+      response: r.response
+        ? {
+            from: r.response.from,
+            windowCapped: r.response.window_capped,
+            rooms: r.response.rooms,
+            answered: r.response.answered,
+            unansweredRecent: r.response.unanswered_recent,
+            medianMinutes: r.response.median_minutes,
+          }
+        : null,
       reportsTotal: r.reports?.total ?? 0,
       reportsPending: r.reports?.pending ?? 0,
       purgeDue: r.purge_due ?? 0,
