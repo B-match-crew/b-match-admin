@@ -540,9 +540,21 @@ function DeleteMatchDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <WarningBox>
-            ⚠ 호스트에게 ADMIN_NOTICE 알림이 자동 발송됩니다.
-          </WarningBox>
+          {/* 고지 여부는 **모집 상태**로 갈린다(app migration 97). 마감·종료된 글까지
+              울리면 고지가 소음이 되고, 소음이 되면 정작 모집중인 글이 내려갔을 때의
+              고지도 함께 묻힌다. 운영자가 누르기 전에 어느 쪽인지 알아야 한다. */}
+          {match?.status === "RECRUITING" ? (
+            <WarningBox>
+              ⚠ 모집중인 글이라 호스트에게 <b>푸시 알림이 즉시 발송</b>됩니다.
+              아래 <b>삭제 사유가 알림 본문으로 그대로 전달</b>되니 호스트가 읽는
+              문장으로 작성하세요.
+            </WarningBox>
+          ) : (
+            <WarningBox tone="caution">
+              마감·종료된 글이라 <b>호스트에게 알림이 가지 않습니다.</b> 삭제 사유는
+              감사 로그에만 남습니다.
+            </WarningBox>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="del-reason">삭제 사유 (10자 이상)</Label>
             <Textarea id="del-reason" rows={3} {...form.register("reason")} />
