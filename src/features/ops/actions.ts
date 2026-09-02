@@ -16,6 +16,9 @@ import { kstRange } from "@/src/shared/lib/kst-range";
  *  - 분석 집계(38)는 SQL 안에 앱 이벤트 **이름이 문자열로 박혀 있다.** 앱이
  *    이름을 바꾸면 에러 없이 결과가 0 이 된다 — 통계가 죽는 게 아니라 조용히
  *    거짓말을 한다. 실제로 들어오는 이름을 보면 즉시 알아챈다.
+ *  - 발송기는 HTTP 응답을 아무도 읽지 않는다(pg_net 은 비동기다). 그래서
+ *    "요청이 거절됐다" 는 어디에도 안 남는다. 대신 **PENDING 이 안 줄어드는
+ *    것**으로 잡는다 (app migration 100, fn_admin_push_backlog).
  */
 
 // ─── 1. 크론 상태 ───
@@ -60,7 +63,51 @@ export async function fetchCronHealth(): Promise<ActionResult<CronJob[]>> {
   });
 }
 
-// ─── 2. 수집 이벤트 이름 ───
+// ─── 2. 푸시 발송 적체 ───
+
+export interface PushBacklog {
+  /** 지금 PENDING 인 알림 수 */
+  pendingTotal: number;
+  /** 그중 기준 시간(기본 15분)보다 오래된 것 — 0 이 아니면 파이프라인이 멈춘 것 */
+  pendingStale: number;
+  /** 가장 오래된 PENDING 의 생성 시각 */
+  oldestPending: string | null;
+}
+
+/**
+ * 발송기는 5분마다 돈다(migration 44). 정상이면 PENDING 은 5분 안에
+ * SENT/FAILED 로 바뀐다. **15분 넘게 PENDING 인 것이 있으면** 크론이 안
+ * 돌았거나, Vault 시크릿이 빠졌거나, Edge Function 이 4xx/5xx 를 돌려준 것이다.
+ *
+ * 이 셋은 원인이 다 다른데 증상이 하나라 여기서는 구분하지 않는다 —
+ * "멈췄다" 만 알면 크론 상태 표와 런타임 로그로 좁힐 수 있다.
+ */
+export async function fetchPushBacklog(): Promise<ActionResult<PushBacklog>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase.rpc("fn_admin_push_backlog");
+    if (error) throw error;
+
+    // returns table(...) 이라 배열로 온다. 항상 1행이다.
+    const r = (Array.isArray(data) ? data[0] : data) as
+      | {
+          pending_total: number;
+          pending_stale: number;
+          oldest_pending: string | null;
+        }
+      | undefined;
+
+    return {
+      pendingTotal: r?.pending_total ?? 0,
+      pendingStale: r?.pending_stale ?? 0,
+      oldestPending: r?.oldest_pending ?? null,
+    };
+  });
+}
+
+// ─── 3. 수집 이벤트 이름 ───
 
 export interface EventName {
   eventName: string;

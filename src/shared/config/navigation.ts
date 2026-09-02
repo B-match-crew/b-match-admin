@@ -14,6 +14,7 @@ import {
   BellRing,
   ShieldCheck,
   HeartPulse,
+  HeartCrack,
   type LucideIcon,
 } from "lucide-react";
 import type { AdminRole } from "@/src/shared/types/db";
@@ -57,6 +58,7 @@ export const navigation: NavGroup[] = [
       { title: "공지 발송", href: "/notices", icon: Megaphone },
       { title: "알림 발송", href: "/notifications", icon: BellRing },
       { title: "동의·파기", href: "/compliance", icon: ShieldCheck },
+      { title: "탈퇴 사유", href: "/deletion-reasons", icon: HeartCrack },
       { title: "운영 상태", href: "/ops", icon: HeartPulse },
       {
         title: "감사 로그",
