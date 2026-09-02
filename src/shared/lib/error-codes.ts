@@ -5,7 +5,9 @@
 export const PG_ERROR_MESSAGES: Record<string, string> = {
   "42501": "권한이 없습니다 (관리자 인증 필요)",
   P0001: "처리 중 오류가 발생했습니다", // GUEST_NICKNAME_GEN_FAILED (내부)
-  P0002: "유저를 찾을 수 없습니다", // USER_NOT_FOUND
+  // ⚠️ app migration 100 부터 **정지·차단에서도** 이 코드가 온다. 그전에는
+  //    대상이 없어도 UPDATE 가 0행인 채 조용히 성공하고 감사로그만 남았다.
+  P0002: "유저를 찾을 수 없습니다 (이미 탈퇴했을 수 있습니다)", // USER_NOT_FOUND
   P0003: "영구 차단된 계정입니다", // PERMANENT_BLACKLIST
   P0004: "생년월일 정보가 필요합니다", // BIRTH_YEAR_REQUIRED
   P0005: "만 19세 미만은 가입할 수 없습니다", // AGE_BELOW_MINIMUM
@@ -34,6 +36,13 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   // 채팅 방 강제 종료 (migration 88)
   P0080: "이 환경에는 채팅 기능이 없습니다", // CHAT_NOT_AVAILABLE
   P0081: "채팅방을 찾을 수 없습니다", // ROOM_NOT_FOUND
+  // 발송·파기 파이프라인 (app migration 100) — 크론이 실패로 기록되는 사유.
+  // 어드민에서 직접 부르진 않지만, 운영 상태 화면의 크론 메시지에 이 코드가
+  // 그대로 찍히므로 표에 둔다.
+  P0140: "푸시 발송 설정이 없습니다 (Vault 시크릿 확인)", // DISPATCH_SECRET_MISSING
+  P0141: "계정 파기 설정이 없습니다 (Vault 시크릿 확인)", // PURGE_SECRET_MISSING
+  // 가입 (app migration 101)
+  P0142: "약관 동의 기록에 실패했습니다 (잠시 후 다시 시도해 주세요)", // AGREEMENTS_NOT_RECORDED
   // 서버 점검 모드 (migration 29)
   P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
   P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START
