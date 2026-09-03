@@ -5,14 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 import { ActionFailure } from "@/src/shared/lib/unwrap";
-
-/** 재시도해도 결과가 바뀌지 않는 실패 — 인가는 다시 물어봐도 같은 답이다. */
-const TERMINAL_CODES = new Set(["AUTH_REQUIRED", "NOT_ADMIN", "NOT_SUPER_ADMIN"]);
+import { isTerminalAuthCode } from "@/src/shared/lib/auth-error";
 
 function retryUnlessTerminal(failureCount: number, error: unknown) {
-  if (error instanceof ActionFailure && error.code && TERMINAL_CODES.has(error.code)) {
-    return false;
-  }
+  if (error instanceof ActionFailure && isTerminalAuthCode(error.code)) return false;
   return failureCount < 1;
 }
 

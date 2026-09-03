@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type { AdminRole } from "@/src/shared/types/db";
 import { createServerSupabase } from "@/src/shared/api/supabase-server";
+import { AuthError } from "@/src/shared/lib/auth-error";
 
 /**
  * 현재 세션의 관리자 정보. Server Action / Server Component 에서 호출.
@@ -12,29 +13,6 @@ export interface CurrentAdmin {
   /** auth.users.id (uuid). 세션 식별자 */
   authUserId: string;
   role: AdminRole;
-}
-
-/** 인가 실패 사유. 코드로 던져야 호출부가 "로그인" 과 "권한 없음" 을 갈라 처리할 수 있다. */
-export type AuthErrorCode = "AUTH_REQUIRED" | "NOT_ADMIN" | "NOT_SUPER_ADMIN";
-
-/**
- * 인가 실패 — `code` 를 실어 던진다.
- *
- * 문자열 Error 로 던지면 `runAction` 이 `code` 없이 메시지만 실어 보내고,
- * 화면은 "로그인이 필요합니다" 와 "권한이 없습니다" 를 구분하지 못한다. 전자는
- * 로그인으로 보내야 하고 후자는 보내봐야 같은 화면으로 되돌아온다.
- *
- * 코드값은 DB 쪽 P0020/P0021 (error-codes.ts) 과 같은 이름을 쓴다 — 같은 사실을
- * 두 이름으로 부르지 않기 위해서다.
- */
-export class AuthError extends Error {
-  constructor(
-    readonly code: AuthErrorCode,
-    message: string
-  ) {
-    super(message);
-    this.name = "AuthError";
-  }
 }
 
 /**
