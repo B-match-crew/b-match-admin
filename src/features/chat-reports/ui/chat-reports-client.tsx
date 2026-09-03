@@ -46,7 +46,7 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import type { ActionResult } from "@/src/shared/lib/action-result";
 import type { ReportStatus } from "@/src/shared/types/db";
-import { ChatTranscript } from "@/src/features/chat-reports/ui/chat-transcript";
+import { ChatTranscript } from "./chat-transcript";
 import {
   fetchChatReports,
   setChatReportStatusAction,
@@ -54,7 +54,7 @@ import {
   banChatUserAction,
   closeChatRoomAction,
   type ChatReportListItem,
-} from "@/src/features/chat-reports/actions";
+} from "../actions";
 
 export function ChatReportsClient() {
   const queryClient = useQueryClient();

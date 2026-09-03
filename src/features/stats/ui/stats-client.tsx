@@ -43,7 +43,7 @@ import {
   fetchChatStats,
   type ChatStats,
   type DistributionItem,
-} from "@/src/features/stats/actions";
+} from "../actions";
 
 /**
  * 시리즈 색 — globals.css 의 검증된 팔레트를 참조한다.

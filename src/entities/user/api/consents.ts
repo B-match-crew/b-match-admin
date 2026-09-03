@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
-import type { UserConsents } from "@/src/entities/user/model/consents";
+import type { UserConsents } from "../model/consents";
 
 /**
  * 유저 한 명의 동의 이력.

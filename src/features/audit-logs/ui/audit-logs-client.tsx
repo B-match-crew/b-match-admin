@@ -35,7 +35,7 @@ import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
   fetchAuditLogs,
   type AuditLogRow,
-} from "@/src/features/audit-logs/actions";
+} from "../actions";
 import { downloadCsv } from "@/src/shared/lib/csv-export";
 
 /**

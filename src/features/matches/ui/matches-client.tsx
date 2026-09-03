@@ -51,7 +51,7 @@ import {
   deleteMatchAction,
   type MatchListItem,
   type MatchSortBy,
-} from "@/src/features/matches/actions";
+} from "../actions";
 import { normalizeFeeConfig, type MatchStatus } from "@/src/shared/types/db";
 
 const reasonSchema = z.object({

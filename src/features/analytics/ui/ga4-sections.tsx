@@ -22,7 +22,7 @@ import {
   fetchGa4Campaigns,
   fetchGa4Platforms,
   type Ga4Response,
-} from "@/src/features/analytics/ga4-actions";
+} from "../ga4-actions";
 
 const SERIES_1 = "var(--color-series-1)";
 const AXIS_TICK = {

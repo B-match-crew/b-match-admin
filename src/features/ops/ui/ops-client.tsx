@@ -32,8 +32,8 @@ import {
   fetchCronHealth,
   fetchEventNames,
   fetchPushBacklog,
-} from "@/src/features/ops/actions";
-import { TRACKED_EVENTS } from "@/src/features/ops/constants";
+} from "../actions";
+import { TRACKED_EVENTS } from "../constants";
 
 const RANGES = [
   { value: "7", label: "7일" },

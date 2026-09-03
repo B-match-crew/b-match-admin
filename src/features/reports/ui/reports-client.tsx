@@ -54,7 +54,7 @@ import {
   suspendHostAction,
   banHostAction,
   type ReportListItem,
-} from "@/src/features/reports/actions";
+} from "../actions";
 
 export function ReportsClient() {
   const queryClient = useQueryClient();

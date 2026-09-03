@@ -16,8 +16,8 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
-import { fetchUserDetail, type UserListItem } from "@/src/features/users/actions";
-import { UserConsentsTab } from "@/src/features/users/ui/user-consents-tab";
+import { fetchUserDetail, type UserListItem } from "../actions";
+import { UserConsentsTab } from "./user-consents-tab";
 import type { Provider } from "@/src/shared/types/db";
 
 const PROVIDER_LABEL: Record<Provider, string> = {

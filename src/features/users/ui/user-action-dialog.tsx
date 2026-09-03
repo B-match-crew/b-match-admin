@@ -24,7 +24,7 @@ import {
   suspendUserAction,
   banUserAction,
   type UserListItem,
-} from "@/src/features/users/actions";
+} from "../actions";
 
 interface Props {
   user: UserListItem | null;

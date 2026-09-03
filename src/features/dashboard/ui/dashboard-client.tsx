@@ -9,7 +9,7 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchDashboardStats,
   fetchDailyTrends,
-} from "@/src/features/dashboard/actions";
+} from "../actions";
 import Link from "next/link";
 import {
   ResponsiveContainer,

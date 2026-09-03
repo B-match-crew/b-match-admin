@@ -38,7 +38,7 @@ import {
   fetchAppStatus,
   setMaintenanceAction,
   type AppStatusRow,
-} from "@/src/features/app-version/maintenance-actions";
+} from "../maintenance-actions";
 
 /** 확인 모달 단계 — 전 사용자를 잠그는 조작이라 2단계로 되묻는다. */
 type ConfirmStep = null | "first" | "second";

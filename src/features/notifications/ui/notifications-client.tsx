@@ -59,7 +59,7 @@ import {
   fetchNotificationCategories,
   updateNotificationCategory,
   type NotificationCategory,
-} from "@/src/features/notifications/actions";
+} from "../actions";
 import { fetchPushReach } from "@/src/entities/notification";
 
 const TABS = [

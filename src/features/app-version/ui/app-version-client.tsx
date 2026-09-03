@@ -24,7 +24,7 @@ import {
   saveVersionPolicyAction,
   type VersionPolicyRow,
   type VersionPlatform,
-} from "@/src/features/app-version/actions";
+} from "../actions";
 
 const PLATFORM_LABELS: Record<VersionPlatform, string> = {
   IOS: "iOS (App Store)",

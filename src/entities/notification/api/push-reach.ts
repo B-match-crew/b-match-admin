@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
-import type { PushReach } from "@/src/entities/notification/model/push-reach";
+import type { PushReach } from "../model/push-reach";
 
 /** 집계는 전부 RPC 안에서 끝난다 — 토큰 행을 내려받아 세면 max-rows 에 잘린다. */
 export async function fetchPushReach(): Promise<ActionResult<PushReach>> {

@@ -27,7 +27,7 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchClubs, fetchClubDetail } from "@/src/features/clubs/actions";
+import { fetchClubs, fetchClubDetail } from "../actions";
 
 const PAGE_SIZE = 50;
 

@@ -32,12 +32,12 @@ import {
   fetchMatchConversion,
   fetchViralFunnel,
   type FunnelStep,
-} from "@/src/features/analytics/actions";
+} from "../actions";
 import {
   Ga4ChannelSection,
   Ga4CampaignSection,
   Ga4PlatformSection,
-} from "@/src/features/analytics/ui/ga4-sections";
+} from "./ga4-sections";
 
 /**
  * 시리즈 색 — globals.css 의 검증된 팔레트. 순서 고정, 순환 금지.

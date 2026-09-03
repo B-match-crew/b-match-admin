@@ -7,7 +7,7 @@ import {
   NOTICE_BODY_MAX,
   NOTICE_TITLE_MAX,
   type BroadcastTarget,
-} from "@/src/features/notices/constants";
+} from "./constants";
 
 /**
  * 긴급공지 발송 (migration 47).

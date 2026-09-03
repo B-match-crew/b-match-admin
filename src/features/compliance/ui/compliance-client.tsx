@@ -28,7 +28,7 @@ import { formatNumber } from "@/src/shared/lib/format-number";
 import {
   fetchConsentSummary,
   fetchPurgeStatus,
-} from "@/src/features/compliance/actions";
+} from "../actions";
 import { AGREEMENT_LABEL, CONSENT_SOURCE_LABEL } from "@/src/entities/user";
 
 export function ComplianceClient() {
