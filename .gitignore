@@ -48,3 +48,4 @@ next-env.d.ts
 # npm lock 이 함께 있으면 툴체인을 착각하기 쉽고 CI 가 어느 쪽을 볼지 모호해진다.
 package-lock.json
 yarn.lock
+src/shared/types/db.generated.ts

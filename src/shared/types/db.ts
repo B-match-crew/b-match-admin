@@ -2,6 +2,15 @@
  * B-Match 라이브 DB 스키마 타입
  * 출처: supabase/SCHEMA.md (live ground truth)
  *
+ * ⚠️ **이 파일은 손으로 옮겨 적은 것이다.** DB 가 바뀌어도 타입 검사는 아무것도
+ * 잡아내지 못한다 — 컬럼이 사라져도, CHECK 값이 늘어나도 여기는 그대로다.
+ * 실제로 급수 'S' 가 그렇게 어긋났다(앱은 7값, 서버·DB 는 6값).
+ *
+ * 대조본을 뽑으려면: `pnpm db:types` → `src/shared/types/db.generated.ts`.
+ * (Supabase CLI 로그인 + `supabase link` 가 되어 있어야 한다. 산출물은
+ *  커밋하지 않고 대조용으로만 쓴다 — 이 파일의 한글 주석·도메인 설명이
+ *  생성물에는 없기 때문이다.)
+ *
  * 핵심 변경 (migration 09~14):
  * - 모든 PK bigint. users.id 도 bigint (number). auth 연결은 users.auth_user_id (uuid)
  * - soft delete 통일: deleted_at IS NULL = 살아있음 (is_deleted 컬럼 삭제됨)
