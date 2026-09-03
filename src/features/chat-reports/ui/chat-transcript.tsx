@@ -2,7 +2,9 @@
 
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { EmptyState } from "@/src/shared/ui/empty-state";
-import type { ChatSnapshotMessage } from "../actions";
+import type {
+  ChatSnapshotMessage,
+} from "../model/actions";
 
 /**
  * 신고 시점 대화 증적 렌더.

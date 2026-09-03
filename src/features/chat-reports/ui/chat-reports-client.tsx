@@ -53,8 +53,10 @@ import {
   suspendChatUserAction,
   banChatUserAction,
   closeChatRoomAction,
-  type ChatReportListItem,
-} from "../actions";
+} from "../api/actions";
+import type {
+  ChatReportListItem,
+} from "../model/actions";
 
 export function ChatReportsClient() {
   const queryClient = useQueryClient();

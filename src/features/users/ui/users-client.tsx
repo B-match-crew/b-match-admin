@@ -22,8 +22,10 @@ import { formatDate } from "@/src/shared/lib/format-date";
 import {
   searchUsers,
   unsuspendUserAction,
-  type UserListItem,
-} from "../actions";
+} from "../api/actions";
+import type {
+  UserListItem,
+} from "../model/actions";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { UserActionDialog } from "./user-action-dialog";

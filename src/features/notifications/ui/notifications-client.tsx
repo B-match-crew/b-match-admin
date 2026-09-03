@@ -58,8 +58,10 @@ import {
   fetchRecentFailures,
   fetchNotificationCategories,
   updateNotificationCategory,
-  type NotificationCategory,
-} from "../actions";
+} from "../api/actions";
+import type {
+  NotificationCategory,
+} from "../model/actions";
 import { fetchPushReach } from "@/src/entities/notification";
 
 const TABS = [

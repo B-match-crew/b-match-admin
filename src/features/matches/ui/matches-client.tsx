@@ -49,9 +49,11 @@ import {
   fetchMatches,
   fetchMatchDetail,
   deleteMatchAction,
-  type MatchListItem,
-  type MatchSortBy,
-} from "../actions";
+} from "../api/actions";
+import type {
+  MatchListItem,
+  MatchSortBy,
+} from "../model/actions";
 import { normalizeFeeConfig, type MatchStatus } from "@/src/shared/types/db";
 
 const reasonSchema = z.object({

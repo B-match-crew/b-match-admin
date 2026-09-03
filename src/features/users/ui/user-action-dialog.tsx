@@ -23,8 +23,10 @@ import { WarningBox } from "@/src/shared/ui/warning-box";
 import {
   suspendUserAction,
   banUserAction,
-  type UserListItem,
-} from "../actions";
+} from "../api/actions";
+import type {
+  UserListItem,
+} from "../model/actions";
 
 interface Props {
   user: UserListItem | null;

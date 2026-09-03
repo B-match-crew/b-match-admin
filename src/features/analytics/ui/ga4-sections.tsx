@@ -21,8 +21,10 @@ import {
   fetchGa4Channels,
   fetchGa4Campaigns,
   fetchGa4Platforms,
-  type Ga4Response,
-} from "../ga4-actions";
+} from "../api/ga4";
+import type {
+  Ga4Response,
+} from "../model/ga4";
 
 const SERIES_1 = "var(--color-series-1)";
 const AXIS_TICK = {

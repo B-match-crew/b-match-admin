@@ -30,13 +30,13 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   broadcastNoticeAction,
   fetchBroadcastPreviewCount,
-} from "../actions";
+} from "../api/actions";
 import { fetchPushReach } from "@/src/entities/notification";
 import {
   NOTICE_BODY_MAX,
   NOTICE_TITLE_MAX,
   type BroadcastTarget,
-} from "../constants";
+} from "../model/constants";
 
 /** 2단계 확인에서 입력해야 하는 문구. */
 const CONFIRM_WORD = "발송";

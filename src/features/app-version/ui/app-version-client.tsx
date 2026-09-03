@@ -22,9 +22,11 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchVersionPolicies,
   saveVersionPolicyAction,
-  type VersionPolicyRow,
-  type VersionPlatform,
-} from "../actions";
+} from "../api/actions";
+import type {
+  VersionPolicyRow,
+  VersionPlatform,
+} from "../model/actions";
 
 const PLATFORM_LABELS: Record<VersionPlatform, string> = {
   IOS: "iOS (App Store)",

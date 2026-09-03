@@ -53,8 +53,10 @@ import {
   resolveMatchAction,
   suspendHostAction,
   banHostAction,
-  type ReportListItem,
-} from "../actions";
+} from "../api/actions";
+import type {
+  ReportListItem,
+} from "../model/actions";
 
 export function ReportsClient() {
   const queryClient = useQueryClient();

@@ -31,8 +31,10 @@ import {
   fetchDemandGap,
   fetchMatchConversion,
   fetchViralFunnel,
-  type FunnelStep,
-} from "../actions";
+} from "../api/actions";
+import type {
+  FunnelStep,
+} from "../model/actions";
 import {
   Ga4ChannelSection,
   Ga4CampaignSection,

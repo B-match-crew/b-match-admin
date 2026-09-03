@@ -41,9 +41,11 @@ import {
   fetchMatchTimeDistribution,
   fetchSignupChannels,
   fetchChatStats,
-  type ChatStats,
-  type DistributionItem,
-} from "../actions";
+} from "../api/actions";
+import type {
+  ChatStats,
+  DistributionItem,
+} from "../model/actions";
 
 /**
  * 시리즈 색 — globals.css 의 검증된 팔레트를 참조한다.

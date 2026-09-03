@@ -34,8 +34,10 @@ import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
   fetchAuditLogs,
-  type AuditLogRow,
-} from "../actions";
+} from "../api/actions";
+import type {
+  AuditLogRow,
+} from "../model/actions";
 import { downloadCsv } from "@/src/shared/lib/csv-export";
 
 /**

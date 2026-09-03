@@ -16,7 +16,12 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
-import { fetchUserDetail, type UserListItem } from "../actions";
+import {
+  fetchUserDetail,
+} from "../api/actions";
+import type {
+  UserListItem,
+} from "../model/actions";
 import { UserConsentsTab } from "./user-consents-tab";
 import type { Provider } from "@/src/shared/types/db";
 

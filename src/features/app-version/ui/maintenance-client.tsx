@@ -37,8 +37,10 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchAppStatus,
   setMaintenanceAction,
-  type AppStatusRow,
-} from "../maintenance-actions";
+} from "../api/maintenance";
+import type {
+  AppStatusRow,
+} from "../model/maintenance";
 
 /** 확인 모달 단계 — 전 사용자를 잠그는 조작이라 2단계로 되묻는다. */
 type ConfirmStep = null | "first" | "second";

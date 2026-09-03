@@ -18,7 +18,7 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchBlockRanking, fetchBlacklist } from "../actions";
+import { fetchBlockRanking, fetchBlacklist } from "../api/actions";
 
 const TABS = [
   { value: "ranking", label: "차단 랭킹" },

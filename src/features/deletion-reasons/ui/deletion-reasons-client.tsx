@@ -32,11 +32,11 @@ import { kstRange } from "@/src/shared/lib/kst-range";
 import {
   fetchDeletionReasonSummary,
   fetchDeletionReasonDetails,
-} from "../actions";
+} from "../api/actions";
 import {
   DELETION_REASON_LABEL,
   LEGACY_REASON_CODE,
-} from "../constants";
+} from "../model/constants";
 
 const RANGES = [
   { value: "30", label: "30일" },
