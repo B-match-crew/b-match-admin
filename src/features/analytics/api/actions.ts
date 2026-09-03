@@ -6,7 +6,7 @@ import type {
   CohortItem,
   SupplyDemandItem,
   DemandGapItem,
-  MatchConversionItem,
+  ClubContactConversionItem,
   ViralStep,
 } from "../model/actions";
 
@@ -187,34 +187,45 @@ export async function fetchDemandGap(
   });
 }
 
-// ─── 매칭 전환율 랭킹 ───
+// ─── 모임별 연락 전환율 랭킹 ───
 
-export async function fetchMatchConversion(
+/**
+ * 글 단위 `fn_admin_match_conversion`(38)은 서버에 그대로 남겨 뒀다 —
+ * 모임에서 문제를 발견한 뒤 어느 글이 문제인지 파고들 때 쓰는 아래층이다.
+ * 화면이 먼저 답해야 하는 것은 모임 단위라 여기서는 103 만 부른다.
+ */
+export async function fetchClubContactConversion(
   days = 30,
-  minViews = 10,
-): Promise<ActionResult<MatchConversionItem[]>> {
+  minMatches = 3,
+): Promise<ActionResult<ClubContactConversionItem[]>> {
   return runAction(async () => {
     const { from, to } = kstRange(days);
     const rows = await callRpc<{
-      match_id: number;
-      title: string;
-      region_1: string;
-      views: number;
-      contacts: number;
+      host_id: number;
+      club_name: string | null;
+      nickname: string | null;
+      matches: number;
+      contacted_matches: number;
       conversion: number | null;
-    }>("fn_admin_match_conversion", {
+      contacts: number;
+      views: number;
+      recent_matches: number;
+    }>("fn_admin_club_contact_conversion", {
       p_from: from,
       p_to: to,
-      p_min_views: minViews,
+      p_min_matches: minMatches,
       p_limit: 50,
     });
     return rows.map((r) => ({
-      matchId: r.match_id,
-      title: r.title,
-      region: r.region_1,
-      views: r.views,
-      contacts: r.contacts,
+      hostId: r.host_id,
+      clubName: r.club_name,
+      nickname: r.nickname,
+      matches: r.matches,
+      contactedMatches: r.contacted_matches,
       conversion: r.conversion,
+      contacts: r.contacts,
+      views: r.views,
+      recentMatches: r.recent_matches,
     }));
   });
 }

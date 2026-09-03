@@ -51,14 +51,34 @@ export interface DemandGapItem {
   emptyViews: number;
 }
 
-export interface MatchConversionItem {
-  matchId: number;
-  title: string;
-  region: string;
-  views: number;
-  contacts: number;
-  /** 조회 대비 연락률(%). */
+/**
+ * 모임별 모집글 수 대비 연락 전환율 (app migration 103).
+ *
+ * 글 단위(조회 대비 연락률)에서 **모임 단위**로 올렸다. 운영이 묻는 것은
+ * "이 글이 왜 연락이 안 오나" 가 아니라 "어느 모임이 글은 계속 올리는데 연락이
+ * 안 오는가" 이고, 글 단위 랭킹에서는 글 20개인 모임과 1개인 모임이 섞여
+ * 그 답이 나오지 않는다.
+ */
+export interface ClubContactConversionItem {
+  hostId: number;
+  /** 모임명. 모임을 지웠다 다시 만든 경우 살아있는 쪽 이름 */
+  clubName: string | null;
+  nickname: string | null;
+  /** 기간 내 올라온 살아있는 모집글 수 (분모) */
+  matches: number;
+  /** 그중 연락을 한 건이라도 받은 글 수 (분자) */
+  contactedMatches: number;
+  /**
+   * 글 기준 전환율(%). **연락 건수 비율이 아니다** — 인기 글 하나에 연락이
+   * 몰리면 건수 비율은 600%가 되어, 나머지 글이 헛돌고 있다는 사실이 가려진다.
+   */
   conversion: number | null;
+  /** 총 연락 건수 (참고) */
+  contacts: number;
+  /** 총 조회 수 (참고) */
+  views: number;
+  /** 최근 3일 내 등록분 — 아직 연락받을 시간이 충분하지 않은 글 */
+  recentMatches: number;
 }
 
 export interface ViralStep {
