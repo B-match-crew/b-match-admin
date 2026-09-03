@@ -183,53 +183,6 @@ export async function fetchRecentFailures(
   });
 }
 
-// ─── 3. 푸시 도달 가능 수 ───
-
-export interface PushReach {
-  /** 발송 대상(정회원) 수 — 47 의 미리보기와 같은 정의 */
-  targetAll: number;
-  targetHost: number;
-  /** 그 중 유효 토큰을 가진 사람 = **실제 푸시가 닿는 수** */
-  reachableAll: number;
-  reachableHost: number;
-  tokensTotal: number;
-  tokenUsers: number;
-  byOs: { os: string; tokens: number; users: number }[];
-  /** 30일 넘게 안 쓰인 토큰 — 앱 삭제/재설치로 죽었을 가능성 */
-  staleTokens: number;
-}
-
-export async function fetchPushReach(): Promise<ActionResult<PushReach>> {
-  return runAction(async () => {
-    await requireAdmin();
-    const supabase = createAdminClient();
-
-    const { data, error } = await supabase.rpc("fn_admin_push_reach");
-    if (error) throw error;
-
-    const r = (data ?? {}) as {
-      target_all: number;
-      target_host: number;
-      reachable_all: number;
-      reachable_host: number;
-      tokens_total: number;
-      token_users: number;
-      by_os: { os: string; tokens: number; users: number }[];
-      stale_tokens: number;
-    };
-
-    return {
-      targetAll: r.target_all ?? 0,
-      targetHost: r.target_host ?? 0,
-      reachableAll: r.reachable_all ?? 0,
-      reachableHost: r.reachable_host ?? 0,
-      tokensTotal: r.tokens_total ?? 0,
-      tokenUsers: r.token_users ?? 0,
-      byOs: r.by_os ?? [],
-      staleTokens: r.stale_tokens ?? 0,
-    };
-  });
-}
 
 // ─── 4. 알림 카테고리 (49 / 54 / 68) ───
 

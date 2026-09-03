@@ -31,7 +31,7 @@ import {
   broadcastNoticeAction,
   fetchBroadcastPreviewCount,
 } from "@/src/features/notices/actions";
-import { fetchPushReach } from "@/src/features/notifications/actions";
+import { fetchPushReach } from "@/src/entities/notification";
 import {
   NOTICE_BODY_MAX,
   NOTICE_TITLE_MAX,

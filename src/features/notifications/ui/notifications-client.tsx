@@ -56,11 +56,11 @@ import { formatDateTime } from "@/src/shared/lib/format-date";
 import {
   fetchNotificationSummary,
   fetchRecentFailures,
-  fetchPushReach,
   fetchNotificationCategories,
   updateNotificationCategory,
   type NotificationCategory,
 } from "@/src/features/notifications/actions";
+import { fetchPushReach } from "@/src/entities/notification";
 
 const TABS = [
   { value: "summary", label: "발송 현황" },

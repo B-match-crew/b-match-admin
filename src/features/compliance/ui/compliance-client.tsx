@@ -29,10 +29,7 @@ import {
   fetchConsentSummary,
   fetchPurgeStatus,
 } from "@/src/features/compliance/actions";
-import {
-  AGREEMENT_LABEL,
-  CONSENT_SOURCE_LABEL,
-} from "@/src/features/compliance/constants";
+import { AGREEMENT_LABEL, CONSENT_SOURCE_LABEL } from "@/src/entities/user";
 
 export function ComplianceClient() {
   return (

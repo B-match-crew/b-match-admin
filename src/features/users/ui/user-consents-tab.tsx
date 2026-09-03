@@ -8,11 +8,11 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { WarningBox } from "@/src/shared/ui/warning-box";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchUserConsents } from "@/src/features/compliance/actions";
 import {
   AGREEMENT_LABEL,
   CONSENT_SOURCE_LABEL,
-} from "@/src/features/compliance/constants";
+  fetchUserConsents,
+} from "@/src/entities/user";
 
 /**
  * 유저 한 명의 동의 이력.
