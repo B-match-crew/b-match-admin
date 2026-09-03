@@ -1,18 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { WarningBox } from "@/src/shared/ui/warning-box";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchUserConsents } from "@/src/features/compliance/actions";
 import {
   AGREEMENT_LABEL,
   CONSENT_SOURCE_LABEL,
-} from "@/src/features/compliance/constants";
+  fetchUserConsents,
+} from "@/src/entities/user";
 
 /**
  * 유저 한 명의 동의 이력.

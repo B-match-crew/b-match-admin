@@ -2,7 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/shared/lib/cn";
 
 /**
  * BdsChip (bds_chip.dart) 이식 — 분류/필터용 pill.

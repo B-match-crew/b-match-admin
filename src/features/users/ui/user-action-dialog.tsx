@@ -12,19 +12,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/src/shared/ui/kit/dialog";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Textarea } from "@/src/shared/ui/kit/textarea";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import { WarningBox } from "@/src/shared/ui/warning-box";
 import {
   suspendUserAction,
   banUserAction,
-  type UserListItem,
-} from "@/src/features/users/actions";
+} from "../api/actions";
+import type {
+  UserListItem,
+} from "../model/actions";
 
 interface Props {
   user: UserListItem | null;

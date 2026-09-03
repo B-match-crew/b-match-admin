@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/src/shared/ui/kit/card";
 import {
   Table,
   TableBody,
@@ -16,10 +16,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { WarningBox } from "@/src/shared/ui/warning-box";
@@ -28,11 +28,8 @@ import { formatNumber } from "@/src/shared/lib/format-number";
 import {
   fetchConsentSummary,
   fetchPurgeStatus,
-} from "@/src/features/compliance/actions";
-import {
-  AGREEMENT_LABEL,
-  CONSENT_SOURCE_LABEL,
-} from "@/src/features/compliance/constants";
+} from "../api/actions";
+import { AGREEMENT_LABEL, CONSENT_SOURCE_LABEL } from "@/src/entities/user";
 
 export function ComplianceClient() {
   return (

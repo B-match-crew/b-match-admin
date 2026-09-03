@@ -1,10 +1,11 @@
 "use client";
 
-import { AlertTriangle, RotateCw } from "lucide-react";
+import { AlertTriangle, LogIn, RotateCw } from "lucide-react";
+import Link from "next/link";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/src/shared/ui/kit/alert";
+import { Button } from "@/src/shared/ui/kit/button";
+import { cn } from "@/src/shared/lib/cn";
 import { ActionFailure } from "@/src/shared/lib/unwrap";
 
 /**
@@ -27,6 +28,9 @@ export function QueryError({
   className?: string;
 }) {
   const code = error instanceof ActionFailure ? error.code : undefined;
+  // 세션이 끊긴 것은 "다시 시도" 로 풀리지 않는다 — 눌러도 같은 실패가 한 번 더
+  // 서버로 갈 뿐이다. 갈 곳을 알려준다.
+  const needsLogin = code === "AUTH_REQUIRED";
   const message =
     error instanceof Error && error.message
       ? error.message
@@ -44,13 +48,24 @@ export function QueryError({
         )}
       </AlertTitle>
       <AlertDescription className="break-words">{message}</AlertDescription>
-      {onRetry && (
+      {needsLogin ? (
         <div className="col-start-2 mt-2">
-          <Button variant="outline" size="sm" onClick={onRetry}>
-            <RotateCw />
-            다시 시도
-          </Button>
+          <Link href="/login">
+            <Button variant="outline" size="sm">
+              <LogIn />
+              다시 로그인
+            </Button>
+          </Link>
         </div>
+      ) : (
+        onRetry && (
+          <div className="col-start-2 mt-2">
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              <RotateCw />
+              다시 시도
+            </Button>
+          </div>
+        )
       )}
     </Alert>
   );

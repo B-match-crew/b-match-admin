@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { ComplianceClient } from "@/src/features/compliance/ui/compliance-client";
+import { ComplianceClient } from "@/src/features/compliance";
 
 export const metadata = { title: "동의·파기" };
 

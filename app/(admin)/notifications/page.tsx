@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { NotificationsClient } from "@/src/features/notifications/ui/notifications-client";
+import { NotificationsClient } from "@/src/features/notifications";
 
 export const metadata = { title: "알림 발송" };
 

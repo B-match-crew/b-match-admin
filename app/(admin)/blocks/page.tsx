@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { BlocksClient } from "@/src/features/blocks/ui/blocks-client";
+import { BlocksClient } from "@/src/features/blocks";
 
 export const metadata = { title: "차단 관리" };
 

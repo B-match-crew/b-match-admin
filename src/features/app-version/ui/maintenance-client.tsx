@@ -10,7 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/src/shared/ui/kit/card";
 import {
   Dialog,
   DialogContent,
@@ -18,15 +18,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/src/shared/ui/kit/dialog";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Switch } from "@/src/shared/ui/kit/switch";
+import { Checkbox } from "@/src/shared/ui/kit/checkbox";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
 import {
   formatKst,
   toKstInputValue,
@@ -37,8 +37,10 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchAppStatus,
   setMaintenanceAction,
-  type AppStatusRow,
-} from "@/src/features/app-version/maintenance-actions";
+} from "../api/maintenance";
+import type {
+  AppStatusRow,
+} from "../model/maintenance";
 
 /** 확인 모달 단계 — 전 사용자를 잠그는 조작이라 2단계로 되묻는다. */
 type ConfirmStep = null | "first" | "second";

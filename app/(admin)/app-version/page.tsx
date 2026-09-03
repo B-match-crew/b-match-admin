@@ -1,6 +1,6 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { AppVersionClient } from "@/src/features/app-version/ui/app-version-client";
-import { MaintenanceClient } from "@/src/features/app-version/ui/maintenance-client";
+import { AppVersionClient } from "@/src/features/app-version";
+import { MaintenanceClient } from "@/src/features/app-version";
 
 export default function AppVersionPage() {
   return (

@@ -14,6 +14,13 @@
 - **차트**: Recharts
 - **외부 분석**: GA4 Data API (획득 지표) — 선택적
 
+## 이 레포에 없는 것
+
+- `supabase/` 는 **b-match-app 산출물의 사본**이다(gitignore, 로컬 참조용).
+  정본은 `b-match-app/supabase/` 이고 스키마·마이그레이션은 거기서 고친다.
+  사본을 보고 작업하다 같은 RPC 가 레포마다 다른 번호로 갈라진 적이 있다.
+  동기화: `rsync -a --delete --exclude '.temp/' ../b-match-app/supabase/ supabase/`
+
 ## 주요 기능
 
 | 메뉴 | 경로 | 설명 |

@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { UsersClient } from "@/src/features/users/ui/users-client";
+import { UsersClient } from "@/src/features/users";
 
 export default function UsersPage() {
   return (

@@ -7,17 +7,22 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/dialog";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { formatDate, formatDateTime } from "@/src/shared/lib/format-date";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
-import { fetchUserDetail, type UserListItem } from "@/src/features/users/actions";
-import { UserConsentsTab } from "@/src/features/users/ui/user-consents-tab";
+import {
+  fetchUserDetail,
+} from "../api/actions";
+import type {
+  UserListItem,
+} from "../model/actions";
+import { UserConsentsTab } from "./user-consents-tab";
 import type { Provider } from "@/src/shared/types/db";
 
 const PROVIDER_LABEL: Record<Provider, string> = {

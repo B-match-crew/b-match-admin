@@ -9,16 +9,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import { formatDateTime } from "@/src/shared/lib/format-date";
-import { fetchBlockRanking, fetchBlacklist } from "@/src/features/blocks/actions";
+import { fetchBlockRanking, fetchBlacklist } from "../api/actions";
 
 const TABS = [
   { value: "ranking", label: "차단 랭킹" },

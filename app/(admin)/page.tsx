@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { DashboardClient } from "@/src/features/dashboard/ui/dashboard-client";
+import { DashboardClient } from "@/src/features/dashboard";
 
 export default function DashboardPage() {
   return (

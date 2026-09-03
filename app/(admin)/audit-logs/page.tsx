@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { AuditLogsClient } from "@/src/features/audit-logs/ui/audit-logs-client";
+import { AuditLogsClient } from "@/src/features/audit-logs";
 
 export default function AuditLogsPage() {
   return (

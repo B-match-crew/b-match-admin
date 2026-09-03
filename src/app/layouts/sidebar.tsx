@@ -14,8 +14,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
+} from "@/src/shared/ui/kit/sidebar";
+import { Badge } from "@/src/shared/ui/kit/badge";
 import { Logo } from "@/src/shared/ui/brand/logo";
 
 export function AppSidebar() {

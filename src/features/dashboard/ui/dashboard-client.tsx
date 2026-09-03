@@ -1,15 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/src/shared/ui/kit/card";
 import { Users, Smartphone, CalendarDays, Megaphone } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import {
   fetchDashboardStats,
   fetchDailyTrends,
-} from "@/src/features/dashboard/actions";
+} from "../api/actions";
 import Link from "next/link";
 import {
   ResponsiveContainer,

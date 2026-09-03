@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/shared/lib/cn";
 
 /**
  * BdsLoadingIndicator (bds_loading_indicator.dart) 이식.

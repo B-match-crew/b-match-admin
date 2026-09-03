@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { ReportsClient } from "@/src/features/reports/ui/reports-client";
+import { ReportsClient } from "@/src/features/reports";
 
 export default function ReportsPage() {
   return (

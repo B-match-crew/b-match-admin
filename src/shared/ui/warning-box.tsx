@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/shared/lib/cn";
 
 /**
  * 다이얼로그 안의 경고/주의 안내 박스.
