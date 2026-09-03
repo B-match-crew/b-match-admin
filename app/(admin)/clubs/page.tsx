@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { ClubsClient } from "@/src/features/clubs/ui/clubs-client";
+import { ClubsClient } from "@/src/features/clubs";
 
 export const metadata = { title: "모임 관리" };
 

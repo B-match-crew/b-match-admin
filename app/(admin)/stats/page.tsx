@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { StatsClient } from "@/src/features/stats/ui/stats-client";
+import { StatsClient } from "@/src/features/stats";
 
 export const metadata = { title: "통계" };
 

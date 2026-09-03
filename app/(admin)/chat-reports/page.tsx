@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { ChatReportsClient } from "@/src/features/chat-reports/ui/chat-reports-client";
+import { ChatReportsClient } from "@/src/features/chat-reports";
 
 export default function ChatReportsPage() {
   return (

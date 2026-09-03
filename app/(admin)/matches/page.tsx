@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { MatchesClient } from "@/src/features/matches/ui/matches-client";
+import { MatchesClient } from "@/src/features/matches";
 
 export default function MatchesPage() {
   return (

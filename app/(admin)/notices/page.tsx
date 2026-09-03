@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { NoticeBroadcastClient } from "@/src/features/notices/ui/notice-broadcast-client";
+import { NoticeBroadcastClient } from "@/src/features/notices";
 
 export default function NoticesPage() {
   return (

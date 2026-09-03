@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { OpsClient } from "@/src/features/ops/ui/ops-client";
+import { OpsClient } from "@/src/features/ops";
 
 export const metadata = { title: "운영 상태" };
 

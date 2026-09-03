@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { AnalyticsClient } from "@/src/features/analytics/ui/analytics-client";
+import { AnalyticsClient } from "@/src/features/analytics";
 
 export const metadata = { title: "분석" };
 

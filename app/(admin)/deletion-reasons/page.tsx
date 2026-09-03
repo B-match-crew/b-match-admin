@@ -1,5 +1,5 @@
 import { PageHeader } from "@/src/shared/ui/page-header";
-import { DeletionReasonsClient } from "@/src/features/deletion-reasons/ui/deletion-reasons-client";
+import { DeletionReasonsClient } from "@/src/features/deletion-reasons";
 
 export const metadata = { title: "탈퇴 사유" };
 
