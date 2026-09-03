@@ -12,6 +12,7 @@ import { WarningBox } from "@/src/shared/ui/warning-box";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { formatNumber } from "@/src/shared/lib/format-number";
 import { fetchPushReach } from "@/src/entities/notification";
+import { CategoryReachCard } from "../category-reach-card";
 import { Tile } from "../primitives";
 
 export function ReachTab() {
@@ -120,6 +121,10 @@ export function ReachTab() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* 위 두 카드는 카테고리를 구분하지 않는다 — "채팅으로 쏘면 몇 명" 은
+          카테고리별 기본값·옵트인이 갈라 놓는다(105). */}
+      <CategoryReachCard />
     </div>
   );
 }
