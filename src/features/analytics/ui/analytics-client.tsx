@@ -9,6 +9,7 @@ import { ActiveUsersSection } from "./sections/active-users";
 import { ConversionSection } from "./sections/conversion";
 import { DemandGapSection } from "./sections/demand-gap";
 import { FunnelSection } from "./sections/funnel";
+import { HostResponseSection } from "./sections/host-response";
 import { RetentionSection } from "./sections/retention";
 import { SupplyDemandSection } from "./sections/supply-demand";
 import { ViralSection } from "./sections/viral";
@@ -50,6 +51,8 @@ export function AnalyticsClient() {
       <SupplyDemandSection days={n} />
       <DemandGapSection days={n} />
       <ConversionSection days={n} />
+      {/* 103 바로 아래에 둔다 — "연락이 오는가" 다음 질문이 "그 연락에 답하는가" 다 */}
+      <HostResponseSection days={n} />
       <ViralSection days={n} />
 
       {/* GA4 구간 — 자체 집계로는 알 수 없는 "어디서 왔는가"만 담당한다.

@@ -7,6 +7,8 @@ import type {
   SupplyDemandItem,
   DemandGapItem,
   ClubContactConversionItem,
+  HostResponseOrder,
+  HostResponsePage,
   ViralStep,
 } from "../model/actions";
 
@@ -252,5 +254,86 @@ export async function fetchViralFunnel(
           prev && prev > 0 ? Math.round((r.events / prev) * 1000) / 10 : null,
       };
     });
+  });
+}
+
+// ─── 모임장별 문의 응답 (전수 목록 + 페이지네이션) ───
+
+/**
+ * 103 과 달리 **하한이 없다.** 저쪽은 상위 50만 보는 랭킹이라 글 1개짜리 모임을
+ * 걸러야 순위가 의미를 가졌지만, 여기는 전수 목록이라 "문의 1건 받고 안 답한
+ * 모임장" 을 감추면 안 된다. 대신 받은 문의 수를 열로 두고 정렬로 판단한다.
+ *
+ * 페이지 수를 알려면 전체 행 수가 필요한데, PostgREST 의 `count: "exact"` 는
+ * RPC 에 듣지 않는다(테이블 조회 전용). 그래서 104 가 `total_count` 를 컬럼으로
+ * 함께 내려보내고 여기서 첫 행에서 꺼낸다.
+ */
+export async function fetchHostResponseRanking({
+  days = 30,
+  order = "rate_asc",
+  limit = 50,
+  offset = 0,
+}: {
+  days?: number;
+  order?: HostResponseOrder;
+  limit?: number;
+  offset?: number;
+}): Promise<ActionResult<HostResponsePage>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      host_user_id: number;
+      nickname: string | null;
+      club_name: string | null;
+      level: string | null;
+      user_status: string;
+      rooms: number;
+      answered: number;
+      response_rate: number | null;
+      unanswered: number;
+      unanswered_recent: number;
+      median_minutes: number | null;
+      p90_minutes: number | null;
+      last_room_at: string | null;
+      window_from: string;
+      window_capped: boolean;
+      excluded_no_host: number;
+      excluded_host_initiated: number;
+      total_count: number;
+    }>("fn_admin_host_response_ranking", {
+      p_from: from,
+      p_to: to,
+      p_order: order,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    const head = rows[0];
+    return {
+      rows: rows.map((r) => ({
+        hostUserId: r.host_user_id,
+        nickname: r.nickname,
+        clubName: r.club_name,
+        level: r.level,
+        userStatus: r.user_status,
+        rooms: r.rooms,
+        answered: r.answered,
+        responseRate: r.response_rate,
+        unanswered: r.unanswered,
+        unansweredRecent: r.unanswered_recent,
+        medianMinutes: r.median_minutes,
+        p90Minutes: r.p90_minutes,
+        lastRoomAt: r.last_room_at,
+      })),
+      total: head?.total_count ?? 0,
+      meta: head
+        ? {
+            windowFrom: head.window_from,
+            windowCapped: head.window_capped,
+            excludedNoHost: head.excluded_no_host,
+            excludedHostInitiated: head.excluded_host_initiated,
+          }
+        : null,
+    };
   });
 }

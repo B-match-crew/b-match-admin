@@ -88,3 +88,60 @@ export interface ViralStep {
   /** 직전 단계 대비 전환율(%). */
   conversionFromPrev: number | null;
 }
+
+/**
+ * 모임장별 문의 응답 지표 (app migration 104).
+ *
+ * 103 이 "글이 연락을 받는가" 라면 이쪽은 **"그 연락에 모임장이 답을 하는가"** 다.
+ * 90(통계 화면의 전체 응답률)은 합계 하나뿐이라 운영이 할 수 있는 일이 없다 —
+ * 답을 안 하는 사람에게 연락하려면 축이 사람이어야 한다.
+ */
+export interface HostResponseItem {
+  hostUserId: number;
+  nickname: string | null;
+  /** 살아있는 모임명. null = 지금 모임이 없다(삭제/탈퇴) */
+  clubName: string | null;
+  level: string | null;
+  userStatus: string;
+  /** 기간 내 받은 문의(= 새로 열린 1:1 방) */
+  rooms: number;
+  /** 그중 모임장 **본인이** 답한 방 */
+  answered: number;
+  responseRate: number | null;
+  unanswered: number;
+  /** 미응답이지만 열린 지 24시간 이내 = 아직 판정 유보 */
+  unansweredRecent: number;
+  /** 첫 응답까지 걸린 시간의 중앙값(분) */
+  medianMinutes: number | null;
+  /** 상위 10%가 얼마나 늦는가 — 중앙값만 보면 "가끔 아주 늦는 사람"이 안 보인다 */
+  p90Minutes: number | null;
+  lastRoomAt: string | null;
+}
+
+/** 정렬 축. 서버(104)가 화이트리스트로 검증하므로 이 유니온과 값이 일치해야 한다. */
+export type HostResponseOrder =
+  | "rate_asc"
+  | "rate_desc"
+  | "median_asc"
+  | "median_desc"
+  | "rooms_desc"
+  | "unanswered_desc";
+
+export interface HostResponsePage {
+  rows: HostResponseItem[];
+  /** 페이지가 아니라 **전체** 모임장 수 */
+  total: number;
+  /**
+   * 표 위 경고문에 쓰는 메타. 행이 없으면 null —
+   * 104 가 메타를 행에 실어 보내므로 행이 없으면 알 길이 없다.
+   */
+  meta: {
+    /** 실제로 센 시작일. 파기된 구간은 셀 수 없어 여기서 끊긴다 */
+    windowFrom: string;
+    windowCapped: boolean;
+    /** host_user_id 가 없어 누구 점수인지 모르는 방 */
+    excludedNoHost: number;
+    /** 모임장이 먼저 말 건 방 — 유저의 답장이 모임장 점수가 되면 안 된다 */
+    excludedHostInitiated: number;
+  } | null;
+}
