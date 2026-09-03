@@ -5,3 +5,4 @@
  * 경로를 직접 import 하면 내부 구조를 바꿀 때마다 바깥이 함께 깨진다.
  */
 export { StatsClient } from "./ui/stats-client";
+export { statsPageQueries } from "./api/prefetch";

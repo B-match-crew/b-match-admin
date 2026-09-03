@@ -23,3 +23,6 @@ export const RANGES = [
 ] as const;
 
 export const DOW_LABEL = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 첫 진입 기간. 서버 프리페치와 클라이언트 초기 상태가 같은 값을 봐야 한다. */
+export const DEFAULT_RANGE = "30";

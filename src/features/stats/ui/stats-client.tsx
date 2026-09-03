@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
-import { RANGES } from "./chart-tokens";
+import { DEFAULT_RANGE, RANGES } from "./chart-tokens";
 import { AcquisitionSection } from "./sections/acquisition";
 import { ChatSection } from "./sections/chat";
 import { CumulativeSection } from "./sections/cumulative";
@@ -22,7 +22,7 @@ import { SignupChannelSection } from "./sections/signup-channel";
 import { TimeDistributionSection } from "./sections/time-distribution";
 
 export function StatsClient() {
-  const [days, setDays] = useState<"7" | "30" | "90">("30");
+  const [days, setDays] = useState<"7" | "30" | "90">(DEFAULT_RANGE);
 
   return (
     <div className="space-y-6">
