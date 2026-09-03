@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/shared/ui/kit/card";
@@ -10,7 +11,8 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import { fetchChatStats } from "../../api/actions";
 import type { ChatStats } from "../../model/actions";
 import { SERIES_1, SERIES_2 } from "../chart-tokens";
-import { ChatTile, formatMinutes } from "../primitives";
+import { formatMinutes } from "@/src/shared/lib/format-number";
+import { ChatTile } from "../primitives";
 
 /**
  * 채팅은 제품의 큰 축이 됐는데(61~87) 어드민에는 신고 화면만 있었다.
@@ -159,6 +161,14 @@ export function ChatResponseBlock({
           {response.from} 이후 열린 방 {response.rooms.toLocaleString()}개 기준
         </span>
       </div>
+
+      {/* 여기는 합계까지만 답한다. "누가" 는 축이 사람이라 분석 화면에 있다(104). */}
+      <Link
+        href="/analytics"
+        className="text-bds-caption2 text-bds-primary-900 underline underline-offset-2"
+      >
+        모임장별 응답률 보기 →
+      </Link>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <ChatTile

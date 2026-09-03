@@ -351,16 +351,3 @@ export function RegionTooltip({ active, payload }: TooltipPayload) {
     />
   );
 }
-
-/** 분 → 사람이 읽는 길이. 응답 시간은 분·시간·일 단위가 모두 나온다. */
-export function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}분`;
-  if (minutes < 60 * 24) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
-  }
-  const d = Math.floor(minutes / (60 * 24));
-  const h = Math.round((minutes % (60 * 24)) / 60);
-  return h === 0 ? `${d}일` : `${d}일 ${h}시간`;
-}
