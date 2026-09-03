@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/shared/lib/cn";
 
 /**
  * BdsSelectedTab (bds_selected_tab.dart) 이식 — segmented control.

@@ -4,8 +4,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/src/app/providers/auth-provider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
 import { Logo } from "@/src/shared/ui/brand/logo";
 import { toast } from "sonner";
 

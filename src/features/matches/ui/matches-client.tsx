@@ -13,17 +13,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@/src/shared/ui/kit/table";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Checkbox } from "@/src/shared/ui/kit/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/src/shared/ui/kit/select";
 import {
   Dialog,
   DialogContent,
@@ -31,11 +31,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/dialog";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Textarea } from "@/src/shared/ui/kit/textarea";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { WarningBox } from "@/src/shared/ui/warning-box";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";

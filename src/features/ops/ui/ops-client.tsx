@@ -9,7 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/src/shared/ui/kit/card";
 import {
   Table,
   TableBody,
@@ -17,10 +17,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";

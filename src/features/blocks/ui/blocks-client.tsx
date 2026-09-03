@@ -9,9 +9,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";

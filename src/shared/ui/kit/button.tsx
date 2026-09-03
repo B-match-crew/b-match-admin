@@ -3,7 +3,7 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/src/shared/lib/cn"
 
 // BdsButton (bds_button.dart) 이식.
 //   - radius 12 (AppRadius.lg) 전 사이즈 공통

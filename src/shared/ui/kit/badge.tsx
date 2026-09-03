@@ -2,7 +2,7 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/src/shared/lib/cn"
 
 // BdsBadge (bds_badge.dart) 이식 — radius 6 고정, caption 타이포, 인터랙션 없음.
 // size 는 BDS 의 xsmall/small/medium (padding 6·3 / 8·4 / 10·5) 을 그대로 따른다.

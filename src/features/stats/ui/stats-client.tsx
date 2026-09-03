@@ -22,9 +22,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+} from "@/src/shared/ui/kit/card";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
+import { Badge } from "@/src/shared/ui/kit/badge";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";

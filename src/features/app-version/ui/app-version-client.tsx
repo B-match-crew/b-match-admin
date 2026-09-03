@@ -10,12 +10,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/src/shared/ui/kit/card";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";

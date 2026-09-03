@@ -9,24 +9,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@/src/shared/ui/kit/table";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/src/shared/ui/kit/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/dialog";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";

@@ -11,8 +11,8 @@ import {
   Tooltip,
   LabelList,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/src/shared/ui/kit/card";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { WarningBox } from "@/src/shared/ui/warning-box";

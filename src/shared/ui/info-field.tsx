@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/shared/lib/cn";
 
 /**
  * 상세 다이얼로그의 "라벨 - 값" 한 칸.

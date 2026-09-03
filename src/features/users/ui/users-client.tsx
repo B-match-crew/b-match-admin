@@ -10,12 +10,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Checkbox } from "@/src/shared/ui/kit/checkbox";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { StatusBadge } from "@/src/shared/ui/status-badge";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatDate } from "@/src/shared/lib/format-date";

@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuth } from "@/src/app/providers/auth-provider";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/src/shared/ui/kit/sidebar";
+import { Separator } from "@/src/shared/ui/kit/separator";
+import { Button } from "@/src/shared/ui/kit/button";
 import { LogOut } from "lucide-react";
 
 export function AppHeader() {

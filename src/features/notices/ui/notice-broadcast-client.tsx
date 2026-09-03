@@ -10,7 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/src/shared/ui/kit/card";
 import {
   Dialog,
   DialogContent,
@@ -18,13 +18,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/dialog";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Textarea } from "@/src/shared/ui/kit/textarea";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import {

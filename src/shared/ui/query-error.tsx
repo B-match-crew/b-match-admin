@@ -2,9 +2,9 @@
 
 import { AlertTriangle, RotateCw } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/src/shared/ui/kit/alert";
+import { Button } from "@/src/shared/ui/kit/button";
+import { cn } from "@/src/shared/lib/cn";
 import { ActionFailure } from "@/src/shared/lib/unwrap";
 
 /**

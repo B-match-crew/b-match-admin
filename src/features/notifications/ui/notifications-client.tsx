@@ -20,7 +20,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/src/shared/ui/kit/card";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/src/shared/ui/kit/dialog";
 import {
   Table,
   TableBody,
@@ -36,15 +36,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/src/shared/ui/kit/table";
+import { Alert, AlertDescription } from "@/src/shared/ui/kit/alert";
+import { Badge } from "@/src/shared/ui/kit/badge";
+import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
+import { Label } from "@/src/shared/ui/kit/label";
+import { Switch } from "@/src/shared/ui/kit/switch";
+import { Textarea } from "@/src/shared/ui/kit/textarea";
+import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import { EmptyState } from "@/src/shared/ui/empty-state";
 import { QueryError } from "@/src/shared/ui/query-error";
