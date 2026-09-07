@@ -16,6 +16,19 @@ import type {
   DormantSummary,
   VisitDaysCohortWeek,
   CohortCoverageItem,
+  InquiryFunnelStep,
+  InquiryWeeklyItem,
+  RegionPotentialItem,
+  HostOnboardingLag,
+  HostReregistrationItem,
+  SupplyConcentrationItem,
+  Experience,
+  RevisitByExperienceItem,
+  RevisitByFirstSearchItem,
+  CreateAbandonStep,
+  PushPermissionFunnel,
+  ReplyLatencyItem,
+  PushReactivationItem,
 } from "../model/actions";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
@@ -532,6 +545,194 @@ export async function fetchCohortCoverage(
       observable: r.observable,
       excluded: r.excluded,
       coverage: r.coverage == null ? null : Number(r.coverage),
+    }));
+  });
+}
+
+// ─── 109 순서 퍼널 · 주간 연락 분리 ───
+
+/**
+ * 같은 기기 · 순서 · 기한(7일) 으로 센 퍼널. 38 의 fetchGuestFunnel 과 달리
+ * "직전 대비" 가 100% 를 넘을 수 없다. windowFrom 은 채팅 보관 기간(90일)으로
+ * 잘린 실제 시작일 — 화면이 "이 날부터만" 이라고 적는다.
+ */
+export async function fetchInquiryFunnel(
+  days = 90,
+  stepDays = 7,
+): Promise<ActionResult<InquiryFunnelStep[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      step_order: number; step_name: string; devices: number;
+      conv_from_prev: number | null; median_hours: number | null; window_from: string;
+    }>("fn_admin_inquiry_funnel", { p_from: from, p_to: to, p_step_days: stepDays });
+    return rows.map((r) => ({
+      stepOrder: r.step_order, stepName: r.step_name, devices: r.devices,
+      convFromPrev: r.conv_from_prev == null ? null : Number(r.conv_from_prev),
+      medianHours: r.median_hours == null ? null : Number(r.median_hours),
+      windowFrom: r.window_from,
+    }));
+  });
+}
+
+export async function fetchInquiryWeekly(days = 90): Promise<ActionResult<InquiryWeeklyItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      week: string; intent_devices: number; intent_members: number;
+      inquirers: number; replied: number; inquiry_rooms: number;
+    }>("fn_admin_inquiry_weekly", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      week: r.week, intentDevices: r.intent_devices, intentMembers: r.intent_members,
+      inquirers: r.inquirers, replied: r.replied, inquiryRooms: r.inquiry_rooms,
+    }));
+  });
+}
+
+// ─── 110 지역별 매칭 가능성 ───
+
+/** 공급은 **운동 예정일** 기준이라 from~to 를 미래로 넘겨도 된다(다가올 일정). */
+export async function fetchRegionPotential(days = 30): Promise<ActionResult<RegionPotentialItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      region_1: string; listings: number; hosts: number; searchers: number; searches: number;
+      empty_results: number; empty_rate: number | null; inquired_listings: number;
+      inquiry_rate: number | null; listings_per_searcher: number | null;
+    }>("fn_admin_region_match_potential", { p_from: from, p_to: to });
+    const num = (v: number | null) => (v == null ? null : Number(v));
+    return rows.map((r) => ({
+      region: r.region_1, listings: r.listings, hosts: r.hosts, searchers: r.searchers,
+      searches: r.searches, emptyResults: r.empty_results, emptyRate: num(r.empty_rate),
+      inquiredListings: r.inquired_listings, inquiryRate: num(r.inquiry_rate),
+      listingsPerSearcher: num(r.listings_per_searcher),
+    }));
+  });
+}
+
+// ─── 111 모임장 공급 유지 ───
+
+export async function fetchHostOnboardingLag(days = 90): Promise<ActionResult<HostOnboardingLag>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const [r] = await callRpc<{
+      hosts_registered: number; hosts_listed: number; hosts_inquired_14d: number;
+      median_lag_hours: number | null; p90_lag_hours: number | null;
+    }>("fn_admin_host_onboarding_lag", { p_from: from, p_to: to });
+    return {
+      hostsRegistered: r?.hosts_registered ?? 0, hostsListed: r?.hosts_listed ?? 0,
+      hostsInquired14d: r?.hosts_inquired_14d ?? 0,
+      medianLagHours: r?.median_lag_hours == null ? null : Number(r.median_lag_hours),
+      p90LagHours: r?.p90_lag_hours == null ? null : Number(r.p90_lag_hours),
+    };
+  });
+}
+
+export async function fetchHostReregistration(days = 120): Promise<ActionResult<HostReregistrationItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ cohort_week: string; hosts: number; reregistered_28d: number; rate: number | null }>(
+      "fn_admin_host_reregistration", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      week: r.cohort_week, hosts: r.hosts, reregistered28d: r.reregistered_28d,
+      rate: r.rate == null ? null : Number(r.rate),
+    }));
+  });
+}
+
+export async function fetchSupplyConcentration(days = 30, top = 10): Promise<ActionResult<SupplyConcentrationItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      rank: number; host_id: number; club_name: string | null; listings: number; share: number; cum_share: number;
+    }>("fn_admin_supply_concentration", { p_from: from, p_to: to, p_top: top });
+    return rows.map((r) => ({
+      rank: r.rank, hostId: r.host_id, clubName: r.club_name, listings: r.listings,
+      share: Number(r.share), cumShare: Number(r.cum_share),
+    }));
+  });
+}
+
+// ─── 112 경험별 · 첫검색별 재방문 ───
+
+export async function fetchRevisitByExperience(
+  days = 90, group: RetentionGroup = "ALL",
+): Promise<ActionResult<RevisitByExperienceItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ experience: Experience; rank: number; devices: number; revisited_8_30: number; rate: number | null }>(
+      "fn_admin_revisit_by_experience", { p_from: from, p_to: to, p_group: group });
+    return rows.map((r) => ({
+      experience: r.experience, rank: r.rank, devices: r.devices,
+      revisited830: r.revisited_8_30, rate: r.rate == null ? null : Number(r.rate),
+    }));
+  });
+}
+
+export async function fetchRevisitByFirstSearch(
+  days = 90, group: RetentionGroup = "ALL",
+): Promise<ActionResult<RevisitByFirstSearchItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ first_search: "empty" | "had_results" | "no_search"; devices: number; revisited_7: number; rate: number | null }>(
+      "fn_admin_revisit_by_first_search", { p_from: from, p_to: to, p_group: group });
+    return rows.map((r) => ({
+      firstSearch: r.first_search, devices: r.devices, revisited7: r.revisited_7,
+      rate: r.rate == null ? null : Number(r.rate),
+    }));
+  });
+}
+
+// ─── 113 운영 신호 ───
+
+export async function fetchCreateAbandonSteps(days = 90): Promise<ActionResult<CreateAbandonStep[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ last_step: number; abandons: number; devices: number; starts: number; completes: number }>(
+      "fn_admin_create_abandon_steps", { p_from: from, p_to: to });
+    return rows.map((r) => ({ lastStep: r.last_step, abandons: r.abandons, devices: r.devices, starts: r.starts, completes: r.completes }));
+  });
+}
+
+export async function fetchPushPermissionFunnel(days = 90): Promise<ActionResult<PushPermissionFunnel>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const [r] = await callRpc<{
+      primed: number; accepted: number; later: number; granted: number; denied: number;
+      hosts_total: number; hosts_denied_known: number; hosts_no_signal: number;
+    }>("fn_admin_push_permission_funnel", { p_from: from, p_to: to });
+    return {
+      primed: r?.primed ?? 0, accepted: r?.accepted ?? 0, later: r?.later ?? 0,
+      granted: r?.granted ?? 0, denied: r?.denied ?? 0, hostsTotal: r?.hosts_total ?? 0,
+      hostsDeniedKnown: r?.hosts_denied_known ?? 0, hostsNoSignal: r?.hosts_no_signal ?? 0,
+    };
+  });
+}
+
+export async function fetchReplyLatencyVsReinquiry(days = 120): Promise<ActionResult<ReplyLatencyItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ bucket: string; rank: number; rooms: number; inquirers: number; reinquired: number; rate: number | null }>(
+      "fn_admin_reply_latency_vs_reinquiry", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      bucket: r.bucket, rank: r.rank, rooms: r.rooms, inquirers: r.inquirers,
+      reinquired: r.reinquired, rate: r.rate == null ? null : Number(r.rate),
+    }));
+  });
+}
+
+export async function fetchPushReactivation(days = 90): Promise<ActionResult<PushReactivationItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      push_type: string; opens: number; devices: number; reactivated: number; retained_7d: number;
+      reactivation_rate: number | null; retention_rate: number | null;
+    }>("fn_admin_push_reactivation", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      pushType: r.push_type, opens: r.opens, devices: r.devices, reactivated: r.reactivated,
+      retained7d: r.retained_7d,
+      reactivationRate: r.reactivation_rate == null ? null : Number(r.reactivation_rate),
+      retentionRate: r.retention_rate == null ? null : Number(r.retention_rate),
     }));
   });
 }
