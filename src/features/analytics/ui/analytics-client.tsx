@@ -15,6 +15,11 @@ import { RetentionSection } from "./sections/retention";
 import { RevisitSection } from "./sections/revisit";
 import { VisitDaysSection } from "./sections/visit-days";
 import { VisitDaysCohortSection } from "./sections/visit-days-cohort";
+import { InquiryFunnelSection } from "./sections/inquiry-funnel";
+import { RegionPotentialSection } from "./sections/region-potential";
+import { HostSupplySection } from "./sections/host-supply";
+import { RevisitExperienceSection } from "./sections/revisit-experience";
+import { OpsSignalsSection } from "./sections/ops-signals";
 import { DormantSection } from "./sections/dormant";
 import { SupplyDemandSection } from "./sections/supply-demand";
 import { ViralSection } from "./sections/viral";
@@ -63,6 +68,9 @@ export function AnalyticsClient() {
         fetcher={() => fetchHostFunnel(n)}
         days={n}
       />
+      {/* 109 — 위 게스트 퍼널(38)은 이벤트마다 기기를 따로 세서 퍼널이 아니다.
+          같은 기기·순서·기한으로 다시 센 것을 바로 아래 둔다. */}
+      <InquiryFunnelSection days={n} />
       <RetentionSection days={n} />
 
       {/* 재방문·방문일수·휴면 (106). 그룹 축은 이 셋만 쓴다 — 위쪽 퍼널·리텐션은
@@ -87,10 +95,17 @@ export function AnalyticsClient() {
       {/* 합산 바로 아래 — 같은 지표를 코호트로 쪼갠 것이라 붙여 둔다.
           합산값은 유입이 큰 최신 코호트에 지배되므로 개선/악화는 이쪽에서 본다. */}
       <VisitDaysCohortSection days={n} group={group} />
+      {/* 112 — 그룹 축을 쓴다 */}
+      <RevisitExperienceSection days={n} group={group} />
       {/* 휴면은 현재 상태 스냅샷이라 기간·그룹 축이 없다 */}
       <DormantSection />
 
       <SupplyDemandSection days={n} />
+      {/* 110 — 위 수급 밸런스(38)는 글 생성일·상세 조회수라 볼 글이 없는 지역의
+          수요가 0 으로 보인다. 운동 예정일·검색 기준으로 다시 센 것. */}
+      <RegionPotentialSection days={n} />
+      <HostSupplySection days={n} />
+      <OpsSignalsSection days={n} />
       <DemandGapSection days={n} />
       <ConversionSection days={n} />
       {/* 103 바로 아래에 둔다 — "연락이 오는가" 다음 질문이 "그 연락에 답하는가" 다 */}

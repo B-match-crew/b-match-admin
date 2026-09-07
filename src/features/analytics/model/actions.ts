@@ -252,3 +252,139 @@ export interface CohortCoverageItem {
   /** observable / registered (%) */
   coverage: number | null;
 }
+
+// ─── 109 순서 퍼널 · 주간 연락 분리 ───
+
+/** 같은 기기가 직전 단계 이후 기한 안에 간 것만 센 퍼널 한 단계 */
+export interface InquiryFunnelStep {
+  stepOrder: number;
+  stepName: string;
+  devices: number;
+  /** 직전 단계 대비 (%). 첫 단계는 null */
+  convFromPrev: number | null;
+  /** 직전 단계로부터 걸린 시간 중앙값(시간). 첫 단계는 null */
+  medianHours: number | null;
+  /** 채팅 보관 기간으로 잘린 실제 시작일 — 요청한 from 보다 뒤일 수 있다 */
+  windowFrom: string;
+}
+
+/**
+ * 주간 연락 3단 분리.
+ * 🔴 intent 는 **기기**, inquirers 는 **사람** — 비율로 잇지 말 것. 전환은 퍼널이 센다.
+ */
+export interface InquiryWeeklyItem {
+  week: string;
+  intentDevices: number;
+  intentMembers: number;
+  inquirers: number;
+  replied: number;
+  inquiryRooms: number;
+}
+
+// ─── 110 지역별 매칭 가능성 ───
+
+export interface RegionPotentialItem {
+  region: string;
+  /** 운동 예정일이 기간 안인 모집글 */
+  listings: number;
+  hosts: number;
+  searchers: number;
+  searches: number;
+  emptyResults: number;
+  emptyRate: number | null;
+  inquiredListings: number;
+  inquiryRate: number | null;
+  /** 검색 기기 1대당 모집글. 낮을수록 공급 부족 */
+  listingsPerSearcher: number | null;
+}
+
+// ─── 111 모임장 공급 유지 ───
+
+export interface HostOnboardingLag {
+  hostsRegistered: number;
+  hostsListed: number;
+  hostsInquired14d: number;
+  medianLagHours: number | null;
+  p90LagHours: number | null;
+}
+
+export interface HostReregistrationItem {
+  week: string;
+  hosts: number;
+  reregistered28d: number;
+  rate: number | null;
+}
+
+export interface SupplyConcentrationItem {
+  rank: number;
+  hostId: number;
+  clubName: string | null;
+  listings: number;
+  share: number;
+  cumShare: number;
+}
+
+// ─── 112 경험별 · 첫검색별 재방문 ───
+
+export type Experience =
+  | "replied"
+  | "inquired_no_reply"
+  | "favorited"
+  | "viewed_only"
+  | "list_only";
+
+export interface RevisitByExperienceItem {
+  experience: Experience;
+  rank: number;
+  devices: number;
+  revisited830: number;
+  rate: number | null;
+}
+
+export interface RevisitByFirstSearchItem {
+  firstSearch: "empty" | "had_results" | "no_search";
+  devices: number;
+  revisited7: number;
+  rate: number | null;
+}
+
+// ─── 113 운영 신호 ───
+
+export interface CreateAbandonStep {
+  lastStep: number;
+  abandons: number;
+  devices: number;
+  starts: number;
+  completes: number;
+}
+
+export interface PushPermissionFunnel {
+  primed: number;
+  accepted: number;
+  later: number;
+  granted: number;
+  denied: number;
+  hostsTotal: number;
+  /** 🔴 하한선 — 권한 요청 순간의 기록만 있다 */
+  hostsDeniedKnown: number;
+  hostsNoSignal: number;
+}
+
+export interface ReplyLatencyItem {
+  bucket: string;
+  rank: number;
+  rooms: number;
+  inquirers: number;
+  reinquired: number;
+  rate: number | null;
+}
+
+export interface PushReactivationItem {
+  pushType: string;
+  opens: number;
+  devices: number;
+  reactivated: number;
+  retained7d: number;
+  reactivationRate: number | null;
+  retentionRate: number | null;
+}
