@@ -210,3 +210,45 @@ export interface DormantSummary {
   baseMembers: number;
   baseHosts: number;
 }
+
+// ─── 주차별 방문일수 · 코호트 커버리지 (migration 107·108) ───
+
+/**
+ * 주차 코호트별 방문일 수 분포.
+ *
+ * `share` 는 **그 주 안에서의** 비율이다. `devices` 를 주끼리 비교하면 유입량
+ * 차이만 보인다 — 08-10 주 174대와 08-24 주 897대를 나란히 놓으면 형태가 아니라
+ * 크기가 보인다.
+ */
+export interface VisitDaysCohortItem {
+  week: string;
+  /** 그 주에서 창이 다 찬 기기 수 = 그 주 비율의 분모 */
+  cohortSize: number;
+  days: number;
+  devices: number;
+  share: number;
+}
+
+/** 주차별로 묶은 분포. 창이 덜 찬 주는 아예 들어오지 않는다. */
+export interface VisitDaysCohortWeek {
+  week: string;
+  cohortSize: number;
+  /** days → share. 빠진 days 는 0% */
+  bars: { days: number; devices: number; share: number }[];
+}
+
+/**
+ * 코호트 커버리지 — "이 주차 숫자를 믿어도 되는가".
+ *
+ * 🔴 107 이 D0 를 관측할 수 없었던 기기(활성 기록 이전 버전으로 설치)를
+ * 걸러내는데, 조용히 걸러내면 표본이 왜 얇은지 나중에 설명할 수 없다.
+ * 걸러낸 양을 그대로 드러내 화면이 스스로 신뢰도를 말하게 한다.
+ */
+export interface CohortCoverageItem {
+  week: string;
+  registered: number;
+  observable: number;
+  excluded: number;
+  /** observable / registered (%) */
+  coverage: number | null;
+}

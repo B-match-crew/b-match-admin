@@ -14,6 +14,7 @@ import { HostResponseSection } from "./sections/host-response";
 import { RetentionSection } from "./sections/retention";
 import { RevisitSection } from "./sections/revisit";
 import { VisitDaysSection } from "./sections/visit-days";
+import { VisitDaysCohortSection } from "./sections/visit-days-cohort";
 import { DormantSection } from "./sections/dormant";
 import { SupplyDemandSection } from "./sections/supply-demand";
 import { ViralSection } from "./sections/viral";
@@ -83,6 +84,9 @@ export function AnalyticsClient() {
       </div>
       <RevisitSection days={n} group={group} />
       <VisitDaysSection days={n} group={group} />
+      {/* 합산 바로 아래 — 같은 지표를 코호트로 쪼갠 것이라 붙여 둔다.
+          합산값은 유입이 큰 최신 코호트에 지배되므로 개선/악화는 이쪽에서 본다. */}
+      <VisitDaysCohortSection days={n} group={group} />
       {/* 휴면은 현재 상태 스냅샷이라 기간·그룹 축이 없다 */}
       <DormantSection />
 

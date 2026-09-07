@@ -14,6 +14,8 @@ import type {
   RevisitCohortItem,
   VisitDaysItem,
   DormantSummary,
+  VisitDaysCohortWeek,
+  CohortCoverageItem,
 } from "../model/actions";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
@@ -457,5 +459,79 @@ export async function fetchDormant(): Promise<ActionResult<DormantSummary>> {
       baseMembers: first?.base_members ?? 0,
       baseHosts: first?.base_hosts ?? 0,
     };
+  });
+}
+
+// ─── 주차별 방문일수 · 커버리지 (migration 107·108) ───
+
+/**
+ * 주차 코호트별 방문일 수 분포 (108).
+ *
+ * 서버가 **그 주 마지막 날까지 창이 다 찬 주만** 돌려준다. 덜 찬 주는 행이
+ * 아예 없으므로 화면은 "아직 없음" 으로 그리면 된다 — 0 으로 그리면 최근 주가
+ * "아무도 안 온다" 로 보인다.
+ */
+export async function fetchVisitDaysByCohort(
+  days = 90,
+  group: RetentionGroup = "ALL",
+  window = 30,
+): Promise<ActionResult<VisitDaysCohortWeek[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      cohort_week: string;
+      cohort_size: number;
+      visit_days: number;
+      devices: number;
+      share: number;
+    }>("fn_admin_visit_days_by_cohort", {
+      p_from: from,
+      p_to: to,
+      p_group: group,
+      p_window: window,
+    });
+    // 주 단위로 접는다. 서버가 (주, 방문일수) 로 펴서 주므로 여기서 묶는다.
+    const byWeek = new Map<string, VisitDaysCohortWeek>();
+    for (const r of rows) {
+      let w = byWeek.get(r.cohort_week);
+      if (!w) {
+        w = { week: r.cohort_week, cohortSize: r.cohort_size, bars: [] };
+        byWeek.set(r.cohort_week, w);
+      }
+      w.bars.push({
+        days: r.visit_days,
+        devices: r.devices,
+        share: Number(r.share),
+      });
+    }
+    return [...byWeek.values()];
+  });
+}
+
+/**
+ * 코호트 커버리지 (107).
+ *
+ * 재방문율 표 옆에 띄워 "이 주차는 표본이 얇다" 를 화면이 스스로 말하게 한다.
+ * 2026-08 초는 `fn_touch_active` 가 v1.0.8 로 막 나가던 때라 특히 낮다.
+ */
+export async function fetchCohortCoverage(
+  days = 90,
+): Promise<ActionResult<CohortCoverageItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      cohort_week: string;
+      registered: number;
+      observable: number;
+      excluded: number;
+      coverage: number | null;
+    }>("fn_admin_cohort_coverage", { p_from: from, p_to: to });
+    return rows.map((r) => ({
+      week: r.cohort_week,
+      registered: r.registered,
+      observable: r.observable,
+      excluded: r.excluded,
+      coverage: r.coverage == null ? null : Number(r.coverage),
+    }));
   });
 }
