@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
+import type { RetentionGroup } from "../model/actions";
 import { fetchGuestFunnel, fetchHostFunnel } from "../api/actions";
 import { Ga4ChannelSection, Ga4CampaignSection, Ga4PlatformSection } from "./ga4-sections";
 import { RANGES } from "./chart-tokens";
@@ -11,11 +12,25 @@ import { DemandGapSection } from "./sections/demand-gap";
 import { FunnelSection } from "./sections/funnel";
 import { HostResponseSection } from "./sections/host-response";
 import { RetentionSection } from "./sections/retention";
+import { RevisitSection } from "./sections/revisit";
+import { VisitDaysSection } from "./sections/visit-days";
+import { DormantSection } from "./sections/dormant";
 import { SupplyDemandSection } from "./sections/supply-demand";
 import { ViralSection } from "./sections/viral";
 
+/**
+ * 유저 그룹 (106). 셋의 합이 전체와 같다 — 호스트가 아니면 전부 "일반" 이고
+ * 비회원도 거기 포함된다(로그인 없이 모집글을 볼 수 있으므로).
+ */
+const GROUPS = [
+  { value: "ALL", label: "전체" },
+  { value: "HOST", label: "호스트" },
+  { value: "GENERAL", label: "일반" },
+] as const;
+
 export function AnalyticsClient() {
   const [days, setDays] = useState<"7" | "30" | "90">("30");
+  const [group, setGroup] = useState<RetentionGroup>("ALL");
   const n = Number(days);
 
   return (
@@ -48,6 +63,29 @@ export function AnalyticsClient() {
         days={n}
       />
       <RetentionSection days={n} />
+
+      {/* 재방문·방문일수·휴면 (106). 그룹 축은 이 셋만 쓴다 — 위쪽 퍼널·리텐션은
+          38 기준이라 그룹 개념이 없다. 선택기를 전역 헤더에 두면 아무 영향 없는
+          섹션까지 바뀌는 것처럼 보인다. */}
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <h2 className="text-bds-heading3 text-bds-label-normal">재방문 · 휴면</h2>
+        <div className="w-56">
+          <SegmentedTab
+            items={GROUPS}
+            value={group}
+            onValueChange={(v) => setGroup(v)}
+            size="sm"
+          />
+        </div>
+        <span className="text-bds-caption2 text-bds-label-assistive">
+          호스트 = 모집글을 1회 이상 등록한 회원 (현재 시점 기준)
+        </span>
+      </div>
+      <RevisitSection days={n} group={group} />
+      <VisitDaysSection days={n} group={group} />
+      {/* 휴면은 현재 상태 스냅샷이라 기간·그룹 축이 없다 */}
+      <DormantSection />
+
       <SupplyDemandSection days={n} />
       <DemandGapSection days={n} />
       <ConversionSection days={n} />

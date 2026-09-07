@@ -10,6 +10,10 @@ import type {
   HostResponseOrder,
   HostResponsePage,
   ViralStep,
+  RetentionGroup,
+  RevisitCohortItem,
+  VisitDaysItem,
+  DormantSummary,
 } from "../model/actions";
 
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
@@ -334,6 +338,124 @@ export async function fetchHostResponseRanking({
             excludedHostInitiated: head.excluded_host_initiated,
           }
         : null,
+    };
+  });
+}
+
+// ─── 재방문·방문일수·휴면 (migration 106) ───
+
+/**
+ * 주차 코호트별 7/14/30일 내 재방문.
+ *
+ * 🔴 38 의 `fetchRetentionCohort`(정확히 D1/D7/D30 **그날**)와 **정의가 다르다.**
+ * 이쪽은 "N일 안에 한 번이라도" 라 같은 데이터에서도 수치가 더 높게 나온다.
+ * 두 표를 나란히 두고 "리텐션이 올랐다" 로 읽으면 안 된다 — 화면에 병기한다.
+ *
+ * 🔴 비율의 분모는 `size` 가 아니라 **`mature_N`** 이다. 아직 N일이 안 지난
+ * 기기는 그 창을 판정할 수 없어 빠진다. 분모가 0 이면 null 을 돌려주고 화면이
+ * "집계 중" 으로 그린다 — 0% 로 그리면 최근 코호트가 전부 실패로 보인다.
+ */
+export async function fetchRevisitCohort(
+  days = 90,
+  group: RetentionGroup = "ALL",
+): Promise<ActionResult<RevisitCohortItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{
+      cohort_week: string;
+      cohort_size: number;
+      mature_7: number;
+      revisit_7: number;
+      mature_14: number;
+      revisit_14: number;
+      mature_30: number;
+      revisit_30: number;
+    }>("fn_admin_revisit_cohort", { p_from: from, p_to: to, p_group: group });
+    // 분모가 0 이면 null — "0%" 와 "아직 모름" 은 다른 뜻이다.
+    const pct = (n: number, base: number) =>
+      base > 0 ? Math.round((n / base) * 1000) / 10 : null;
+    return rows.map((r) => ({
+      week: r.cohort_week,
+      size: r.cohort_size,
+      mature7: r.mature_7,
+      mature14: r.mature_14,
+      mature30: r.mature_30,
+      d7: pct(r.revisit_7, r.mature_7),
+      d14: pct(r.revisit_14, r.mature_14),
+      d30: pct(r.revisit_30, r.mature_30),
+    }));
+  });
+}
+
+/**
+ * 최초 실행 후 `window` 일 동안의 방문일 수 분포.
+ *
+ * `window` 를 인자로 둔 이유: 30일 코호트가 익기 전까지(2026-09-16 이전)
+ * 7·14 로 같은 형태를 볼 수 있어야 한다. 창이 다 찬 기기만 세므로 30 을 넣으면
+ * 지금은 표본이 거의 없다.
+ */
+export async function fetchVisitDaysDist(
+  days = 90,
+  group: RetentionGroup = "ALL",
+  window = 30,
+): Promise<ActionResult<VisitDaysItem[]>> {
+  return runAction(async () => {
+    const { from, to } = kstRange(days);
+    const rows = await callRpc<{ visit_days: number; devices: number }>(
+      "fn_admin_visit_days_dist",
+      { p_from: from, p_to: to, p_group: group, p_window: window },
+    );
+    const total = rows.reduce((s, r) => s + r.devices, 0);
+    return rows.map((r) => ({
+      days: r.visit_days,
+      devices: r.devices,
+      share: total > 0 ? Math.round((r.devices / total) * 1000) / 10 : 0,
+    }));
+  });
+}
+
+/**
+ * 휴면 — 마지막 활성으로부터 7·14·30일 경과(누적).
+ *
+ * 기간 인자가 없다. 과거를 보는 게 아니라 **지금 상태**를 보는 지표라 코호트
+ * 성숙도 제약도 없다 — 오늘 바로 읽을 수 있는 유일한 축이다.
+ *
+ * 🔴 `rateAll` 은 "한 번 켜보고 만" 기기에 지배되어 늘 90%대로 나온다. 숫자는
+ * 크지만 정보가 없다. `rateReturning`(2일 이상 방문 이력 대비)을 기본으로 보고,
+ * 휴면 호스트는 비율이 아니라 **절대 수**로 본다 — 공급이 마르는 신호라서다.
+ */
+export async function fetchDormant(): Promise<ActionResult<DormantSummary>> {
+  return runAction(async () => {
+    const rows = await callRpc<{
+      bucket: "D7" | "D14" | "D30";
+      min_days: number;
+      devices: number;
+      devices_returning: number;
+      members: number;
+      hosts: number;
+      base_devices: number;
+      base_returning: number;
+      base_members: number;
+      base_hosts: number;
+    }>("fn_admin_dormant", {});
+    const pct = (n: number, base: number) =>
+      base > 0 ? Math.round((n / base) * 1000) / 10 : null;
+    const first = rows[0];
+    return {
+      rows: rows.map((r) => ({
+        bucket: r.bucket,
+        minDays: r.min_days,
+        devices: r.devices,
+        devicesReturning: r.devices_returning,
+        members: r.members,
+        hosts: r.hosts,
+        rateAll: pct(r.devices, r.base_devices),
+        rateReturning: pct(r.devices_returning, r.base_returning),
+      })),
+      baseDevices: first?.base_devices ?? 0,
+      baseReturning: first?.base_returning ?? 0,
+      baseMembers: first?.base_members ?? 0,
+      baseHosts: first?.base_hosts ?? 0,
     };
   });
 }

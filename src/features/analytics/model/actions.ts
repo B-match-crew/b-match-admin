@@ -145,3 +145,68 @@ export interface HostResponsePage {
     excludedHostInitiated: number;
   } | null;
 }
+
+// ─── 재방문·방문일수·휴면 (migration 106) ───
+
+/**
+ * 유저 그룹. 서버(106)가 화이트리스트로 받으므로 값이 일치해야 한다.
+ * 셋의 합이 전체와 같다 — 호스트가 아니면 전부 GENERAL 이다(비회원 포함).
+ */
+export type RetentionGroup = "ALL" | "HOST" | "GENERAL";
+
+/**
+ * 주차 코호트별 N일 내 재방문.
+ *
+ * 🔴 `d7`/`d14`/`d30` 은 **창마다 분모가 다르다.** 아직 N일이 안 지난 기기는
+ * 그 창의 분모에서 빠지므로, 비율이 null 이면 "0%" 가 아니라 **"아직 집계할 수
+ * 없음"** 이다. 화면이 이 둘을 같게 그리면 최근 코호트가 항상 0% 로 보인다.
+ */
+export interface RevisitCohortItem {
+  week: string;
+  /** 그 주에 처음 앱을 연 기기 수 (성숙 여부와 무관) */
+  size: number;
+  /** 창이 다 찬 기기 수 = 그 비율의 분모 */
+  mature7: number;
+  mature14: number;
+  mature30: number;
+  /** 비율(%). null = 분모가 0 (아직 집계 불가) */
+  d7: number | null;
+  d14: number | null;
+  d30: number | null;
+}
+
+/** 최초 실행 후 창 안의 서로 다른 방문일 수 분포. 1 = D0 에만 왔다. */
+export interface VisitDaysItem {
+  days: number;
+  devices: number;
+  /** 그 창에서 차지하는 비율(%) */
+  share: number;
+}
+
+/**
+ * 휴면 — 마지막 활성으로부터 N일 이상 경과(누적).
+ *
+ * `devices` 는 기기, `members`/`hosts` 는 **사람** 단위다. 기기로 회원을 세면
+ * 두 대 쓰는 사람이 한쪽만 쉬어도 휴면으로 잡힌다.
+ */
+export interface DormantItem {
+  bucket: "D7" | "D14" | "D30";
+  minDays: number;
+  devices: number;
+  /** 그중 2일 이상 방문한 적 있는 기기 — 이게 진짜 이탈이다 */
+  devicesReturning: number;
+  members: number;
+  hosts: number;
+  /** 전체 기기 대비 휴면율(%) — "한 번 켜보고 만" 사용자에 지배된다 */
+  rateAll: number | null;
+  /** 2일 이상 방문 기기 대비 휴면율(%) — 이쪽을 봐야 한다 */
+  rateReturning: number | null;
+}
+
+export interface DormantSummary {
+  rows: DormantItem[];
+  baseDevices: number;
+  baseReturning: number;
+  baseMembers: number;
+  baseHosts: number;
+}
