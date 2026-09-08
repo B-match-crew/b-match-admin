@@ -3,7 +3,6 @@
 import type {
   FunnelStep,
   ActiveUsersItem,
-  CohortItem,
   SupplyDemandItem,
   DemandGapItem,
   ClubContactConversionItem,
@@ -132,32 +131,6 @@ export async function fetchActiveUsers(
       wauMember: r.wau_member,
       mau: r.mau,
       mauMember: r.mau_member,
-    }));
-  });
-}
-
-// ─── 코호트 리텐션 ───
-
-export async function fetchRetentionCohort(
-  days = 90
-): Promise<ActionResult<CohortItem[]>> {
-  return runAction(async () => {
-    const { from, to } = kstRange(days);
-    const rows = await callRpc<{
-      cohort_week: string;
-      cohort_size: number;
-      d1: number;
-      d7: number;
-      d30: number;
-    }>("fn_admin_retention_cohort", { p_from: from, p_to: to });
-    const pct = (n: number, size: number) =>
-      size > 0 ? Math.round((n / size) * 1000) / 10 : null;
-    return rows.map((r) => ({
-      week: r.cohort_week,
-      size: r.cohort_size,
-      d1: pct(r.d1, r.cohort_size),
-      d7: pct(r.d7, r.cohort_size),
-      d30: pct(r.d30, r.cohort_size),
     }));
   });
 }
@@ -362,9 +335,9 @@ export async function fetchHostResponseRanking({
 /**
  * 주차 코호트별 7/14/30일 내 재방문.
  *
- * 🔴 38 의 `fetchRetentionCohort`(정확히 D1/D7/D30 **그날**)와 **정의가 다르다.**
- * 이쪽은 "N일 안에 한 번이라도" 라 같은 데이터에서도 수치가 더 높게 나온다.
- * 두 표를 나란히 두고 "리텐션이 올랐다" 로 읽으면 안 된다 — 화면에 병기한다.
+ * 정의: "N일 안에 한 번이라도" (누적). 예전 38 의 fetchRetentionCohort(정확히
+ * 그날)는 정의가 달라 오독이 잦았고 2026-09-07 에 화면에서 내렸다 — 서버 함수
+ * fn_admin_retention_cohort 는 남아 있지만 여기서 부르지 않는다.
  *
  * 🔴 비율의 분모는 `size` 가 아니라 **`mature_N`** 이다. 아직 N일이 안 지난
  * 기기는 그 창을 판정할 수 없어 빠진다. 분모가 0 이면 null 을 돌려주고 화면이
