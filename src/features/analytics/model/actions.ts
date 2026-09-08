@@ -27,15 +27,6 @@ export interface ActiveUsersItem {
   mauMember: number;
 }
 
-export interface CohortItem {
-  week: string;
-  size: number;
-  /** 재방문 **비율(%)**. 인원이 아니라 비율로 보는 게 주차 간 비교에 맞다. */
-  d1: number | null;
-  d7: number | null;
-  d30: number | null;
-}
-
 export interface SupplyDemandItem {
   region: string;
   supply: number;

@@ -11,7 +11,6 @@ import { ConversionSection } from "./sections/conversion";
 import { DemandGapSection } from "./sections/demand-gap";
 import { FunnelSection } from "./sections/funnel";
 import { HostResponseSection } from "./sections/host-response";
-import { RetentionSection } from "./sections/retention";
 import { RevisitSection } from "./sections/revisit";
 import { VisitDaysSection } from "./sections/visit-days";
 import { VisitDaysCohortSection } from "./sections/visit-days-cohort";
@@ -71,7 +70,6 @@ export function AnalyticsClient() {
       {/* 109 — 위 게스트 퍼널(38)은 이벤트마다 기기를 따로 세서 퍼널이 아니다.
           같은 기기·순서·기한으로 다시 센 것을 바로 아래 둔다. */}
       <InquiryFunnelSection days={n} />
-      <RetentionSection days={n} />
 
       {/* 재방문·방문일수·휴면 (106). 그룹 축은 이 셋만 쓴다 — 위쪽 퍼널·리텐션은
           38 기준이라 그룹 개념이 없다. 선택기를 전역 헤더에 두면 아무 영향 없는

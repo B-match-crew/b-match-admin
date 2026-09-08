@@ -13,9 +13,9 @@ import { RetentionCell } from "../primitives";
 /**
  * N일 **이내에 한 번이라도** 다시 온 비율.
  *
- * 🔴 바로 위 "코호트 리텐션"(38)은 **정확히 그날** 온 비율이다. 정의가 달라
- * 같은 데이터에서도 이쪽이 높게 나온다 — 두 표를 비교해 "리텐션이 올랐다" 로
- * 읽지 않도록 설명을 붙인다.
+ * 예전엔 바로 위에 38 의 "코호트 리텐션"(정확히 D+N **그날** 온 비율)이 있었다.
+ * 정의가 달라 같은 데이터에서 다른 수가 나왔고 오독이 잦아 2026-09-07 에 내렸다 —
+ * 이제 리텐션은 이 표(N일 안에 한 번이라도, 누적) 하나로 본다.
  */
 export function RevisitSection({
   days,
@@ -36,10 +36,6 @@ export function RevisitSection({
         <p className="text-bds-caption2 text-bds-label-alternative">
           최초 실행일(D0) 이후 <b>N일 안에 다른 날짜로 한 번이라도</b> 다시 온
           기기 비율. D0 당일 여러 번 실행은 재방문이 아니다.
-        </p>
-        <p className="text-bds-caption2 text-bds-status-warning-text">
-          ⚠️ 위 “코호트 리텐션”은 <b>정확히 그날</b> 온 비율이라 정의가 다릅니다 —
-          같은 데이터라도 이 표가 더 높게 나옵니다. 두 값을 비교하지 마세요.
         </p>
       </CardHeader>
       <CardContent>
