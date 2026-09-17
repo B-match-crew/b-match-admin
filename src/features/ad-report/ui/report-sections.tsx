@@ -47,7 +47,7 @@ export function ImpressionDefinition() {
           <b>노출</b> — {IMPRESSION_DEFINITION}
         </p>
         <p>
-          <b>순 도달 기기</b> — 기간 안에 홈을 한 번이라도 본 기기 수입니다. 일별
+          <b>순 도달 기기</b> — 기간 안에 홈 상단 배너를 한 번이라도 본 기기 수입니다. 일별
           기기 수를 더한 값이 아닙니다.
         </p>
         <p>
