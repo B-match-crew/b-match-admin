@@ -28,7 +28,7 @@
 | 대시보드 | `/` | 핵심 운영 지표 요약 |
 | 통계 | `/stats` | 유입·누적 추이, 인구통계, 지역·시간대 분포, 채팅 문의·응답률, 신고·인기 매칭 |
 | 분석 | `/analytics` | GA4 획득 + 자체 이벤트 기반 퍼널·리텐션·DAU/WAU/MAU |
-| 광고 리포트 | `/ad-report` | 앱 홈 상단 배너 노출(`home_impression`) 일별 추이·기간 순 도달·CSV. app migration **117** 필요 |
+| 광고 리포트 | `/ad-report` | 앱 지면별 노출 — 홈 배너(`home_banner_impression`) · 지도(`map_impression`) 일별 추이·기간 순 도달·CSV. app migration **118** 필요 |
 | 유저 관리 | `/users` | 유저 검색·상세, 정지/영구차단/해제 |
 | 모임 관리 | `/clubs` | 개설된 모임(클럽) 조회 (`host_profiles`) |
 | 매칭 관리 | `/matches` | 모집글 조회·검색·정렬, 직권 삭제 |
