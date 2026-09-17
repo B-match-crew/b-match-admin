@@ -8,21 +8,20 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { downloadCsv } from "@/src/shared/lib/csv-export";
 import { kstToday } from "@/src/shared/lib/kst-range";
 import { unwrap } from "@/src/shared/lib/unwrap";
-import { fetchHomeImpressionReport } from "../api/actions";
+import { fetchImpressionReport } from "../api/actions";
 import {
   presetRange,
   validateRange,
   type DateRangeKst,
   type PeriodPreset,
 } from "../model/period";
+import { PLACEMENTS } from "../model/placements";
 import { reportCsv } from "../model/report";
 import { PeriodPicker } from "./period-picker";
 import {
-  CollectionNotice,
-  DailyChart,
   DailyTable,
-  ImpressionDefinition,
-  SummaryTiles,
+  ImpressionDefinitions,
+  PlacementSection,
 } from "./report-sections";
 
 export function AdReportClient() {
@@ -36,8 +35,8 @@ export function AdReportClient() {
   const invalid = validateRange(range);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["ad-report-home", range.from, range.to],
-    queryFn: () => unwrap(fetchHomeImpressionReport(range)),
+    queryKey: ["ad-report-impressions", range.from, range.to],
+    queryFn: () => unwrap(fetchImpressionReport(range)),
     enabled: invalid == null,
   });
 
@@ -50,7 +49,7 @@ export function AdReportClient() {
 
   return (
     <div className="space-y-6">
-      <ImpressionDefinition />
+      <ImpressionDefinitions />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PeriodPicker
@@ -77,9 +76,15 @@ export function AdReportClient() {
         />
       ) : (
         <>
-          <CollectionNotice report={data} />
-          <SummaryTiles summary={data?.summary} loading={isLoading} />
-          <DailyChart report={data} loading={isLoading} />
+          {PLACEMENTS.map((meta) => (
+            <PlacementSection
+              key={meta.value}
+              meta={meta}
+              report={data?.placements.find((p) => p.placement === meta.value)}
+              range={data?.range}
+              loading={isLoading}
+            />
+          ))}
           <DailyTable report={data} loading={isLoading} />
         </>
       )}
