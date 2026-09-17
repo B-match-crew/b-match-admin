@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { AlertTriangle, Info } from "lucide-react";
 import {
   Bar,
@@ -24,11 +25,17 @@ import { EmptyState } from "@/src/shared/ui/empty-state";
 import { formatKst } from "@/src/shared/lib/format-date";
 import { formatNumber } from "@/src/shared/lib/format-number";
 import type {
-  HomeImpressionReport,
-  HomeImpressionSummary,
+  ImpressionReport,
+  ImpressionSummary,
+  PlacementReport,
 } from "../model/actions";
-import { formatDay, weekdayKo } from "../model/period";
-import { IMPRESSION_DEFINITION, isBeforeCollection } from "../model/report";
+import { formatDay, weekdayKo, type DateRangeKst } from "../model/period";
+import {
+  PLACEMENTS,
+  placementLabel,
+  type PlacementMeta,
+} from "../model/placements";
+import { isBeforeCollection } from "../model/report";
 
 const AXIS_TICK = {
   fontSize: 11,
@@ -38,17 +45,19 @@ const AXIS_TICK = {
 const GRID_STROKE = "var(--color-bds-gray-200)";
 
 /** 숫자보다 먼저 정의를 보여준다 — 광고주가 묻는 첫 질문이 "무엇을 셌나" 다. */
-export function ImpressionDefinition() {
+export function ImpressionDefinitions() {
   return (
     <Alert>
       <Info className="size-4" />
       <AlertDescription className="space-y-1">
+        {PLACEMENTS.map((m) => (
+          <p key={m.value}>
+            <b>{m.label} 노출</b> — {m.definition}
+          </p>
+        ))}
         <p>
-          <b>노출</b> — {IMPRESSION_DEFINITION}
-        </p>
-        <p>
-          <b>순 도달 기기</b> — 기간 안에 홈을 한 번이라도 본 기기 수입니다. 일별
-          기기 수를 더한 값이 아닙니다.
+          <b>순 도달 기기</b> — 기간 안에 그 지면을 한 번이라도 본 기기 수입니다.
+          일별 기기 수를 더한 값이 아닙니다.
         </p>
         <p>
           <b>순 회원</b> — 그중 로그인한 회원 수입니다. 비회원은 기기로만 셉니다.
@@ -59,42 +68,76 @@ export function ImpressionDefinition() {
 }
 
 /**
- * 수집 시작 전 구간이 기간에 섞였는지 알린다.
+ * 지면 하나 — 수집 안내 · 요약 · 일별 차트.
+ *
+ * 지면마다 규모가 달라(홈은 앱을 열 때마다, 지도는 들어갈 때만) 한 차트에 겹치면
+ * 작은 쪽이 바닥에 눌린다. 그래서 차트를 나눈다.
+ */
+export function PlacementSection({
+  meta,
+  report,
+  range,
+  loading,
+}: {
+  meta: PlacementMeta;
+  report?: PlacementReport;
+  range?: DateRangeKst;
+  loading: boolean;
+}) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-bds-heading3 text-bds-label-normal">
+        {meta.label} 노출
+      </h2>
+      {report && range && <CollectionNotice report={report} range={range} />}
+      <SummaryTiles summary={report?.summary} loading={loading} />
+      <DailyChart report={report} loading={loading} />
+    </section>
+  );
+}
+
+/**
+ * 수집 시작 전 구간이 기간에 섞였는지 알린다. 지면마다 따로다.
  *
  * 🔴 계측이 배포되기 전의 0 을 "노출 0" 으로 읽으면 기간 평균이 통째로 깎인
  * 리포트가 나간다.
  */
-export function CollectionNotice({ report }: { report?: HomeImpressionReport }) {
-  if (!report) return null;
+function CollectionNotice({
+  report,
+  range,
+}: {
+  report: PlacementReport;
+  range: DateRangeKst;
+}) {
   const since = report.summary.collectedSince;
   if (since == null) {
     return (
       <Alert>
         <AlertTriangle className="size-4" />
         <AlertDescription>
-          아직 수집된 노출이 없습니다. 노출 계측이 들어간 앱 버전이 배포된 뒤부터
-          쌓입니다.
+          아직 수집된 노출이 없습니다. 이 지면의 계측이 들어간 앱 버전이 배포된
+          뒤부터 쌓입니다.
         </AlertDescription>
       </Alert>
     );
   }
-  if (!isBeforeCollection(report.range.from, since)) return null;
+  if (!isBeforeCollection(range.from, since)) return null;
   return (
     <Alert>
       <AlertTriangle className="size-4" />
       <AlertDescription>
-        노출은 <b>{formatKst(since)}</b>부터 수집됐습니다. 그 전 날짜는
+        이 지면의 노출은 <b>{formatKst(since)}</b>부터 수집됐습니다. 그 전 날짜는
         &lsquo;수집 전&rsquo;으로 표시하며, 0회로 읽으면 안 됩니다.
       </AlertDescription>
     </Alert>
   );
 }
 
-export function SummaryTiles({
+function SummaryTiles({
   summary,
   loading,
 }: {
-  summary?: HomeImpressionSummary;
+  summary?: ImpressionSummary;
   loading: boolean;
 }) {
   return (
@@ -156,11 +199,11 @@ function Tile({
   );
 }
 
-export function DailyChart({
+function DailyChart({
   report,
   loading,
 }: {
-  report?: HomeImpressionReport;
+  report?: PlacementReport;
   loading: boolean;
 }) {
   // 수집 전 날짜는 0 이 아니라 null — 막대가 없고 선이 끊긴다.
@@ -189,7 +232,7 @@ export function DailyChart({
         ) : report.summary.collectedSince == null ? (
           <EmptyState
             message="아직 수집된 노출이 없습니다"
-            description="노출 계측이 들어간 앱 버전이 배포된 뒤부터 쌓입니다."
+            description="이 지면의 계측이 들어간 앱 버전이 배포된 뒤부터 쌓입니다."
           />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
@@ -242,16 +285,20 @@ export function DailyChart({
   );
 }
 
+/** 날짜 한 줄에 지면마다 3칸 — CSV 와 같은 모양이다. */
 export function DailyTable({
   report,
   loading,
 }: {
-  report?: HomeImpressionReport;
+  report?: ImpressionReport;
   loading: boolean;
 }) {
   if (loading) return <Skeleton className="h-64 w-full" />;
   if (!report) return null;
-  const { daily, summary } = report;
+  const { placements } = report;
+  const dates = placements[0]?.daily.map((d) => d.date) ?? [];
+  // 지면마다 날짜 → 하루치. 서버가 지면 × 날짜를 전부 채우지만 순서에 기대지 않는다.
+  const byDate = placements.map((p) => new Map(p.daily.map((d) => [d.date, d])));
 
   return (
     <Card>
@@ -263,53 +310,81 @@ export function DailyTable({
           <table className="w-full text-bds-caption1">
             <thead className="sticky top-0 bg-card">
               <tr className="text-bds-label-alternative">
-                <th className="py-2 text-left font-medium">날짜</th>
-                <th className="py-2 text-right font-medium">노출</th>
-                <th className="py-2 text-right font-medium">순 기기</th>
-                <th className="py-2 text-right font-medium">순 회원</th>
+                <th rowSpan={2} className="py-2 text-left font-medium">
+                  날짜
+                </th>
+                {placements.map((p) => (
+                  <th
+                    key={p.placement}
+                    colSpan={3}
+                    className="py-2 text-center font-medium"
+                  >
+                    {placementLabel(p.placement)}
+                  </th>
+                ))}
+              </tr>
+              <tr className="text-bds-label-alternative">
+                {placements.map((p) => (
+                  <Fragment key={p.placement}>
+                    <th className="py-2 text-right font-medium">노출</th>
+                    <th className="py-2 text-right font-medium">순 기기</th>
+                    <th className="py-2 text-right font-medium">순 회원</th>
+                  </Fragment>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {daily.map((d) => (
-                <tr key={d.date} className="border-t border-bds-gray-100">
+              {dates.map((date) => (
+                <tr key={date} className="border-t border-bds-gray-100">
                   <td className="py-2 text-bds-label-normal">
-                    {formatDay(d.date)} ({weekdayKo(d.date)})
+                    {formatDay(date)} ({weekdayKo(date)})
                   </td>
-                  {isBeforeCollection(d.date, summary.collectedSince) ? (
-                    <td
-                      colSpan={3}
-                      className="py-2 text-right text-bds-label-assistive"
-                    >
-                      수집 전
-                    </td>
-                  ) : (
-                    <>
-                      <td className="py-2 text-right">
-                        {formatNumber(d.impressions)}
-                      </td>
-                      <td className="py-2 text-right">
-                        {formatNumber(d.devices)}
-                      </td>
-                      <td className="py-2 text-right">
-                        {formatNumber(d.members)}
-                      </td>
-                    </>
-                  )}
+                  {placements.map((p, i) => {
+                    const d = byDate[i].get(date);
+                    if (!d || isBeforeCollection(date, p.summary.collectedSince)) {
+                      return (
+                        <td
+                          key={p.placement}
+                          colSpan={3}
+                          className="py-2 text-right text-bds-label-assistive"
+                        >
+                          수집 전
+                        </td>
+                      );
+                    }
+                    return (
+                      <Fragment key={p.placement}>
+                        <td className="py-2 text-right">
+                          {formatNumber(d.impressions)}
+                        </td>
+                        <td className="py-2 text-right">
+                          {formatNumber(d.devices)}
+                        </td>
+                        <td className="py-2 text-right">
+                          {formatNumber(d.members)}
+                        </td>
+                      </Fragment>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
             <tfoot className="sticky bottom-0 bg-card">
               <tr className="border-t-2 border-bds-gray-200 font-medium">
                 <td className="py-2 text-bds-label-normal">기간 합계</td>
-                <td className="py-2 text-right">
-                  {formatNumber(summary.impressions)}
-                </td>
-                <td className="py-2 text-right">
-                  {formatNumber(summary.devices)}
-                </td>
-                <td className="py-2 text-right">
-                  {formatNumber(summary.members)}
-                </td>
+                {placements.map((p) => (
+                  <Fragment key={p.placement}>
+                    <td className="py-2 text-right">
+                      {formatNumber(p.summary.impressions)}
+                    </td>
+                    <td className="py-2 text-right">
+                      {formatNumber(p.summary.devices)}
+                    </td>
+                    <td className="py-2 text-right">
+                      {formatNumber(p.summary.members)}
+                    </td>
+                  </Fragment>
+                ))}
               </tr>
             </tfoot>
           </table>

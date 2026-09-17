@@ -19,7 +19,7 @@ export interface DateRangeKst {
 }
 
 /**
- * 서버(app migration 117)와 같은 상한. 서버가 거절하는 것을 화면이 먼저 막는다 —
+ * 서버(app migration 118)와 같은 상한. 서버가 거절하는 것을 화면이 먼저 막는다 —
  * 값을 바꾸려면 두 곳을 함께 바꿀 것.
  */
 export const MAX_RANGE_DAYS = 400;

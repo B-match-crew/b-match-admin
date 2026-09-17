@@ -1,20 +1,26 @@
 /**
- * ad-report — actions 의 응답 모델 (app migration 117).
+ * ad-report — actions 의 응답 모델 (app migration 118).
  */
 import type { DateRangeKst } from "./period";
 
 /**
- * 하루치. `devices`·`members` 는 **그 날의** 순 수라 날끼리 더하면 안 된다 —
- * 같은 기기가 사흘 오면 1+1+1 이 된다. 기간 순 수는 [HomeImpressionSummary].
+ * 광고 지면. 서버(118 `fn_admin_impression_placements`)의 코드와 같은 값이어야 한다 —
+ * 여기 없는 지면을 서버가 보내면 화면에 나오지 않는다.
  */
-export interface HomeImpressionDay {
+export type Placement = "home_banner" | "map";
+
+/**
+ * 하루치. `devices`·`members` 는 **그 날의** 순 수라 날끼리 더하면 안 된다 —
+ * 같은 기기가 사흘 오면 1+1+1 이 된다. 기간 순 수는 [ImpressionSummary].
+ */
+export interface ImpressionDay {
   date: string;
   impressions: number;
   devices: number;
   members: number;
 }
 
-export interface HomeImpressionSummary {
+export interface ImpressionSummary {
   impressions: number;
   /** 기간 순 기기 = 순 도달 */
   devices: number;
@@ -23,15 +29,21 @@ export interface HomeImpressionSummary {
   /** 기기당 평균 노출. 기기가 0 이면 null — 0 으로 그리면 "한 번도 안 보였다" 로 읽힌다 */
   frequency: number | null;
   /**
-   * 기간과 무관하게 처음 들어온 노출 시각. null = 아직 한 건도 없다.
-   * 🔴 이보다 앞 날짜의 0 은 "안 보였다" 가 아니라 **"세기 전"** 이다.
+   * 기간과 무관하게 **이 지면에** 처음 들어온 노출 시각. null = 아직 한 건도 없다.
+   * 🔴 이보다 앞 날짜의 0 은 "안 보였다" 가 아니라 **"세기 전"** 이다. 지면마다 다르다.
    */
   collectedSince: string | null;
 }
 
-export interface HomeImpressionReport {
+export interface PlacementReport {
+  placement: Placement;
+  summary: ImpressionSummary;
+  daily: ImpressionDay[];
+}
+
+export interface ImpressionReport {
   /** 이 리포트가 실제로 조회한 기간 — CSV 파일명·표기가 화면의 현재 선택과 어긋나지 않게 */
   range: DateRangeKst;
-  summary: HomeImpressionSummary;
-  daily: HomeImpressionDay[];
+  /** 지면 목록([PLACEMENTS]) 순서. 서버가 한 지면을 빠뜨려도 0 으로 채워 항상 모든 지면이 있다 */
+  placements: PlacementReport[];
 }

@@ -8,7 +8,7 @@ export default function AdReportPage() {
     <div className="space-y-6">
       <PageHeader
         title="광고 리포트"
-        description="앱 홈 화면의 노출을 기간별로 봅니다. 광고주에게 보낼 일별 추이와 CSV 를 뽑는 화면입니다."
+        description="앱 홈 배너와 지도의 노출을 기간별로 봅니다. 광고주에게 보낼 일별 추이와 CSV 를 뽑는 화면입니다."
       />
       <AdReportClient />
     </div>
