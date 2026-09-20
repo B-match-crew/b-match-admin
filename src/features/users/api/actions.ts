@@ -74,11 +74,16 @@ export async function fetchUserDetail(
     const [userRes, clubRes, auditRes, blockedRes, reportedRes, chatRes] =
       await Promise.all([
       supabase.from("users").select("*").eq("id", userId).single(),
-      // 삭제된 모임도 가져와 화면에서 상태로 구분한다 (deleted_at 필터 안 함)
+      // 삭제된 모임도 가져와 화면에서 상태로 구분한다 (deleted_at 필터 안 함).
+      // 유니크는 살아있는 행에만 걸려 있어(app migration 18) 삭제→재등록한
+      // 유저는 행이 여러 개다 — 살아있는 모임 우선, 없으면 가장 최근 것 하나.
       supabase
         .from("host_profiles")
         .select("id, club_name, deleted_at")
         .eq("user_id", userId)
+        .order("deleted_at", { ascending: true, nullsFirst: true })
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
       supabase
         .from("admin_audit_logs")
