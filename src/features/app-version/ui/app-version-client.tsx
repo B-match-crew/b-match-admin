@@ -66,8 +66,11 @@ export function AppVersionClient() {
           <span className="font-medium">권장 업데이트</span>: 해당 버전 미만
           설치자에게 스킵 가능한 팝업이 뜹니다 (같은 버전당 1회).{" "}
           <span className="font-medium">강제 업데이트</span>: 해당 버전 미만
-          설치자는 스토어로만 이동할 수 있고 앱을 사용할 수 없습니다. 저장 즉시
-          다음 앱 실행(콜드 스타트)부터 반영됩니다.
+          설치자는 스토어로만 이동할 수 있고 앱을 사용할 수 없습니다. 저장하면
+          앱을 새로 켤 때부터 반영됩니다. <b>두 플랫폼 최소 버전을 같은 값</b>으로
+          두면 이미 켜 둔 앱도 앱으로 돌아오거나 5분 안에 업데이트 화면으로
+          갑니다(채팅 중이어도 — app migration 133). 값이 다르면 새로 켤 때만
+          걸립니다. 한쪽 스토어에 새 버전이 아직 없으면 그쪽을 올리지 마세요.
         </AlertDescription>
       </Alert>
       <div className="grid gap-6 md:grid-cols-2">
