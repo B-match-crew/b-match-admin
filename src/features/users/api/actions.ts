@@ -14,10 +14,8 @@ import { requireAdmin } from "@/src/shared/lib/role-guard";
 import { rpcSuspendUser, rpcBanUser } from "@/src/shared/api/rpc";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 import type { DbUser } from "@/src/shared/types/db";
+import { classifyUserSearchTerm, quoteOrValue } from "../model/search-term";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NUMERIC_RE = /^\d+$/;
-const PHONE_RE = /^[0-9-]+$/;
 
 export async function searchUsers(
   params: UserSearchParams
@@ -25,7 +23,7 @@ export async function searchUsers(
   return runAction(async () => {
     await requireAdmin();
     const supabase = createAdminClient();
-    const term = params.term?.trim() ?? "";
+    const term = classifyUserSearchTerm(params.term);
     const limit = params.limit ?? 50;
     const offset = params.offset ?? 0;
 
@@ -42,17 +40,23 @@ export async function searchUsers(
       q = q.is("deleted_at", null);
     }
 
-    if (term.length > 0) {
-      if (UUID_RE.test(term)) {
-        // auth uuid 로 검색 (users.auth_user_id)
-        q = q.eq("auth_user_id", term);
-      } else if (NUMERIC_RE.test(term)) {
-        // 숫자 = users.id (bigint) 또는 전화번호 일부 — id 우선
-        q = q.eq("id", Number(term));
-      } else if (PHONE_RE.test(term)) {
-        q = q.ilike("phone_number", `%${term}%`);
-      } else {
-        q = q.or(`name.ilike.%${term}%,nickname.ilike.%${term}%`);
+    // 검색어 분류 규칙은 model/search-term.ts (전화번호는 숫자만 저장된다).
+    switch (term.kind) {
+      case "none":
+        break;
+      case "authUserId":
+        q = q.eq("auth_user_id", term.value);
+        break;
+      case "phone":
+        q = q.ilike("phone_number", `%${term.digits}%`);
+        break;
+      case "idOrPhone":
+        q = q.or(`id.eq.${term.id},phone_number.ilike.%${term.digits}%`);
+        break;
+      case "text": {
+        const v = quoteOrValue(`%${term.value}%`);
+        q = q.or(`name.ilike.${v},nickname.ilike.${v}`);
+        break;
       }
     }
 
