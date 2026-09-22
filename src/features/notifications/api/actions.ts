@@ -89,8 +89,13 @@ export async function fetchNotificationSummary(
  * **제약 이름**에 묶여 있어 스키마가 손대는 순간 조용히 깨진다(신고 관리도
  * 같은 이유로 나눠 읽는다).
  */
+/**
+ * 최근 실패 — 화면의 기간(7/30/90일, KST) 안에서 최신 [limit]건.
+ * 알림 기록은 90일만 남는다(app migration 127) — 그보다 먼 실패는 없다.
+ */
 export async function fetchRecentFailures(
-  limit = 50
+  limit = 50,
+  days = 30
 ): Promise<ActionResult<FailedNotification[]>> {
   return runAction(async () => {
     await requireAdmin();
@@ -101,6 +106,7 @@ export async function fetchRecentFailures(
       .select("id, user_id, type, category, title, fail_reason, created_at, sent_at")
       .eq("send_status", "FAILED")
       .is("deleted_at", null)
+      .gte("created_at", `${kstRange(days).from}T00:00:00+09:00`)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) throw error;

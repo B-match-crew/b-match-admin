@@ -38,7 +38,7 @@ export function NotificationsClient() {
       </div>
 
       {tab === "summary" && <SummaryTab days={Number(days)} />}
-      {tab === "failures" && <FailuresTab />}
+      {tab === "failures" && <FailuresTab days={Number(days)} />}
       {tab === "reach" && <ReachTab />}
       {tab === "categories" && <CategoriesTab />}
     </div>
