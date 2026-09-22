@@ -25,7 +25,7 @@ export function RevisitSection({
   group: RetentionGroup;
 }) {
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["analytics-revisit", days, group],
+    queryKey: ["analytics-revisit", Math.max(days, 90), group],
     queryFn: () => unwrap(fetchRevisitCohort(Math.max(days, 90), group)),
   });
 

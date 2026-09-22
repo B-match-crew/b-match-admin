@@ -40,13 +40,13 @@ export function VisitDaysCohortSection({
   const w = Number(win);
 
   const q = useQuery({
-    queryKey: ["analytics-visit-days-cohort", days, group, w],
+    queryKey: ["analytics-visit-days-cohort", Math.max(days, 90), group, w],
     queryFn: () => unwrap(fetchVisitDaysByCohort(Math.max(days, 90), group, w)),
   });
 
   // 커버리지는 그룹·창과 무관하다 — 기간만 탄다.
   const cov = useQuery({
-    queryKey: ["analytics-cohort-coverage", days],
+    queryKey: ["analytics-cohort-coverage", Math.max(days, 90)],
     queryFn: () => unwrap(fetchCohortCoverage(Math.max(days, 90))),
   });
 

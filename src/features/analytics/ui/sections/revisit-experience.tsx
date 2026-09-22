@@ -27,11 +27,11 @@ const FS_LABEL: Record<"empty" | "had_results" | "no_search", string> = {
 /** 첫 경험 × 재방문 (112). 🔴 인과가 아니라 가설이다 — 화면에 그대로 적는다. */
 export function RevisitExperienceSection({ days, group }: { days: number; group: RetentionGroup }) {
   const exp = useQuery({
-    queryKey: ["analytics-revisit-exp", days, group],
+    queryKey: ["analytics-revisit-exp", Math.max(days, 90), group],
     queryFn: () => unwrap(fetchRevisitByExperience(Math.max(days, 90), group)),
   });
   const fs = useQuery({
-    queryKey: ["analytics-revisit-first-search", days, group],
+    queryKey: ["analytics-revisit-first-search", Math.max(days, 90), group],
     queryFn: () => unwrap(fetchRevisitByFirstSearch(Math.max(days, 90), group)),
   });
 

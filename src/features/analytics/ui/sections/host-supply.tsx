@@ -19,11 +19,11 @@ const fmtHours = (h: number | null) => {
 /** 모임장 공급 유지 (111) — 등록→첫 문의 · 28일 재등록 · 집중도 */
 export function HostSupplySection({ days }: { days: number }) {
   const lag = useQuery({
-    queryKey: ["analytics-host-lag", days],
+    queryKey: ["analytics-host-lag", Math.max(days, 90)],
     queryFn: () => unwrap(fetchHostOnboardingLag(Math.max(days, 90))),
   });
   const rereg = useQuery({
-    queryKey: ["analytics-host-rereg", days],
+    queryKey: ["analytics-host-rereg", Math.max(days, 120)],
     queryFn: () => unwrap(fetchHostReregistration(Math.max(days, 120))),
   });
   const conc = useQuery({

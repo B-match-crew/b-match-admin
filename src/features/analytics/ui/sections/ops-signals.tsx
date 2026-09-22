@@ -17,19 +17,19 @@ import { StatTile } from "../primitives";
 /** 운영 신호 4종 (113) — 수집만 되고 아무도 안 보던 이벤트들 */
 export function OpsSignalsSection({ days }: { days: number }) {
   const abandon = useQuery({
-    queryKey: ["analytics-create-abandon", days],
+    queryKey: ["analytics-create-abandon", Math.max(days, 90)],
     queryFn: () => unwrap(fetchCreateAbandonSteps(Math.max(days, 90))),
   });
   const perm = useQuery({
-    queryKey: ["analytics-push-perm", days],
+    queryKey: ["analytics-push-perm", Math.max(days, 90)],
     queryFn: () => unwrap(fetchPushPermissionFunnel(Math.max(days, 90))),
   });
   const latency = useQuery({
-    queryKey: ["analytics-reply-latency", days],
+    queryKey: ["analytics-reply-latency", Math.max(days, 120)],
     queryFn: () => unwrap(fetchReplyLatencyVsReinquiry(Math.max(days, 120))),
   });
   const react = useQuery({
-    queryKey: ["analytics-push-react", days],
+    queryKey: ["analytics-push-react", Math.max(days, 90)],
     queryFn: () => unwrap(fetchPushReactivation(Math.max(days, 90))),
   });
 

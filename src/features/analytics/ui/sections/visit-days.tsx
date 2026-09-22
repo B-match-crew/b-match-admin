@@ -45,7 +45,7 @@ export function VisitDaysSection({
   const w = Number(win);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["analytics-visit-days", days, group, w],
+    queryKey: ["analytics-visit-days", Math.max(days, 90), group, w],
     queryFn: () => unwrap(fetchVisitDaysDist(Math.max(days, 90), group, w)),
   });
 
