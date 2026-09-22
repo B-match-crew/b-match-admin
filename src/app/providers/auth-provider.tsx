@@ -35,25 +35,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        setRole(await fetchAdminRole(currentUser.id));
-      }
-      setIsLoading(false);
-    });
+    // 실패해도 로딩을 끝낸다 — 예전엔 catch 가 없어 세션 조회가 한 번 실패하면
+    // 로딩 스피너가 영원히 돌았다.
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          setRole(await fetchAdminRole(currentUser.id));
+        }
+      })
+      .catch(() => {
+        setUser(null);
+        setRole(null);
+      })
+      .finally(() => setIsLoading(false));
 
+    // 🔴 콜백 안에서 다른 Supabase 호출을 await 하지 않는다. supabase-js 는 이
+    //    콜백을 인증 잠금 안에서 부르므로, 안에서 쿼리를 기다리면 그 쿼리가 같은
+    //    잠금을 기다려 교착될 수 있다(supabase-js 문서의 경고). 조회는 콜백이 끝난
+    //    뒤로 미룬다.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (currentUser) {
-        setRole(await fetchAdminRole(currentUser.id));
-      } else {
+      if (!currentUser) {
         setRole(null);
+        return;
       }
+      setTimeout(() => {
+        void fetchAdminRole(currentUser.id)
+          .then(setRole)
+          .catch(() => setRole(null));
+      }, 0);
     });
 
     return () => subscription.unsubscribe();

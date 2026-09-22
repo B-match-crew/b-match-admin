@@ -52,3 +52,20 @@ export function fromKstInputValue(value: string): string {
   const asUtc = new Date(`${value}:00.000Z`).getTime();
   return new Date(asUtc - KST_OFFSET_MS).toISOString();
 }
+
+/**
+ * `<input type="datetime-local">` 기본값 — **브라우저 로컬 시각**으로 [days]일 뒤.
+ *
+ * 정지 다이얼로그는 입력값을 `new Date(value)`(로컬로 해석)로 읽는다. 기본값도
+ * 로컬로 만들어야 같은 시각이 된다. 예전 유저 관리 다이얼로그는 기본값만
+ * `toISOString()`(UTC)으로 만들어 한국에서 9시간 이른 종료일이 채워졌다.
+ */
+export function localInputValueDaysFromNow(days: number, now = new Date()): string {
+  const d = new Date(now);
+  d.setDate(d.getDate() + days);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+    `T${p(d.getHours())}:${p(d.getMinutes())}`
+  );
+}

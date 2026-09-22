@@ -26,11 +26,11 @@ const fmtHours = (h: number | null) => {
  */
 export function InquiryFunnelSection({ days }: { days: number }) {
   const funnel = useQuery({
-    queryKey: ["analytics-inquiry-funnel", days],
+    queryKey: ["analytics-inquiry-funnel", Math.max(days, 90)],
     queryFn: () => unwrap(fetchInquiryFunnel(Math.max(days, 90))),
   });
   const weekly = useQuery({
-    queryKey: ["analytics-inquiry-weekly", days],
+    queryKey: ["analytics-inquiry-weekly", Math.max(days, 90)],
     queryFn: () => unwrap(fetchInquiryWeekly(Math.max(days, 90))),
   });
 

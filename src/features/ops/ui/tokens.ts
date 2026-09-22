@@ -15,5 +15,8 @@ export const JOB_IMPACT: Record<string, string> = {
   cron_host_remind: "모임장 재등록 리마인드",
   cron_purge_deleted_accounts: "탈퇴 계정 파기 (멈추면 개인정보가 남음)",
   cron_marketing_reconfirm: "광고성 2년 재확인 (멈추면 법 위반)",
-  cron_purge_chat_messages: "채팅 30일 파기",
+  cron_purge_chat_messages: "채팅 파기 — 마지막 메시지로부터 90일 지난 방 (app 91)",
+  cron_purge_resolved_reports: "신고 자료 파기 — 처리 완료 후 1년 (app 92, 멈추면 개인정보가 남음)",
+  cron_app_events_drop_old: "행동 이벤트 파티션 파기 — 14개월 지난 달 (app 95)",
+  cron_purge_old_notifications: "알림 기록 파기 — 90일 지난 알림 (app 127)",
 };

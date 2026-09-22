@@ -10,10 +10,11 @@ import { formatDateTime } from "@/src/shared/lib/format-date";
 import { fetchRecentFailures } from "../../api/actions";
 import { SkeletonRows } from "../primitives";
 
-export function FailuresTab() {
+export function FailuresTab({ days }: { days: number }) {
+  // 기간 선택기가 이 탭에도 떠 있는데 예전엔 기간을 넘기지 않아 아무 일도 안 했다.
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["notification-failures"],
-    queryFn: () => unwrap(fetchRecentFailures(50)),
+    queryKey: ["notification-failures", days],
+    queryFn: () => unwrap(fetchRecentFailures(50, days)),
   });
 
   if (isError) {
@@ -29,8 +30,9 @@ export function FailuresTab() {
   return (
     <div className="space-y-2">
       <p className="text-bds-caption2 text-bds-label-alternative">
-        최근 실패 50건. 발송 실패는 사용자에게도 관리자에게도 아무 표시가 없으므로
-        사유(fail_reason)가 유일한 단서입니다.
+        선택한 기간의 최근 실패 50건. 발송 실패는 사용자에게도 관리자에게도 아무
+        표시가 없으므로 사유(fail_reason)가 유일한 단서입니다. 알림 기록은 90일만
+        보관됩니다.
       </p>
       <div className="rounded-lg border">
         <Table>

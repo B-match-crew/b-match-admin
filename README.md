@@ -28,7 +28,7 @@
 | 대시보드 | `/` | 핵심 운영 지표 요약 |
 | 통계 | `/stats` | 유입·누적 추이, 인구통계, 지역·시간대 분포, 채팅 문의·응답률, 신고·인기 매칭 |
 | 분석 | `/analytics` | GA4 획득 + 자체 이벤트 기반 퍼널·리텐션·DAU/WAU/MAU |
-| 광고 리포트 | `/ad-report` | 앱 지면별 노출 — 홈 배너(`home_banner_impression`) · 지도(`map_impression`) 일별 추이·기간 순 도달·CSV. app migration **118** 필요 |
+| 광고 리포트 | `/ad-report` | 앱 지면별 노출 — 홈 배너(`home_banner_impression`) · 지도(`map_impression`) 일별 추이·기간 순 도달·CSV. app migration **118** 필요, 배너 클릭·CTR 은 **121** 필요 |
 | 유저 관리 | `/users` | 유저 검색·상세, 정지/영구차단/해제 |
 | 모임 관리 | `/clubs` | 개설된 모임(클럽) 조회 (`host_profiles`) |
 | 매칭 관리 | `/matches` | 모집글 조회·검색·정렬, 직권 삭제 |
@@ -39,7 +39,8 @@
 | 공지 발송 | `/notices` | 전체·모임장 대상 긴급공지 (대상 수·도달 가능 수 미리보기) |
 | 알림 발송 | `/notifications` | 푸시 발송 결과·실패 사유, 토큰 도달률, 알림 카테고리 편집 |
 | 동의·파기 | `/compliance` | 약관·광고성 동의 이력 현황, 개인정보 파기 대기 |
-| 운영 상태 | `/ops` | 크론 실행 결과, 수집 중인 앱 이벤트 이름 |
+| 탈퇴 사유 | `/deletion-reasons` | 탈퇴 사유 코드별 집계 + 자유 입력 사유 (app migration 99) |
+| 운영 상태 | `/ops` | 크론 실행 결과, 푸시 발송 적체(app migration 100), 수집 중인 앱 이벤트 이름 |
 | 감사 로그 | `/audit-logs` | 관리자 행위 이력 (SUPER_ADMIN 전용) |
 
 > 매칭(matches)은 모임(host_profiles)이 올리는 개별 모집글입니다 — "모임"이 상위 개념입니다.
@@ -48,7 +49,9 @@
 
 - 관리자 페이지는 `app/(admin)/` route group 하위에 있고, 그룹 레이아웃이 인증 가드와 셸(사이드바/헤더)을 담당합니다. 로그인(`/login`)은 셸 밖 전체화면입니다.
 - **서버측 방어선이 실제 보호선**입니다: `proxy.ts`가 미인증 요청을 `/login`으로 리다이렉트하고, 서버 액션은 `requireAdmin()`으로 역할을 재검증합니다. `admin_role`이 없는 계정은 로그인 시점에 차단됩니다.
-- 데이터 접근은 `service_role` 키를 쓰는 서버 전용 admin 클라이언트로만 이뤄집니다. 이 키는 클라이언트에 노출되지 않습니다.
+- 조회·집계는 `service_role` 키를 쓰는 서버 전용 admin 클라이언트(`createAdminClient`)로 합니다. 이 키는 클라이언트에 노출되지 않습니다.
+- 예외: **관리자 본인의 세션으로 부르는 RPC 8개**가 있습니다 — `fn_admin_suspend_user` · `fn_admin_ban_user` · `fn_set_maintenance` · `fn_update_app_version_policy` · `fn_admin_delete_match` · `fn_admin_close_chat_room` · `fn_admin_broadcast_notice` · `fn_admin_broadcast_preview_count`. 누가 했는지를 서버가 `auth.uid()` 로 감사 로그에 남기기 때문이며, 함수 안에서 `is_admin()`/`is_super_admin()` 을 검사합니다. `requireAdmin()` 도 세션으로 역할을 확인합니다.
+- service_role 로만 부르는 `fn_admin_*` 은 anon·authenticated 에 닫혀 있어야 합니다(app migration **130**). 새 집계 RPC 를 만들 때 `revoke … from public` 만으로는 닫히지 않습니다 — `from public, anon, authenticated` 까지 쓸 것.
 
 ## 프로젝트 구조
 
@@ -67,10 +70,9 @@ app/
 
 src/
 ├── app/                # 프로바이더, 레이아웃, 인증 가드
-├── features/           # 기능별 모듈 (actions.ts + ui/)
-└── shared/             # 공용 UI, BDS 컴포넌트, 유틸, 설정
+├── features/           # 기능별 모듈 (api/actions.ts + model/ + ui/)
+└── shared/             # 공용 UI(ui/kit = shadcn 프리미티브, ui/bds = BDS 컴포넌트), 유틸, 설정
 
-components/ui/          # shadcn/ui 프리미티브 (BDS 값으로 재매핑)
 supabase/               # DB 마이그레이션·스키마 (git 미추적, 아래 참고)
 ```
 
@@ -81,7 +83,7 @@ pnpm install
 pnpm dev
 ```
 
-기타 스크립트: `pnpm build` · `pnpm start` · `pnpm lint`
+기타 스크립트: `pnpm build` · `pnpm start` · `pnpm lint` · `pnpm test`(vitest)
 
 ### 환경 변수
 
@@ -98,7 +100,14 @@ NEXT_PUBLIC_SITE_URL=
 
 # GA4 Data API (선택) — /analytics 의 GA4 획득 카드용
 GA4_PROPERTY_ID=
-GA4_SA_KEY=                     # 서비스 계정 키 JSON
+GCP_PROJECT_ID=
+# 운영(Vercel)은 키 없이 Workload Identity Federation 으로 서비스 계정을 가장한다
+GCP_PROJECT_NUMBER=
+GCP_WORKLOAD_IDENTITY_POOL_ID=
+GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=
+GCP_SERVICE_ACCOUNT_EMAIL=
+# 로컬 검증용 대체 경로 — 서비스 계정 키(JSON 원문 또는 base64)
+GA4_SA_KEY=
 ```
 
 ## 데이터베이스

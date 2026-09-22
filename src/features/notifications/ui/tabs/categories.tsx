@@ -144,8 +144,10 @@ export function CategoryEditDialog({
   const [isActive, setIsActive] = useState(category.isActive);
   const [saving, setSaving] = useState(false);
 
-  // 노출을 끄면 그 카테고리의 알림 설정이 전 사용자 화면에서 사라진다.
-  const hidingNow = category.isActive && !isActive;
+  // 켜져 있는 카테고리는 끌 수 없다 — 서버가 꺼진 카테고리의 알림 생성을 예외로
+  // 거절하고, 그 예외가 채팅 전송·직권 삭제·공지 발송을 통째로 되돌린다
+  // (updateNotificationCategory 의 가드와 같은 이유). 꺼져 있는 것은 켤 수 있다.
+  const lockedOn = category.isActive;
 
   const save = async () => {
     setSaving(true);
@@ -228,13 +230,18 @@ export function CategoryEditDialog({
                 끄면 사용자가 이 알림을 켜고 끌 수 없게 됩니다.
               </div>
             </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
+            <Switch
+              checked={isActive}
+              onCheckedChange={setIsActive}
+              disabled={lockedOn}
+            />
           </div>
 
-          {hidingNow && (
-            <WarningBox tone="danger">
-              노출을 끄면 전 사용자의 알림 설정 화면에서 이 항목이 사라집니다.
-              저장된 수신 여부는 남지만 사용자가 바꿀 수 없게 됩니다.
+          {lockedOn && (
+            <WarningBox tone="caution">
+              켜져 있는 카테고리는 지금 끌 수 없습니다. 서버가 꺼진 카테고리의
+              알림 생성을 거절해 <b>채팅 전송·모집글 삭제·공지 발송까지 실패</b>
+              합니다. 서버가 알림만 건너뛰도록 바뀐 뒤에 풀립니다.
             </WarningBox>
           )}
           {category.isMandatory && (

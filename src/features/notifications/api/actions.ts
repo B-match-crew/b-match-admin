@@ -89,8 +89,13 @@ export async function fetchNotificationSummary(
  * **제약 이름**에 묶여 있어 스키마가 손대는 순간 조용히 깨진다(신고 관리도
  * 같은 이유로 나눠 읽는다).
  */
+/**
+ * 최근 실패 — 화면의 기간(7/30/90일, KST) 안에서 최신 [limit]건.
+ * 알림 기록은 90일만 남는다(app migration 127) — 그보다 먼 실패는 없다.
+ */
 export async function fetchRecentFailures(
-  limit = 50
+  limit = 50,
+  days = 30
 ): Promise<ActionResult<FailedNotification[]>> {
   return runAction(async () => {
     await requireAdmin();
@@ -101,6 +106,7 @@ export async function fetchRecentFailures(
       .select("id, user_id, type, category, title, fail_reason, created_at, sent_at")
       .eq("send_status", "FAILED")
       .is("deleted_at", null)
+      .gte("created_at", `${kstRange(days).from}T00:00:00+09:00`)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) throw error;
@@ -213,6 +219,18 @@ export async function updateNotificationCategory(
       .eq("code", p.code)
       .single();
     if (beforeErr) throw beforeErr;
+
+    // 🔴 노출을 끄는 것은 막는다. 서버 fn_enqueue_notification 이 비활성 카테고리에
+    //    **예외**를 던지고(app migration 52, INACTIVE_CATEGORY), 부르는 쪽이 그것을
+    //    받지 않는다 — CHAT 을 끄면 채팅 전송이, SYSTEM 을 끄면 모집글 직권 삭제와
+    //    공지 발송이, HOST_OPERATION 을 끄면 리마인드 크론이 통째로 롤백된다.
+    //    화면에서만 막으면 오래된 탭이나 직접 호출로 뚫리므로 여기서도 막는다.
+    //    서버가 "알림만 건너뛰기" 로 바뀌면 이 가드를 푼다.
+    if (before.is_active && !p.isActive) {
+      throw new Error(
+        "노출을 끌 수 없습니다 — 지금 서버는 꺼진 카테고리의 알림 생성을 거절해 채팅 전송·모집글 삭제·공지 발송까지 실패합니다"
+      );
+    }
 
     const { data: updated, error } = await supabase
       .from("notification_categories")
