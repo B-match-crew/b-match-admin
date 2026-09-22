@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { kstRange, kstToday } from "./kst-range";
+import { kstDayBounds, kstRange, kstToday } from "./kst-range";
 
 /**
  * 어드민 서버(Vercel)는 UTC 로 돈다. 한국 시각 0~9시는 UTC 로는 전날이라,
@@ -41,3 +41,19 @@ describe("kstRange — KST 일자 경계", () => {
     expect(kstRange(2)).toEqual({ from: "2026-02-28", to: "2026-03-01" });
   });
 });
+
+describe("kstDayBounds", () => {
+  it("⭐ KST 하루의 시작·끝 — 새벽 0~9시가 다른 날로 가지 않는다", () => {
+    const { start, end } = kstDayBounds("2026-09-22");
+    expect(new Date(start).toISOString()).toBe("2026-09-21T15:00:00.000Z");
+    expect(new Date(end).toISOString()).toBe("2026-09-22T14:59:59.999Z");
+  });
+
+  it("KST 새벽 1시 모임은 그날 범위 안이다", () => {
+    const { start, end } = kstDayBounds("2026-09-22");
+    const oneAm = new Date("2026-09-22T01:00:00+09:00").getTime();
+    expect(oneAm).toBeGreaterThanOrEqual(new Date(start).getTime());
+    expect(oneAm).toBeLessThanOrEqual(new Date(end).getTime());
+  });
+});
+
