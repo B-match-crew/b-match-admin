@@ -112,8 +112,9 @@ export function ChatReportDetailDialog({
                   reporterId={report.reporter_id}
                 />
                 <p className="text-xs text-muted-foreground">
-                  신고 시점에 복사해 둔 사본입니다. 원본 대화는 30일 후 파기되며,
-                  이 사본은 그와 무관하게 남습니다.
+                  신고 시점에 복사해 둔 사본입니다. 원본 대화는 마지막 메시지로부터
+                  90일 뒤 방째 파기되고, 이 사본은 신고 처리 완료 후 1년까지
+                  남습니다.
                 </p>
               </div>
 

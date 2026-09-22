@@ -12,8 +12,9 @@ import type { ReportStatus, UserStatus } from "@/src/shared/types/db";
 /**
  * 신고 시점에 **복사해 둔** 대화 한 줄 (`chat_reports.snapshot`).
  *
- * 참조가 아니라 복사인 이유: 원본 대화는 30일에 파기된다(app migration 63).
- * 참조로 뒀다면 운영자가 검토할 때 증적이 이미 사라져 있다.
+ * 참조가 아니라 복사인 이유: 원본 대화는 마지막 메시지로부터 90일 뒤 방째
+ * 파기된다(app migration 91, 63 을 대체). 참조로 뒀다면 운영자가 검토할 때 증적이
+ * 이미 사라져 있다. 사본은 신고 처리 완료 후 1년에 파기된다(app migration 92).
  *
  * `sender_id === null` 은 **시스템 메시지**(일정 안내)다 — 앱과 같은 규약이며,
  * 이 NULL 을 "탈퇴한 유저" 로 읽으면 안 된다.
