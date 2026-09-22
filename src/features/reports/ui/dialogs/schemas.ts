@@ -1,5 +1,6 @@
 "use client";
 
+import { localInputValueDaysFromNow } from "@/src/shared/lib/format-date";
 import { z } from "zod";
 import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
 
@@ -24,12 +25,7 @@ export const suspendSchema = z.object({
   reason: reasonField,
 });
 
+/** 정지 종료일 기본값 — 7일 뒤(로컬 시각, datetime-local 형식). */
 export function defaultSuspendUntil(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  // datetime-local 포맷 (yyyy-MM-ddTHH:mm)
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return localInputValueDaysFromNow(7);
 }

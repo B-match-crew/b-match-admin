@@ -1,5 +1,6 @@
 "use client";
 
+import { localInputValueDaysFromNow } from "@/src/shared/lib/format-date";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,9 +97,8 @@ function SuspendForm({
   });
 
   useEffect(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    form.setValue("until", d.toISOString().slice(0, 16));
+    // 로컬 시각 기본값 — 아래 onSubmit 이 new Date(v.until) 로 로컬로 읽는다.
+    form.setValue("until", localInputValueDaysFromNow(7));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
