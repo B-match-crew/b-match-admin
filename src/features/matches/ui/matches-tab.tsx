@@ -1,5 +1,6 @@
 "use client";
 
+import { kstDayBounds } from "@/src/shared/lib/kst-range";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -44,10 +45,10 @@ export function MatchesTab() {
           sortBy,
           limit: PAGE_SIZE,
           offset: page * PAGE_SIZE,
-          dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-          dateTo: dateTo
-            ? new Date(dateTo + "T23:59:59").toISOString()
-            : undefined,
+          // KST 하루 경계. `new Date("yyyy-MM-dd")` 는 UTC 자정(KST 09시)이라
+          // 시작일 새벽 모임이 빠졌다.
+          dateFrom: dateFrom ? kstDayBounds(dateFrom).start : undefined,
+          dateTo: dateTo ? kstDayBounds(dateTo).end : undefined,
         })
       ),
   });

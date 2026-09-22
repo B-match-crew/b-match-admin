@@ -8,6 +8,7 @@ import type {
 import { createAdminClient } from "@/src/shared/api/supabase-admin";
 import { runAction, type ActionResult } from "@/src/shared/lib/action-result";
 import { requireAdmin } from "@/src/shared/lib/role-guard";
+import { kstDayBounds, kstToday } from "@/src/shared/lib/kst-range";
 
 export async function fetchDashboardStats(): Promise<
   ActionResult<DashboardStats>
@@ -16,10 +17,9 @@ export async function fetchDashboardStats(): Promise<
     await requireAdmin();
     const supabase = createAdminClient();
 
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    // "오늘" 은 한국 날짜다. 서버(Vercel)는 UTC 라 setHours(0) 로 자르면 KST 0~9시
+    // 사이엔 어제 날짜가 오늘로 잡혔다.
+    const { start, end } = kstDayBounds(kstToday());
 
     // 게스트 수: fn_get_total_guest_count 는 anon/authenticated 에게만 grant 되어
     // service_role(admin client)로는 실행 불가 → guest_devices 직접 count (RLS 우회).
@@ -34,8 +34,8 @@ export async function fetchDashboardStats(): Promise<
           .from("matches")
           .select("id", { count: "exact", head: true })
           .is("deleted_at", null)
-          .gte("start_time", start.toISOString())
-          .lte("start_time", end.toISOString()),
+          .gte("start_time", start)
+          .lte("start_time", end),
         supabase
           .from("matches")
           .select("id", { count: "exact", head: true })

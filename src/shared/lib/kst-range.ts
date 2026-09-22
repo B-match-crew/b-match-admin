@@ -26,3 +26,14 @@ export function kstRange(days: number): KstRange {
 export function kstToday(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
+
+/**
+ * KST 하루 `yyyy-MM-dd` 의 시작·끝 시각(ISO, +09:00 오프셋).
+ *
+ * `new Date("yyyy-MM-dd")` 는 **UTC 자정**(= KST 09:00)으로 읽히고, 서버에서
+ * `setHours(0)` 는 UTC 로 돈다 — 둘 다 한국 시각 0~9시를 다른 날로 보낸다.
+ * 오프셋을 붙인 문자열은 어느 시간대에서 읽어도 같은 순간이다.
+ */
+export function kstDayBounds(day: string): { start: string; end: string } {
+  return { start: `${day}T00:00:00+09:00`, end: `${day}T23:59:59.999+09:00` };
+}
