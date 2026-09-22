@@ -214,6 +214,18 @@ export async function updateNotificationCategory(
       .single();
     if (beforeErr) throw beforeErr;
 
+    // 🔴 노출을 끄는 것은 막는다. 서버 fn_enqueue_notification 이 비활성 카테고리에
+    //    **예외**를 던지고(app migration 52, INACTIVE_CATEGORY), 부르는 쪽이 그것을
+    //    받지 않는다 — CHAT 을 끄면 채팅 전송이, SYSTEM 을 끄면 모집글 직권 삭제와
+    //    공지 발송이, HOST_OPERATION 을 끄면 리마인드 크론이 통째로 롤백된다.
+    //    화면에서만 막으면 오래된 탭이나 직접 호출로 뚫리므로 여기서도 막는다.
+    //    서버가 "알림만 건너뛰기" 로 바뀌면 이 가드를 푼다.
+    if (before.is_active && !p.isActive) {
+      throw new Error(
+        "노출을 끌 수 없습니다 — 지금 서버는 꺼진 카테고리의 알림 생성을 거절해 채팅 전송·모집글 삭제·공지 발송까지 실패합니다"
+      );
+    }
+
     const { data: updated, error } = await supabase
       .from("notification_categories")
       .update({
