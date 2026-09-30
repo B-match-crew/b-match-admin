@@ -4,24 +4,25 @@ import { useState } from "react";
 import { SegmentedTab } from "@/src/shared/ui/bds/segmented-tab";
 import type { RetentionGroup } from "../model/actions";
 import { fetchGuestFunnel, fetchHostFunnel } from "../api/actions";
-import { Ga4ChannelSection, Ga4CampaignSection, Ga4PlatformSection } from "./ga4-sections";
+// (2026-09-30 미사용 — 언젠가 쓸 수 있어 주석으로 남김)
+// import { Ga4ChannelSection, Ga4CampaignSection, Ga4PlatformSection } from "./ga4-sections";
 import { RANGES } from "./chart-tokens";
 import { ActiveUsersSection } from "./sections/active-users";
-import { ConversionSection } from "./sections/conversion";
-import { DemandGapSection } from "./sections/demand-gap";
+// import { ConversionSection } from "./sections/conversion";
+// import { DemandGapSection } from "./sections/demand-gap";
 import { FunnelSection } from "./sections/funnel";
 import { HostResponseSection } from "./sections/host-response";
 import { RevisitSection } from "./sections/revisit";
-import { VisitDaysSection } from "./sections/visit-days";
-import { VisitDaysCohortSection } from "./sections/visit-days-cohort";
-import { InquiryFunnelSection } from "./sections/inquiry-funnel";
-import { RegionPotentialSection } from "./sections/region-potential";
-import { HostSupplySection } from "./sections/host-supply";
-import { RevisitExperienceSection } from "./sections/revisit-experience";
-import { OpsSignalsSection } from "./sections/ops-signals";
+// import { VisitDaysSection } from "./sections/visit-days";
+// import { VisitDaysCohortSection } from "./sections/visit-days-cohort";
+// import { InquiryFunnelSection } from "./sections/inquiry-funnel";
+// import { RegionPotentialSection } from "./sections/region-potential";
+// import { HostSupplySection } from "./sections/host-supply";
+// import { RevisitExperienceSection } from "./sections/revisit-experience";
+// import { OpsSignalsSection } from "./sections/ops-signals";
 import { DormantSection } from "./sections/dormant";
-import { SupplyDemandSection } from "./sections/supply-demand";
-import { ViralSection } from "./sections/viral";
+// import { SupplyDemandSection } from "./sections/supply-demand";
+// import { ViralSection } from "./sections/viral";
 
 /**
  * 유저 그룹 (106). 셋의 합이 전체와 같다 — 호스트가 아니면 전부 "일반" 이고
@@ -33,6 +34,16 @@ const GROUPS = [
   { value: "GENERAL", label: "일반" },
 ] as const;
 
+/*
+ * (2026-09-30 미사용 — 언젠가 쓸 수 있어 주석으로 남김)
+ *   문의 퍼널 · 방문일 수 분포(+코호트별) · 어떤 경험 뒤에 돌아오는가 ·
+ *   지역별 수급 밸런스 · 지역별 매칭 가능성 · 모임장 공급 유지 · 운영 신호 ·
+ *   빈 결과 발생 지점 · 모임별 연락 전환율 · 바이럴 퍼널 · GA4 획득 3종
+ *
+ * 섹션 파일과 서버 액션·RPC 는 그대로 있다. 되살리려면 위 import 와 아래 JSX 의
+ * 주석만 풀면 된다. 이 페이지는 서버 프리페치가 없어 주석 처리된 섹션은 조회도
+ * 나가지 않는다.
+ */
 export function AnalyticsClient() {
   const [days, setDays] = useState<"7" | "30" | "90">("30");
   const [group, setGroup] = useState<RetentionGroup>("ALL");
@@ -69,7 +80,7 @@ export function AnalyticsClient() {
       />
       {/* 109 — 위 게스트 퍼널(38)은 이벤트마다 기기를 따로 세서 퍼널이 아니다.
           같은 기기·순서·기한으로 다시 센 것을 바로 아래 둔다. */}
-      <InquiryFunnelSection days={n} />
+      {/* <InquiryFunnelSection days={n} /> */}
 
       {/* 재방문·방문일수·휴면 (106). 그룹 축은 이 셋만 쓴다 — 위쪽 퍼널·리텐션은
           38 기준이라 그룹 개념이 없다. 선택기를 전역 헤더에 두면 아무 영향 없는
@@ -89,40 +100,40 @@ export function AnalyticsClient() {
         </span>
       </div>
       <RevisitSection days={n} group={group} />
-      <VisitDaysSection days={n} group={group} />
+      {/* <VisitDaysSection days={n} group={group} /> */}
       {/* 합산 바로 아래 — 같은 지표를 코호트로 쪼갠 것이라 붙여 둔다.
           합산값은 유입이 큰 최신 코호트에 지배되므로 개선/악화는 이쪽에서 본다. */}
-      <VisitDaysCohortSection days={n} group={group} />
+      {/* <VisitDaysCohortSection days={n} group={group} /> */}
       {/* 112 — 그룹 축을 쓴다 */}
-      <RevisitExperienceSection days={n} group={group} />
+      {/* <RevisitExperienceSection days={n} group={group} /> */}
       {/* 휴면은 현재 상태 스냅샷이라 기간·그룹 축이 없다 */}
       <DormantSection />
 
-      <SupplyDemandSection days={n} />
+      {/* <SupplyDemandSection days={n} /> */}
       {/* 110 — 위 수급 밸런스(38)는 글 생성일·상세 조회수라 볼 글이 없는 지역의
           수요가 0 으로 보인다. 운동 예정일·검색 기준으로 다시 센 것. */}
-      <RegionPotentialSection days={n} />
-      <HostSupplySection days={n} />
-      <OpsSignalsSection days={n} />
-      <DemandGapSection days={n} />
-      <ConversionSection days={n} />
+      {/* <RegionPotentialSection days={n} /> */}
+      {/* <HostSupplySection days={n} /> */}
+      {/* <OpsSignalsSection days={n} /> */}
+      {/* <DemandGapSection days={n} /> */}
+      {/* <ConversionSection days={n} /> */}
       {/* 103 바로 아래에 둔다 — "연락이 오는가" 다음 질문이 "그 연락에 답하는가" 다 */}
       <HostResponseSection days={n} />
-      <ViralSection days={n} />
+      {/* <ViralSection days={n} /> */}
 
       {/* GA4 구간 — 자체 집계로는 알 수 없는 "어디서 왔는가"만 담당한다.
           지연 24~48h, 샘플링 가능이라 자체 집계와 섞어 놓지 않고 아래로 묶는다. */}
-      <div className="space-y-2 pt-2">
+      {/* <div className="space-y-2 pt-2">
         <h2 className="text-bds-heading3 text-bds-label-normal">획득 (GA4)</h2>
         <p className="text-bds-caption2 text-bds-label-alternative">
           설치가 어디서 왔는지는 우리 DB 가 알 수 없다 — Play Install Referrer 를
           읽어 귀속시키는 건 Firebase SDK 뿐이다. 단 GA4 는 24~48시간 지연되고
           대량 쿼리는 샘플링될 수 있어, 정밀 수치는 위쪽 자체 집계를 본다.
         </p>
-      </div>
-      <Ga4ChannelSection days={n} />
-      <Ga4CampaignSection days={n} />
-      <Ga4PlatformSection days={n} />
+      </div> */}
+      {/* <Ga4ChannelSection days={n} /> */}
+      {/* <Ga4CampaignSection days={n} /> */}
+      {/* <Ga4PlatformSection days={n} /> */}
     </div>
   );
 }

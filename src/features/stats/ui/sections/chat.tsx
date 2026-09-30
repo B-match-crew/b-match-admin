@@ -72,12 +72,15 @@ export function ChatSection({ days }: { days: number }) {
                 value={data.roomsEmpty}
                 hint="한 마디도 오가지 않음"
               />
+              {/* (2026-09-30 미사용 — 채팅 신고 탭을 닫아 이 숫자를 보고 처리하러 갈 곳이
+                  없다. 탭을 되살릴 때 함께 푼다. 값은 같은 RPC 응답에 실려 오므로
+                  숨겨도 조회는 줄지 않는다.)
               <ChatTile
                 label="미처리 신고"
                 value={data.reportsPending}
                 hint={`전체 ${data.reportsTotal}건`}
                 warn={data.reportsPending > 0}
-              />
+              /> */}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

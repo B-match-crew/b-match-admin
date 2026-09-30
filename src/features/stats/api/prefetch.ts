@@ -9,7 +9,7 @@ import {
   fetchRegionDistribution,
   fetchReportStats,
   fetchPopularMatches,
-  fetchMatchTimeDistribution,
+  // fetchMatchTimeDistribution, — 매칭 시간대 분포 섹션 주석 처리(2026-09-30)
   fetchSignupChannels,
   fetchChatStats,
 } from "./actions";
@@ -33,7 +33,8 @@ export function statsPageQueries() {
     { queryKey: ["stats-host"], queryFn: () => unwrap(fetchHostStats()) },
     { queryKey: ["stats-demographics"], queryFn: () => unwrap(fetchDemographics()) },
     { queryKey: ["stats-region"], queryFn: () => unwrap(fetchRegionDistribution()) },
-    { queryKey: ["stats-time-dist"], queryFn: () => unwrap(fetchMatchTimeDistribution()) },
+    // 매칭 시간대 분포 — 화면에서 주석 처리돼 조회도 뺀다. 되살릴 땐 섹션과 함께 푼다.
+    // { queryKey: ["stats-time-dist"], queryFn: () => unwrap(fetchMatchTimeDistribution()) },
     { queryKey: ["stats-reports"], queryFn: () => unwrap(fetchReportStats()) },
     { queryKey: ["stats-popular"], queryFn: () => unwrap(fetchPopularMatches(10)) },
   ];

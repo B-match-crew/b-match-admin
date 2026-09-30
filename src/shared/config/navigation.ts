@@ -8,7 +8,7 @@ import {
   Ban,
   Swords,
   Flag,
-  MessageSquareWarning,
+  // MessageSquareWarning, — 채팅 신고 탭 주석 처리(2026-09-30)
   ClipboardList,
   Rocket,
   Megaphone,
@@ -49,7 +49,8 @@ export const navigation: NavGroup[] = [
       { title: "모임 관리", href: "/clubs", icon: Users2 },
       { title: "매칭 관리", href: "/matches", icon: Swords },
       { title: "신고 관리", href: "/reports", icon: Flag },
-      { title: "채팅 신고", href: "/chat-reports", icon: MessageSquareWarning },
+      // 채팅 신고 (2026-09-30 미사용 — 언젠가 쓸 수 있어 주석으로 남김)
+      // { title: "채팅 신고", href: "/chat-reports", icon: MessageSquareWarning },
       { title: "차단 관리", href: "/blocks", icon: Ban },
     ],
   },
