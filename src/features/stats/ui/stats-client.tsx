@@ -19,7 +19,8 @@ import { PopularMatchSection } from "./sections/popular-match";
 import { RegionSection } from "./sections/region";
 import { ReportSection } from "./sections/report";
 import { SignupChannelSection } from "./sections/signup-channel";
-import { TimeDistributionSection } from "./sections/time-distribution";
+// (2026-09-30 미사용 — 언젠가 쓸 수 있어 주석으로 남김)
+// import { TimeDistributionSection } from "./sections/time-distribution";
 
 export function StatsClient() {
   const [days, setDays] = useState<"7" | "30" | "90">(DEFAULT_RANGE);
@@ -45,7 +46,7 @@ export function StatsClient() {
       <HostSection />
       <DemographicsSection />
       <RegionSection />
-      <TimeDistributionSection />
+      {/* <TimeDistributionSection /> */}
       <ChatSection days={Number(days)} />
       <ReportSection />
       <PopularMatchSection />

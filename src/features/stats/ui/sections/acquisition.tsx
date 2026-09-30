@@ -9,7 +9,7 @@ import { QueryError } from "@/src/shared/ui/query-error";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { fetchDailyAcquisition } from "../../api/actions";
 import { SERIES_1, SERIES_2 } from "../chart-tokens";
-import { AcquisitionTooltip, RatioTooltip, StatTile } from "../primitives";
+import { AcquisitionTooltip, /* RatioTooltip, */ StatTile } from "../primitives";
 
 export function AcquisitionSection({ days }: { days: number }) {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -107,7 +107,8 @@ export function AcquisitionSection({ days }: { days: number }) {
         </CardContent>
       </Card>
 
-      {/* 비율은 단위(%)가 달라 같은 축에 겹치지 않고 별도 차트로 분리한다 */}
+      {/* (2026-09-30 미사용 — 언젠가 쓸 수 있어 주석으로 남김)
+          비율은 단위(%)가 달라 같은 축에 겹치지 않고 별도 차트로 분리했었다.
       <Card>
         <CardHeader>
           <CardTitle className="text-bds-heading3">일별 비율</CardTitle>
@@ -160,7 +161,7 @@ export function AcquisitionSection({ days }: { days: number }) {
             </ResponsiveContainer>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }
