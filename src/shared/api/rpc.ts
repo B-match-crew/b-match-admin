@@ -141,3 +141,72 @@ export async function rpcCloseChatRoom(p: CloseChatRoomParams) {
   });
   if (error) throw error;
 }
+
+// ─── 결제 (app migration 137 — dev 전용, prod 는 Phase 2) ───
+//
+// 넷 다 **유저 세션으로 호출**한다 — 함수 안에서 is_admin()/is_super_admin() 을 보고, 누가 했는지를
+// auth.uid() 로 admin_audit_logs(action_type PAYMENT_*, target_type PAYMENT)에 남긴다.
+// 돈이 움직이는 조치(강제 환불 · 재시도)는 **환불 큐에 넣을 뿐**이다 — 페이플 취소는 Edge payple(/reconcile)이
+// 사용자 환불과 같은 코드로 1분 안에 실행한다. 그래서 이 서버에는 페이플 키가 없다.
+// 에러: 42501(NOT_ADMIN · NOT_SUPER_ADMIN) / P0305(주문 없음) / P0310(환불 불가 상태 · 요청 키) /
+//       P0312(하루 강제 환불 상한) / P0313(사유 10자 미만) / P0314(금액 범위)
+
+export async function rpcPaymentRecheck(orderNo: string) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payment_recheck", {
+    p_order_no: orderNo,
+  });
+  if (error) throw error;
+  return data as { attempts: number; refunds: number; status: string };
+}
+
+export interface PaymentRefundParams {
+  orderNo: string;
+  /** 10자 이상 */
+  reason: string;
+  /** 같은 다이얼로그의 재전송을 하나로 묶는 멱등 키 */
+  requestKey: string;
+}
+
+export async function rpcPaymentForceRefund(p: PaymentRefundParams) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payment_refund", {
+    p_order_no: p.orderNo,
+    p_reason: p.reason,
+    p_request_key: p.requestKey,
+  });
+  if (error) throw error;
+  return data as { result: string; amount?: number };
+}
+
+export async function rpcPaymentRetryRefund(p: PaymentRefundParams) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payment_retry_refund", {
+    p_order_no: p.orderNo,
+    p_reason: p.reason,
+    p_request_key: p.requestKey,
+  });
+  if (error) throw error;
+  return data as { result: string; amount?: number };
+}
+
+export interface PaymentSettingsParams {
+  /** 생략하면 그대로 */
+  paymentsEnabled?: boolean;
+  testAmount?: number;
+  maxAmount?: number;
+  /** 10자 이상 */
+  reason: string;
+}
+
+export async function rpcPaymentSetSettings(p: PaymentSettingsParams) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payment_set_settings", {
+    p_payments_enabled: p.paymentsEnabled ?? null,
+    p_test_amount: p.testAmount ?? null,
+    p_max_amount: p.maxAmount ?? null,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+  return data as { payments_enabled: boolean; test_amount: number; max_amount: number };
+}

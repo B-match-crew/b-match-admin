@@ -43,6 +43,15 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0141: "계정 파기 설정이 없습니다 (Vault 시크릿 확인)", // PURGE_SECRET_MISSING
   // 가입 (app migration 101)
   P0142: "약관 동의 기록에 실패했습니다 (잠시 후 다시 시도해 주세요)", // AGREEMENTS_NOT_RECORDED
+  // 결제 (app migration 136 · 137 — dev 전용)
+  P0302: "결제 기능이 꺼져 있습니다 (킬 스위치)", // PAYMENTS_DISABLED
+  P0305: "결제를 찾을 수 없습니다", // ORDER_NOT_FOUND
+  P0308: "이 호출은 서버 전용입니다", // FORBIDDEN
+  P0309: "지금 상태에서는 할 수 없는 처리입니다", // INVALID_TRANSITION
+  P0310: "지금은 환불할 수 없는 상태입니다", // REFUND_NOT_ALLOWED
+  P0312: "오늘 관리자 강제 환불 한도(건수·금액)를 넘었습니다", // ADMIN_REFUND_LIMIT
+  P0313: "사유를 10자 이상 입력해야 합니다", // REASON_TOO_SHORT
+  P0314: "금액이 허용 범위를 벗어났습니다 (테스트 금액 100원 이상 · 최대 금액 이하)", // INVALID_SETTINGS
   // 서버 점검 모드 (migration 29)
   P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
   P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START
