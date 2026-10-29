@@ -35,6 +35,7 @@
 | 신고 관리 | `/reports` | 모집글 신고 접수 검토 및 조치 |
 | 채팅 신고 | `/chat-reports` | 채팅 신고 + 보존된 대화 증적, 대화 종료·유저 제재 |
 | 차단 관리 | `/blocks` | 차단 랭킹(문제 유저 식별) + 영구 차단 목록 |
+| 결제 | `/payments` | 페이플 결제 운영 큐(기대값 0) · 퍼널 · 설정(킬 스위치) · 목록 · 상세(시도 · 이력 · 환불 · 경보) · 상태 재조회 · 강제 환불 · 환불 재시도. app migration **136 · 137** 필요 — Phase 0 은 **dev 에만** 있어 메뉴는 `NEXT_PUBLIC_FEATURE_PAYMENTS=true` 인 배포에서만 보인다 |
 | 앱 관리 | `/app-version` | 강제 업데이트 정책 + 서버 점검(maintenance) 토글 |
 | 공지 발송 | `/notices` | 전체·모임장 대상 긴급공지 (대상 수·도달 가능 수 미리보기) |
 | 알림 발송 | `/notifications` | 푸시 발송 결과·실패 사유, 토큰 도달률, 알림 카테고리 편집 |
@@ -50,7 +51,8 @@
 - 관리자 페이지는 `app/(admin)/` route group 하위에 있고, 그룹 레이아웃이 인증 가드와 셸(사이드바/헤더)을 담당합니다. 로그인(`/login`)은 셸 밖 전체화면입니다.
 - **서버측 방어선이 실제 보호선**입니다: `proxy.ts`가 미인증 요청을 `/login`으로 리다이렉트하고, 서버 액션은 `requireAdmin()`으로 역할을 재검증합니다. `admin_role`이 없는 계정은 로그인 시점에 차단됩니다.
 - 조회·집계는 `service_role` 키를 쓰는 서버 전용 admin 클라이언트(`createAdminClient`)로 합니다. 이 키는 클라이언트에 노출되지 않습니다.
-- 예외: **관리자 본인의 세션으로 부르는 RPC 8개**가 있습니다 — `fn_admin_suspend_user` · `fn_admin_ban_user` · `fn_set_maintenance` · `fn_update_app_version_policy` · `fn_admin_delete_match` · `fn_admin_close_chat_room` · `fn_admin_broadcast_notice` · `fn_admin_broadcast_preview_count`. 누가 했는지를 서버가 `auth.uid()` 로 감사 로그에 남기기 때문이며, 함수 안에서 `is_admin()`/`is_super_admin()` 을 검사합니다. `requireAdmin()` 도 세션으로 역할을 확인합니다.
+- 예외: **관리자 본인의 세션으로 부르는 RPC 12개**가 있습니다 — `fn_admin_suspend_user` · `fn_admin_ban_user` · `fn_set_maintenance` · `fn_update_app_version_policy` · `fn_admin_delete_match` · `fn_admin_close_chat_room` · `fn_admin_broadcast_notice` · `fn_admin_broadcast_preview_count` · 결제 넷(`fn_admin_payment_recheck` · `fn_admin_payment_refund` · `fn_admin_payment_retry_refund` · `fn_admin_payment_set_settings` — app migration 137). 누가 했는지를 서버가 `auth.uid()` 로 감사 로그에 남기기 때문이며, 함수 안에서 `is_admin()`/`is_super_admin()` 을 검사합니다. `requireAdmin()` 도 세션으로 역할을 확인합니다.
+- 결제의 돈이 움직이는 조치(강제 환불 · 재시도)는 **환불 큐에 넣기만** 합니다. 페이플 취소는 Edge `payple`(/reconcile)이 사용자 환불과 같은 코드로 1분 안에 실행합니다 — 이 서버에는 페이플 키가 없습니다.
 - service_role 로만 부르는 `fn_admin_*` 은 anon·authenticated 에 닫혀 있어야 합니다(app migration **130**). 새 집계 RPC 를 만들 때 `revoke … from public` 만으로는 닫히지 않습니다 — `from public, anon, authenticated` 까지 쓸 것.
 
 ## 프로젝트 구조
