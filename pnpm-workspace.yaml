@@ -4,3 +4,9 @@ allowBuilds:
   protobufjs: false
   sharp: true
   unrs-resolver: true
+
+# 보안 패치가 나온 간접 의존성을 같은 메이저 안에서 끌어올린다(Dependabot · pnpm audit, 2026-10-29).
+# 위 패키지들이 직접 올리면 이 줄을 지운다 — `pnpm why <이름>` 으로 아직 필요한지 본다.
+overrides:
+  # @vercel/oidc > @vercel/cli-config — 큰 컬렉션 검증 때 메모리 고갈
+  zod@>=4.0.0 <4.6.6: ^4.6.7
