@@ -21,6 +21,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       // 쿠키가 완전히 세팅된 후 전체 리로드로 proxy 가 인증을 확인하도록
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- 의도된 전체 리로드(위 주석)
       window.location.href = "/";
     } catch (err) {
       toast.error(

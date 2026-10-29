@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRole(null);
     // 전체 리로드로 /login 이동 — React Query 캐시·컴포넌트 상태를 완전히
     // 비워 로그아웃 후 뒤로가기로 보호 화면이 남는 것을 막는다.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- 의도된 전체 리로드(위 주석)
     window.location.href = "/login";
   };
 
