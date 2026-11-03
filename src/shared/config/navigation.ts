@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   HeartPulse,
   HeartCrack,
+  Banknote,
   CreditCard,
   type LucideIcon,
 } from "lucide-react";
@@ -56,7 +57,11 @@ export const navigation: NavGroup[] = [
       // 결제(app migration 136 · 137) — Phase 0 은 dev DB 에만 있다. 운영 배포에는 메뉴를 숨긴다
       // (NEXT_PUBLIC_FEATURE_PAYMENTS=true 인 배포에서만). 주소로 들어와도 함수가 없으면 안내만 뜬다.
       ...(process.env.NEXT_PUBLIC_FEATURE_PAYMENTS === "true"
-        ? [{ title: "결제", href: "/payments", icon: CreditCard }]
+        ? [
+            { title: "결제", href: "/payments", icon: CreditCard },
+            // 정산(app migration 138) — 결제와 같은 플래그. 같은 dev DB 에만 있다.
+            { title: "정산", href: "/payouts", icon: Banknote },
+          ]
         : []),
     ],
   },

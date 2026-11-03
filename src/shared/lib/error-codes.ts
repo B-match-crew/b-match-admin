@@ -52,6 +52,11 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0312: "오늘 관리자 강제 환불 한도(건수·금액)를 넘었습니다", // ADMIN_REFUND_LIMIT
   P0313: "사유를 10자 이상 입력해야 합니다", // REASON_TOO_SHORT
   P0314: "금액이 허용 범위를 벗어났습니다 (테스트 금액 100원 이상 · 최대 금액 이하)", // INVALID_SETTINGS
+  // 정산 (app migration 138 — dev 전용)
+  P0320: "회차 또는 지급을 찾을 수 없습니다", // NOT_FOUND
+  P0321: "지금 상태에서는 할 수 없는 조치입니다 (새로고침 후 상태를 확인하세요)", // INVALID_STATE
+  P0322: "보류 기간 건너뛰기는 TEST 환경에서만 할 수 있습니다", // HOLD_SKIP_TEST_ONLY
+  P0323: "그 사이 환불된 결제가 있습니다 — 회차를 취소하고 다시 만드세요", // STALE_SETTLEMENT
   // 서버 점검 모드 (migration 29)
   P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
   P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START

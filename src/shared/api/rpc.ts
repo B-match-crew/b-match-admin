@@ -210,3 +210,53 @@ export async function rpcPaymentSetSettings(p: PaymentSettingsParams) {
   if (error) throw error;
   return data as { payments_enabled: boolean; test_amount: number; max_amount: number };
 }
+
+// ─── 정산 (app migration 138 — dev 전용) ───
+// 전부 SUPER_ADMIN + 사유 10자. 페이플을 부르는 것은 없다 — 승인 · 해제 · 재시도는 지급을 SCHEDULED 로 둘 뿐이고,
+// 이체는 1분 안에 Edge payple-hub(/run)가 한다.
+
+export async function rpcSettlementBuild(p: { ignoreHold: boolean; reason: string }) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_settlement_build", {
+    p_ignore_hold: p.ignoreHold,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+  return data as { created: number; carried: number; skipped: number; ids: number[] };
+}
+
+export async function rpcSettlementApprove(p: { id: number; reason: string }) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_settlement_approve", { p_id: p.id, p_reason: p.reason });
+  if (error) throw error;
+  return data as { settlement_id: number; payout: { id: number; status: string; hold_reason: string | null } };
+}
+
+export async function rpcSettlementCancel(p: { id: number; reason: string }) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_settlement_cancel", { p_id: p.id, p_reason: p.reason });
+  if (error) throw error;
+  return data as { settlement_id: number; items_released: number };
+}
+
+export type PayoutAction = "hold" | "release" | "retry";
+
+export async function rpcPayoutAction(p: { action: PayoutAction; id: number; reason: string }) {
+  const supabase = await createServerSupabase();
+  const fn = { hold: "fn_admin_payout_hold", release: "fn_admin_payout_release", retry: "fn_admin_payout_retry" }[
+    p.action
+  ];
+  const { data, error } = await supabase.rpc(fn, { p_id: p.id, p_reason: p.reason });
+  if (error) throw error;
+  return data as { id: number; status: string; hold_reason: string | null };
+}
+
+export async function rpcPayoutSetEnabled(p: { enabled: boolean; reason: string }) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payout_set_enabled", {
+    p_enabled: p.enabled,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+  return data as { enabled: boolean };
+}
