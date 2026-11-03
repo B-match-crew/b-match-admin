@@ -19,6 +19,7 @@ import { WarningBox } from "@/src/shared/ui/warning-box";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { unwrap } from "@/src/shared/lib/unwrap";
+import { ReasonDialog } from "@/src/shared/ui/reason-dialog";
 import {
   fetchPaymentDetail,
   forceRefundAction,
@@ -34,7 +35,6 @@ import {
   won,
 } from "../model/status";
 import { PaymentStatusBadge } from "./payment-status-badge";
-import { PaymentReasonDialog } from "./payment-reason-dialog";
 
 /**
  * 결제 상세 — 주문 · 시도 · 상태 이력 · 환불 · 경보 + 조치(재조회 · 강제 환불 · 환불 재시도).
@@ -259,7 +259,7 @@ export function PaymentDetailDialog({
           </div>
         )}
 
-        <PaymentReasonDialog
+        <ReasonDialog
           open={action !== null && !!order}
           title={action === "retry" ? "환불 재시도" : "강제 환불(전액)"}
           description={order ? `${orderNo} · ${won(order.amount - order.refunded_amount)}` : undefined}

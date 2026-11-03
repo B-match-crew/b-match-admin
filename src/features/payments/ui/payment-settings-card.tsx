@@ -9,11 +9,11 @@ import { Input } from "@/src/shared/ui/kit/input";
 import { Label } from "@/src/shared/ui/kit/label";
 import { InfoField, InfoGrid } from "@/src/shared/ui/info-field";
 import { WarningBox } from "@/src/shared/ui/warning-box";
+import { ReasonDialog } from "@/src/shared/ui/reason-dialog";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { setPaymentSettingsAction } from "../api/actions";
 import { won } from "../model/status";
 import type { PaymentOverview } from "../model/types";
-import { PaymentReasonDialog } from "./payment-reason-dialog";
 
 /**
  * 결제 설정 — 킬 스위치(신규 주문 차단) · 테스트 금액 · 최대 금액. 바꾸는 것은 SUPER_ADMIN + 사유.
@@ -107,7 +107,7 @@ export function PaymentSettingsCard({ settings }: { settings: PaymentOverview["s
           </div>
         )}
 
-        <PaymentReasonDialog
+        <ReasonDialog
           open={pending !== null}
           title={
             pending?.paymentsEnabled === false

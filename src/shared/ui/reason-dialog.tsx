@@ -14,13 +14,25 @@ import {
 } from "@/src/shared/ui/kit/dialog";
 import { Label } from "@/src/shared/ui/kit/label";
 import { Textarea } from "@/src/shared/ui/kit/textarea";
-import { paymentReasonSchema, type PaymentReasonForm } from "./schemas";
+import { z } from "zod";
+import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
+
+/** 조치 사유 — 서버(137 · 138 의 payment.require_reason)와 같은 10자 하한. */
+const reasonSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(REASON_MIN_LENGTH, `사유는 ${REASON_MIN_LENGTH}자 이상 입력해야 합니다`)
+    .max(500),
+});
+
+type ReasonForm = z.infer<typeof reasonSchema>;
 
 /**
- * 사유를 받는 확인 다이얼로그 — 강제 환불 · 환불 재시도 · 설정 변경이 같이 쓴다.
- * 제출 중에는 버튼을 막는다(같은 요청 키라 연타해도 서버가 하나로 묶지만, 화면도 막는다).
+ * 사유를 받는 확인 다이얼로그 — 결제(강제 환불 · 환불 재시도 · 설정)와 정산(회차 만들기 · 승인 · 취소 ·
+ * 보류 · 해제 · 재시도 · 킬 스위치)이 같이 쓴다. 제출 중에는 버튼을 막는다.
  */
-export function PaymentReasonDialog({
+export function ReasonDialog({
   open,
   title,
   description,
@@ -40,13 +52,13 @@ export function PaymentReasonDialog({
   /** true 면 닫는다 */
   onSubmit: (reason: string) => Promise<boolean>;
 }) {
-  const form = useForm<PaymentReasonForm>({
-    resolver: zodResolver(paymentReasonSchema),
+  const form = useForm<ReasonForm>({
+    resolver: zodResolver(reasonSchema),
     defaultValues: { reason: "" },
   });
   const [busy, setBusy] = useState(false);
 
-  const submit = async (v: PaymentReasonForm) => {
+  const submit = async (v: ReasonForm) => {
     setBusy(true);
     try {
       if (await onSubmit(v.reason)) {
@@ -68,8 +80,8 @@ export function PaymentReasonDialog({
         <form onSubmit={form.handleSubmit(submit)} className="space-y-3">
           {warning}
           <div className="space-y-1.5">
-            <Label htmlFor="payment-reason">사유 (10자 이상 · 감사 로그에 남습니다)</Label>
-            <Textarea id="payment-reason" rows={3} {...form.register("reason")} />
+            <Label htmlFor="action-reason">사유 (10자 이상 · 감사 로그에 남습니다)</Label>
+            <Textarea id="action-reason" rows={3} {...form.register("reason")} />
             {form.formState.errors.reason && (
               <p className="text-xs text-destructive">{form.formState.errors.reason.message}</p>
             )}
