@@ -18,7 +18,7 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import { cn } from "@/src/shared/lib/cn";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { buildSettlementsAction, fetchPayoutBalance, fetchPayoutOverview } from "../api/actions";
-import { HOLD_REASON_LABELS, PAYOUT_STATUS_META, payoutAttention, won } from "../model/status";
+import { buildResultMessage, HOLD_REASON_LABELS, PAYOUT_STATUS_META, payoutAttention, won } from "../model/status";
 import type { HoldReason, PayoutStatus } from "../model/types";
 import { PayoutPolicyCard } from "./payout-policy-card";
 import { PayoutStatusBadge, SettlementStatusBadge } from "./payout-badge";
@@ -289,10 +289,9 @@ export function PayoutsClient() {
             toast.error(r.error.message);
             return false;
           }
-          toast.success(
-            `승인 대기 ${r.data.created}건 · 이월 ${r.data.carried}건` +
-              (r.data.skipped > 0 ? ` · 건너뜀 ${r.data.skipped}건(승인 대기 회차가 이미 있음)` : "")
-          );
+          const m = buildResultMessage(r.data, build.ignoreHold);
+          if (m.tone === "success") toast.success(m.text);
+          else toast.info(m.text);
           void queryClient.invalidateQueries({ queryKey: ["payout-overview"] });
           return true;
         }}

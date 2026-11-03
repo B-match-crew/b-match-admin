@@ -118,3 +118,24 @@ export function canRetry(p: Pick<Payout, "id" | "status">, siblings: Array<Pick<
   );
   return ended && !blocked;
 }
+
+/**
+ * 회차 만들기 결과 → 토스트. 아무것도 안 만들어졌으면 **왜인지** 말한다 — "0건" 성공 토스트는
+ * 버튼이 고장 난 것처럼 읽혔다(2026-11-03, dev 의 PAID 결제가 전부 이미 회차에 들어가 있었다).
+ */
+export function buildResultMessage(
+  r: { created: number; carried: number; skipped: number },
+  ignoreHold: boolean
+): { tone: "success" | "info"; text: string } {
+  const skipped = r.skipped > 0 ? ` · 건너뜀 ${r.skipped}건(승인 대기 회차가 이미 있음 — 그 회차를 먼저 승인하거나 취소)` : "";
+  if (r.created === 0 && r.carried === 0) {
+    if (r.skipped > 0) return { tone: "info", text: `새 회차가 없습니다${skipped}` };
+    return {
+      tone: "info",
+      text: ignoreHold
+        ? "회차에 넣을 결제가 없습니다 — 아직 회차에 안 들어간 결제 완료(PAID) 건이 없습니다"
+        : "회차에 넣을 결제가 없습니다 — 경기 종료 + 보류 기간이 지난 결제가 없습니다(TEST 는 '보류 기간 무시'로 만들 수 있습니다)",
+    };
+  }
+  return { tone: "success", text: `승인 대기 ${r.created}건 · 이월 ${r.carried}건${skipped}` };
+}
