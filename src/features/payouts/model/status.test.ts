@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canHold, canRelease, canRetry, formatBp, payoutAttention, policyRows, won } from "./status";
+import { buildResultMessage, canHold, canRelease, canRetry, formatBp, payoutAttention, policyRows, won } from "./status";
 import type { PayoutPolicy } from "./types";
 
 const POLICY: PayoutPolicy = {
@@ -66,5 +66,28 @@ describe("조치 가능 여부", () => {
   it("주의 수 — 보류 · 실패 · 은행 처리 중", () => {
     expect(payoutAttention({ HELD: 1, FAILED: 2, FAILED_ACCOUNT: 1, PROCESSING: 1, PAID_OUT: 9 })).toBe(5);
     expect(payoutAttention({})).toBe(0);
+  });
+});
+
+describe("buildResultMessage — 회차 만들기 결과", () => {
+  it("만들어졌으면 성공 · 수를 보인다", () => {
+    expect(buildResultMessage({ created: 1, carried: 0, skipped: 0 }, true)).toEqual({
+      tone: "success",
+      text: "승인 대기 1건 · 이월 0건",
+    });
+  });
+
+  it("아무것도 없으면 이유를 말한다 — 보류 무시 여부에 따라", () => {
+    const a = buildResultMessage({ created: 0, carried: 0, skipped: 0 }, true);
+    const b = buildResultMessage({ created: 0, carried: 0, skipped: 0 }, false);
+    expect(a.tone).toBe("info");
+    expect(a.text).toContain("아직 회차에 안 들어간");
+    expect(b.text).toContain("보류 기간");
+  });
+
+  it("승인 대기 회차 때문에 건너뛰었으면 그렇게 말한다", () => {
+    const m = buildResultMessage({ created: 0, carried: 0, skipped: 2 }, true);
+    expect(m.tone).toBe("info");
+    expect(m.text).toContain("건너뜀 2건");
   });
 });
