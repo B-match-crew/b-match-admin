@@ -1,4 +1,12 @@
-import type { HoldReason, Payout, PayoutOverview, PayoutPolicy, PayoutStatus, SettlementStatus } from "./types";
+import type {
+  HoldReason,
+  Payout,
+  PayoutBalance,
+  PayoutOverview,
+  PayoutPolicy,
+  PayoutStatus,
+  SettlementStatus,
+} from "./types";
 
 type Tone = "positive" | "warning" | "danger" | "info" | "neutral";
 
@@ -24,13 +32,27 @@ export const SETTLEMENT_STATUS_META: Record<SettlementStatus, { label: string; t
 
 export const HOLD_REASON_LABELS: Record<HoldReason, string> = {
   NO_ACCOUNT: "정산 계좌 없음",
-  INSUFFICIENT_BALANCE: "이체 가능 잔액 부족",
+  INSUFFICIENT_BALANCE: "이체 가능 잔액 부족(다음 날 07:30 자동 재시도)",
   DISPUTE: "분쟁",
   ACCOUNT_RESTRICTED: "모임장 정지 · 탈퇴",
   MANUAL: "운영자 보류",
+  UNCERTAIN: "결과 불명 — 페이플 확인 필요",
 };
 
+/** 🔴 = 돈이 두 번 나갔거나 우리가 모르는 돈이 나갔을 수 있다 — 사람이 바로 본다. */
 export const PAYOUT_ALERT_LABELS: Record<string, string> = {
+  PAYOUT_REQUEST_UNCERTAIN: "🔴 이체 대기 요청 결과 불명 — 페이플에서 대기 · 이체 확인 후 해제",
+  PAYOUT_UNEXPECTED_RESULT: "🔴 보내기 전 상태의 지급에 페이플 결과가 옴",
+  PAYOUT_DOUBLE_RISK: "🔴 이중 지급 위험",
+  PAYOUT_LATE_PAID: "🔴 끝난 지급의 늦은 성공",
+  PAYOUT_WEBHOOK_ERROR: "🔴 웹훅 반영 실패(기록은 남음)",
+  PAYOUT_WEBHOOK_UNMATCHED: "우리가 모르는 이체의 웹훅",
+  PAYOUT_WEBHOOK_UNVERIFIED: "웹훅을 페이플 조회로 확인하지 못함",
+  PAYOUT_RESULT_KEY_MISMATCH: "결과 조회가 다른 이체를 가리킴",
+  PAYOUT_RESULT_UNKNOWN_CODE: "모르는 결과 코드 — 실패로 보지 않고 대기",
+  PAYOUT_EXECUTE_NO_PENDING: "실행했더니 대기가 없음(R0142 · R0144) — 결과 조회로",
+  PAYOUT_EXECUTE_BALANCE: "실행 단계 잔액 부족 — 대기는 남김",
+  PAYOUT_EXECUTE_UNKNOWN_CODE: "실행 응답 코드를 모름 — 다시 실행",
   PAYOUT_VERIFY_LIMIT: "계좌조회 하루 한도",
   PAYOUT_RESULT_LATE: "이체 결과 2시간+ 없음",
   PAYOUT_RETRY_MANY: "지급 재시도 10회+",
@@ -38,15 +60,35 @@ export const PAYOUT_ALERT_LABELS: Record<string, string> = {
   PAYOUT_FAILED_ACCOUNT: "계좌 문제로 지급 실패",
   PAYOUT_FAILED: "지급 실패",
   PAYOUT_CANCELED: "지급 취소",
-  PAYOUT_LATE_PAID: "끝난 지급의 늦은 성공",
-  PAYOUT_DOUBLE_RISK: "이중 지급 위험",
   PAYOUT_HUB_IP: "등록 안 된 IP(T0310) — 프록시 · White IP",
   PAYOUT_HUB_KEY: "Hub 키 오류",
   PAYOUT_HUB_CONTRACT: "정산 서비스 미승인",
+  PAYOUT_HUB_AUTH: "Hub 인증 단계 거절",
   PAYOUT_HUB_WEBHOOK_URL: "웹훅 주소 문제",
-  PAYOUT_HUB_DUPLICATE_REQUEST: "중복 이체 대기(R0145) — 수동 확인",
-  PAYOUT_HUB_BAD_RESPONSE: "이체 대기 응답 이상",
+  PAYOUT_ENV_MISMATCH: "지급 환경과 Edge 키 환경이 다름",
+  // 139 이전 Edge(v2)가 남긴 경보 — 기록 표시용
+  PAYOUT_HUB_DUPLICATE_REQUEST: "중복 이체 대기(R0145) — 수동 확인(이전 버전)",
+  PAYOUT_HUB_BAD_RESPONSE: "이체 대기 응답 이상(이전 버전)",
 };
+
+export function alertLabel(kind: string): string {
+  return PAYOUT_ALERT_LABELS[kind] ?? kind;
+}
+
+export function isUrgentAlert(kind: string): boolean {
+  return alertLabel(kind).startsWith("🔴");
+}
+
+/** 경보 · 이력 detail 에서 사람이 읽을 것만 — 지급 번호 · 사유 · 코드. */
+export function detailSummary(detail: Record<string, unknown> | null | undefined): string {
+  if (!detail) return "";
+  const keys = ["payout_id", "reason", "code", "verify", "result", "from", "to", "hold_reason", "released_from",
+    "released_by", "sqlstate", "defer_sec"];
+  return keys
+    .filter((k) => detail[k] != null && detail[k] !== "" && detail[k] !== false)
+    .map((k) => `${k}=${String(detail[k])}`)
+    .join(" · ");
+}
 
 export function payoutStatusMeta(status: string) {
   return PAYOUT_STATUS_META[status as PayoutStatus] ?? { label: status, tone: "neutral" as const };
@@ -101,9 +143,33 @@ export function payoutAttention(counts: PayoutOverview["counts"]): number {
   return (counts.HELD ?? 0) + (counts.FAILED ?? 0) + (counts.FAILED_ACCOUNT ?? 0) + (counts.PROCESSING ?? 0);
 }
 
-/** 조치 가능 여부 — 서버가 다시 본다. 보류는 페이플에 보내기 전(SCHEDULED · HELD)만. */
-export function canHold(p: Pick<Payout, "status">): boolean {
-  return p.status === "SCHEDULED" || p.status === "HELD";
+/**
+ * 조치 가능 여부 — 서버가 다시 본다. 보류는 페이플에 보내기 전(SCHEDULED · HELD)만, 잡이 쥐고 있지 않고
+ * 보냈을 수 있는 표시가 없을 때만(139). 결과 불명은 운영자 보류로 덮지 않는다.
+ */
+export function canHold(
+  p: Pick<Payout, "status" | "hold_reason" | "lease_until" | "request_inflight_at">,
+  now: number = Date.now()
+): boolean {
+  if (p.status !== "SCHEDULED" && p.status !== "HELD") return false;
+  if (p.lease_until && Date.parse(p.lease_until) > now) return false;
+  if (p.request_inflight_at) return false;
+  return p.hold_reason !== "UNCERTAIN";
+}
+
+/**
+ * 해제 경고. 해제하면 1분 안에 실제 이체가 시작된다. 결과 불명은 같은 키로 다시 요청되므로 페이플에 대기가
+ * 남아 있으면 둘 다 나간다 — 확인 순서를 보인다.
+ */
+export function releaseWarning(p: Pick<Payout, "hold_reason">): "uncertain" | "transfer" {
+  return p.hold_reason === "UNCERTAIN" ? "uncertain" : "transfer";
+}
+
+/** 잔액 조회 결과 — 성공(A0000)이 아니면 금액을 숫자로 보이지 않는다(오류를 0원으로 읽지 않게). */
+export function balanceAmount(b: Pick<PayoutBalance, "result" | "remain_amt">): number | null {
+  if (b.result !== "A0000") return null;
+  const n = Number(b.remain_amt);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function canRelease(p: Pick<Payout, "status">): boolean {

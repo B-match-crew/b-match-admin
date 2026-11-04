@@ -13,7 +13,14 @@ export type PayoutStatus =
 
 export type SettlementStatus = "DRAFT" | "APPROVED" | "CARRIED" | "CANCELED";
 
-export type HoldReason = "NO_ACCOUNT" | "INSUFFICIENT_BALANCE" | "DISPUTE" | "ACCOUNT_RESTRICTED" | "MANUAL";
+/** UNCERTAIN = 이체 대기 요청의 답을 모른다(app migration 139) — 페이플에 대기가 생겼을 수 있다. */
+export type HoldReason =
+  | "NO_ACCOUNT"
+  | "INSUFFICIENT_BALANCE"
+  | "DISPUTE"
+  | "ACCOUNT_RESTRICTED"
+  | "MANUAL"
+  | "UNCERTAIN";
 
 /** provisional = true 면 결정(D13 · D14 · D15 · D16 · P18) 전의 임시 기본값이다. */
 export interface PayoutPolicy {
@@ -42,6 +49,10 @@ export interface Payout {
   pg_message: string | null;
   attempts: number;
   next_try_at: string | null;
+  /** 139 — 집혀서 잡이 쥐고 있는 동안(보류 · 해제 불가). 138 DB 에는 없다. */
+  lease_until?: string | null;
+  /** 139 — 이체 대기 요청을 보냈을 수 있다(답이 오면 지운다). 138 DB 에는 없다. */
+  request_inflight_at?: string | null;
   retry_of_id: number | null;
   requested_at: string | null;
   executed_at: string | null;
@@ -84,6 +95,17 @@ export interface PayoutOverview {
     match_result: string | null;
     received_at: string;
   }>;
+  /** 139 — 결과 불명 보류 수 · 정산 경보(PAYOUT_*) 최근 30건. 138 DB 에는 없다. */
+  uncertain?: number;
+  alerts?: PayoutAlert[];
+}
+
+export interface PayoutAlert {
+  id: number;
+  kind: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+  sent_at: string | null;
 }
 
 export interface SettlementDetail {
