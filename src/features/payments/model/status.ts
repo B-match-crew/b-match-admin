@@ -82,7 +82,7 @@ export const ALERT_LABELS: Record<string, string> = {
   LATE_CONFIRM: "늦은 확정",
   DOUBLE_APPROVAL: "이중 승인 — 자동 환불",
   LATE_AFTER_REPAY: "재결제 뒤 늦은 승인 — 자동 환불",
-  APPROVED_AMOUNT_MISMATCH: "승인 금액이 주문과 다름",
+  APPROVED_AMOUNT_MISMATCH: "승인 금액이 주문과 다름 — 결제 안 됨 · 승인 금액 자동 취소",
   APPROVAL_AFTER_FINAL: "끝난 시도에 승인 응답",
   UNEXPECTED_APPROVAL: "환불 상태 주문에 승인",
   APPROVAL_DECLINED_SYSTEM: "설정 · 한도 문제로 승인 거절",
