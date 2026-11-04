@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { buildResultMessage, canHold, canRelease, canRetry, formatBp, payoutAttention, policyRows, won } from "./status";
+import {
+  alertLabel,
+  balanceAmount,
+  buildResultMessage,
+  canHold,
+  canRelease,
+  canRetry,
+  detailSummary,
+  formatBp,
+  isUrgentAlert,
+  payoutAttention,
+  policyRows,
+  releaseWarning,
+  won,
+} from "./status";
 import type { PayoutPolicy } from "./types";
 
 const POLICY: PayoutPolicy = {
@@ -46,12 +60,30 @@ describe("formatBp · won", () => {
 });
 
 describe("조치 가능 여부", () => {
+  const base = { hold_reason: null, lease_until: null, request_inflight_at: null } as const;
+
   it("보류는 보내기 전만, 해제는 보류만", () => {
-    expect(canHold({ status: "SCHEDULED" })).toBe(true);
-    expect(canHold({ status: "HELD" })).toBe(true);
-    expect(canHold({ status: "REQUESTED" })).toBe(false);
+    expect(canHold({ ...base, status: "SCHEDULED" })).toBe(true);
+    expect(canHold({ ...base, status: "HELD", hold_reason: "NO_ACCOUNT" })).toBe(true);
+    expect(canHold({ ...base, status: "REQUESTED" })).toBe(false);
     expect(canRelease({ status: "HELD" })).toBe(true);
     expect(canRelease({ status: "SCHEDULED" })).toBe(false);
+  });
+
+  it("🔴 보냈을 수 있는 지급 · 결과 불명 · 잡이 쥔 지급은 보류(운영자)로 덮지 않는다", () => {
+    const now = Date.parse("2026-11-04T03:00:00Z");
+    expect(canHold({ ...base, status: "SCHEDULED", request_inflight_at: "2026-11-04T02:59:00Z" }, now)).toBe(false);
+    expect(canHold({ ...base, status: "HELD", hold_reason: "UNCERTAIN" }, now)).toBe(false);
+    expect(canHold({ ...base, status: "SCHEDULED", lease_until: "2026-11-04T03:01:00Z" }, now)).toBe(false);
+    expect(canHold({ ...base, status: "SCHEDULED", lease_until: "2026-11-04T02:59:00Z" }, now)).toBe(true);
+    // 138 DB(필드 없음)에서도 그대로 동작한다
+    expect(canHold({ status: "SCHEDULED", hold_reason: null })).toBe(true);
+  });
+
+  it("해제 경고 — 결과 불명이면 이중 지급 경고, 아니면 이체 시작 경고", () => {
+    expect(releaseWarning({ hold_reason: "UNCERTAIN" })).toBe("uncertain");
+    expect(releaseWarning({ hold_reason: "INSUFFICIENT_BALANCE" })).toBe("transfer");
+    expect(releaseWarning({ hold_reason: null })).toBe("transfer");
   });
 
   it("재시도는 끝난 건이고, 같은 회차에 진행 중 · 지급된 건이 없을 때만", () => {
@@ -66,6 +98,31 @@ describe("조치 가능 여부", () => {
   it("주의 수 — 보류 · 실패 · 은행 처리 중", () => {
     expect(payoutAttention({ HELD: 1, FAILED: 2, FAILED_ACCOUNT: 1, PROCESSING: 1, PAID_OUT: 9 })).toBe(5);
     expect(payoutAttention({})).toBe(0);
+  });
+});
+
+describe("경보 · 잔액 표시", () => {
+  it("경보 라벨 — 모르는 종류는 원문, 돈이 걸린 경보는 🔴", () => {
+    expect(alertLabel("PAYOUT_REQUEST_UNCERTAIN")).toContain("결과 불명");
+    expect(alertLabel("PAYOUT_NEW_KIND")).toBe("PAYOUT_NEW_KIND");
+    expect(isUrgentAlert("PAYOUT_REQUEST_UNCERTAIN")).toBe(true);
+    expect(isUrgentAlert("PAYOUT_DOUBLE_RISK")).toBe(true);
+    expect(isUrgentAlert("PAYOUT_WEBHOOK_ERROR")).toBe(true);
+    expect(isUrgentAlert("PAYOUT_VERIFY_LIMIT")).toBe(false);
+  });
+
+  it("detail 요약 — 아는 키만, 빈 값은 빼고", () => {
+    expect(detailSummary({ payout_id: 7, reason: "REQUEST_TIMEOUT", code: null, request_cleared: false, x: 1 })).toBe(
+      "payout_id=7 · reason=REQUEST_TIMEOUT"
+    );
+    expect(detailSummary(null)).toBe("");
+  });
+
+  it("🔴 잔액 조회가 실패하면 0원이 아니라 null(조회 실패)", () => {
+    expect(balanceAmount({ result: "A0000", remain_amt: "800000" })).toBe(800000);
+    expect(balanceAmount({ result: "T0310", remain_amt: null })).toBeNull();
+    expect(balanceAmount({ result: "NETWORK" })).toBeNull();
+    expect(balanceAmount({ result: "A0000", remain_amt: "abc" })).toBeNull();
   });
 });
 
