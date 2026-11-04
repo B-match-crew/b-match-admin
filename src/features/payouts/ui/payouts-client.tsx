@@ -18,7 +18,17 @@ import { unwrap } from "@/src/shared/lib/unwrap";
 import { cn } from "@/src/shared/lib/cn";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { buildSettlementsAction, fetchPayoutBalance, fetchPayoutOverview } from "../api/actions";
-import { buildResultMessage, HOLD_REASON_LABELS, PAYOUT_STATUS_META, payoutAttention, won } from "../model/status";
+import {
+  alertLabel,
+  balanceAmount,
+  buildResultMessage,
+  detailSummary,
+  HOLD_REASON_LABELS,
+  isUrgentAlert,
+  PAYOUT_STATUS_META,
+  payoutAttention,
+  won,
+} from "../model/status";
 import type { HoldReason, PayoutStatus } from "../model/types";
 import { PayoutPolicyCard } from "./payout-policy-card";
 import { PayoutStatusBadge, SettlementStatusBadge } from "./payout-badge";
@@ -57,8 +67,21 @@ export function PayoutsClient() {
     n: data.counts[s] ?? 0,
   }));
 
+  const uncertain = data.uncertain ?? 0;
+  const alerts = data.alerts ?? [];
+
   return (
     <div className="space-y-6">
+      {uncertain > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertDescription>
+            <b>결과 불명 지급 {uncertain}건</b> — 이체 대기 요청의 답을 받지 못했습니다. 페이플에 대기가 생겼을 수
+            있어 시스템이 다시 보내지 않습니다. 페이플 파트너 관리자 › 정산지급대행에서 그 지급의 대기 · 이체 내역을
+            확인한 뒤, 회차 상세에서 해제하세요.
+          </AlertDescription>
+        </Alert>
+      )}
       {attention > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
@@ -116,7 +139,9 @@ export function PayoutsClient() {
                 {balance.data.result}
                 {balance.data.result !== "A0000" && balance.data.message ? ` · ${balance.data.message}` : ""}
               </InfoField>
-              <InfoField label="이체 가능">{won(Number(balance.data.remain_amt ?? NaN) || 0)}</InfoField>
+              <InfoField label="이체 가능">
+                {balanceAmount(balance.data) == null ? "조회 실패" : won(balanceAmount(balance.data))}
+              </InfoField>
               <InfoField label="누적 정산 · 이체">
                 {won(Number(balance.data.total_account_amt ?? 0))} · {won(Number(balance.data.total_transfer_amt ?? 0))}
               </InfoField>
@@ -233,7 +258,13 @@ export function PayoutsClient() {
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{p.pg_code ?? "-"}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.paid_at ? formatDateTime(p.paid_at) : "-"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {p.paid_at
+                        ? formatDateTime(p.paid_at)
+                        : p.next_try_at
+                          ? `다음 시도 ${formatDateTime(p.next_try_at)}`
+                          : "-"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -244,9 +275,37 @@ export function PayoutsClient() {
 
       <Card>
         <CardHeader>
+          <CardTitle>정산 경보</CardTitle>
+          <CardDescription>
+            최근 30건. 🔴 는 돈이 두 번 나갔거나 우리가 모르는 돈이 나갔을 수 있는 경우입니다 — 지급 번호로 회차를
+            찾아 확인하세요.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {alerts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">경보가 없습니다.</p>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {alerts.map((a) => (
+                <li key={a.id} className="flex flex-wrap gap-x-2">
+                  <span className="text-muted-foreground">{formatDateTime(a.created_at)}</span>
+                  <span className={cn(isUrgentAlert(a.kind) && "font-medium text-bds-status-error-text")}>
+                    {alertLabel(a.kind)}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{detailSummary(a.detail)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>최근 정산 웹훅</CardTitle>
           <CardDescription>
-            본문은 믿지 않고 페이플에 다시 물어 반영합니다. 확인 실패(VERIFY_FAILED)는 /run 의 결과 확인이 다시 봅니다.
+            본문은 믿지 않고 페이플에 다시 물어 반영합니다. 확인 실패(VERIFY_FAILED) · 반영 실패(ERROR) · 모르는
+            키(UNMATCHED)는 위 경보에도 뜹니다.
           </CardDescription>
         </CardHeader>
         <CardContent>

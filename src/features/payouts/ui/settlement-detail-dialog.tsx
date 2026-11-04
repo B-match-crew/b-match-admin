@@ -15,7 +15,16 @@ import { formatDateTime } from "@/src/shared/lib/format-date";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { useAuth } from "@/src/app/providers/auth-provider";
 import { approveSettlementAction, cancelSettlementAction, fetchSettlementDetail, payoutAction } from "../api/actions";
-import { canHold, canRelease, canRetry, HOLD_REASON_LABELS, policyRows, won } from "../model/status";
+import {
+  canHold,
+  canRelease,
+  canRetry,
+  detailSummary,
+  HOLD_REASON_LABELS,
+  policyRows,
+  releaseWarning,
+  won,
+} from "../model/status";
 import type { HoldReason, Payout } from "../model/types";
 import { PayoutStatusBadge, ProvisionalBadge, SettlementStatusBadge } from "./payout-badge";
 
@@ -142,16 +151,35 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
                         <TableCell>
                           <PayoutStatusBadge status={p.status} />
                           {p.hold_reason && (
-                            <div className="text-bds-caption2 text-muted-foreground">
+                            <div
+                              className={
+                                p.hold_reason === "UNCERTAIN"
+                                  ? "text-bds-caption2 font-medium text-bds-status-error-text"
+                                  : "text-bds-caption2 text-muted-foreground"
+                              }
+                            >
                               {HOLD_REASON_LABELS[p.hold_reason as HoldReason] ?? p.hold_reason}
+                            </div>
+                          )}
+                          {p.request_inflight_at && p.hold_reason !== "UNCERTAIN" && (
+                            <div className="text-bds-caption2 text-muted-foreground">
+                              요청 보냄 {formatDateTime(p.request_inflight_at)} · 답 기다리는 중
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{won(p.tran_amount)}</TableCell>
                         <TableCell className="text-xs">
                           <span className="font-mono">{p.pg_code ?? "-"}</span> {p.pg_message ?? ""}
+                          <div className="font-mono text-muted-foreground">{p.distinct_key}</div>
                         </TableCell>
-                        <TableCell className="tabular-nums">{p.attempts}</TableCell>
+                        <TableCell className="tabular-nums">
+                          {p.attempts}
+                          {p.next_try_at && !p.paid_at && (
+                            <div className="text-bds-caption2 text-muted-foreground">
+                              다음 {formatDateTime(p.next_try_at)}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="space-x-1 text-right">
                           {isSuper && canHold(p) && p.status !== "HELD" && (
                             <Button size="sm" variant="outline" onClick={() => setPending({ kind: "hold", payout: p })}>
@@ -214,6 +242,10 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
                     </span>
                     <span className="text-muted-foreground">{e.actor}</span>
                     {e.pg_code && <span className="font-mono text-xs">{e.pg_code}</span>}
+                    {e.pg_message && <span className="text-xs text-muted-foreground">{e.pg_message}</span>}
+                    {detailSummary(e.detail) && (
+                      <span className="font-mono text-xs text-muted-foreground">{detailSummary(e.detail)}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -231,10 +263,28 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
               </WarningBox>
             ) : pending?.kind === "retry" ? (
               <WarningBox tone="caution">같은 금액으로 새 지급을 만듭니다. 앞 건은 그대로 남습니다.</WarningBox>
+            ) : pending?.kind === "release" && releaseWarning(pending.payout) === "uncertain" ? (
+              <WarningBox tone="danger">
+                <b>이 지급은 이체 대기 요청의 답을 받지 못했습니다.</b> 해제하면 1분 안에 <b>같은 키</b>
+                (<span className="font-mono">{pending.payout.distinct_key}</span>)로 다시 요청하고 바로 실행합니다.
+                페이플에 앞 요청의 대기가 남아 있으면 <b>같이 실행돼 두 번 나갑니다.</b>
+                <br />
+                먼저 페이플 파트너 관리자 › 정산지급대행에서 이 키의 대기 · 이체 내역을 확인하세요. 대기가 있으면
+                거기서 취소한 뒤 해제하고, 이미 이체됐으면 해제하지 말고 웹훅 · 결과 확인을 기다리세요.
+              </WarningBox>
+            ) : pending?.kind === "release" ? (
+              <WarningBox tone="caution">
+                해제하면 다시 지급 대기가 되고 <b>1분 안에 실제 이체</b>가 시작됩니다(TEST 는 1,000원 고정).
+                보류 사유(계좌 · 정지 등)가 남아 있으면 다시 보류됩니다.
+              </WarningBox>
             ) : undefined
           }
           confirmLabel={pending ? TITLES[pending.kind] : "확인"}
-          destructive={pending?.kind === "cancel" || pending?.kind === "hold"}
+          destructive={
+            pending?.kind === "cancel" ||
+            pending?.kind === "hold" ||
+            (pending?.kind === "release" && releaseWarning(pending.payout) === "uncertain")
+          }
           onClose={() => setPending(null)}
           onSubmit={async (reason) => {
             if (!pending || settlementId == null) return false;
