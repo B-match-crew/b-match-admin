@@ -53,6 +53,8 @@ export interface Payout {
   lease_until?: string | null;
   /** 139 — 이체 대기 요청을 보냈을 수 있다(답이 오면 지운다). 138 DB 에는 없다. */
   request_inflight_at?: string | null;
+  /** 143 — 관리자가 넣은 group_key 후보(결과 불명 보류의 자동 확인이 대기 목록에서 검증한다). 142 이하 DB 에는 없다. */
+  recover_group_key?: string | null;
   retry_of_id: number | null;
   requested_at: string | null;
   executed_at: string | null;

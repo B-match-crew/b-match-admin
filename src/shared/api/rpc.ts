@@ -251,6 +251,18 @@ export async function rpcPayoutAction(p: { action: PayoutAction; id: number; rea
   return data as { id: number; status: string; hold_reason: string | null };
 }
 
+/** 결과 불명 보류에 group_key 후보를 넣는다(app migration 143) — Edge 가 대기 목록에서 검증한 뒤에만 실행한다. */
+export async function rpcPayoutSetGroupKey(p: { id: number; groupKey: string; reason: string }) {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("fn_admin_payout_set_group_key", {
+    p_id: p.id,
+    p_group_key: p.groupKey,
+    p_reason: p.reason,
+  });
+  if (error) throw error;
+  return data as { id: number; status: string; recover_group_key: string | null };
+}
+
 export async function rpcPayoutSetEnabled(p: { enabled: boolean; reason: string }) {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("fn_admin_payout_set_enabled", {

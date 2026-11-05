@@ -57,6 +57,7 @@ export const PG_ERROR_MESSAGES: Record<string, string> = {
   P0321: "지금 상태에서는 할 수 없는 조치입니다 (새로고침 후 상태를 확인하세요)", // INVALID_STATE
   P0322: "보류 기간 건너뛰기는 TEST 환경에서만 할 수 있습니다", // HOLD_SKIP_TEST_ONLY
   P0323: "그 사이 환불된 결제가 있습니다 — 회차를 취소하고 다시 만드세요", // STALE_SETTLEMENT
+  P0324: "group_key 형식이 맞지 않습니다 (영문 · 숫자 · +/=_.- 8~64자)", // INVALID_GROUP_KEY
   // 서버 점검 모드 (migration 29)
   P0070: "점검 시작/예상 종료 시각을 입력해야 합니다", // MAINTENANCE_TIME_REQUIRED
   P0071: "예상 종료 시각은 시작 시각보다 뒤여야 합니다", // MAINTENANCE_END_BEFORE_START

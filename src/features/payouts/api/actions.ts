@@ -8,6 +8,7 @@ import { requireAdmin } from "@/src/shared/lib/role-guard";
 import {
   rpcPayoutAction,
   rpcPayoutSetEnabled,
+  rpcPayoutSetGroupKey,
   rpcSettlementApprove,
   rpcSettlementBuild,
   rpcSettlementCancel,
@@ -123,6 +124,19 @@ export async function payoutAction(p: {
     requireReason(p.reason);
     await requireAdmin("SUPER_ADMIN");
     return await rpcPayoutAction(p);
+  });
+}
+
+/** 결과 불명 보류에 group_key 넣기(SUPER_ADMIN + 사유) — 파트너 관리자 지급이체 요청 내역에서 distinct_key 로 찾은 값. */
+export async function setGroupKeyAction(p: {
+  id: number;
+  groupKey: string;
+  reason: string;
+}): Promise<ActionResult<{ id: number; status: string; recover_group_key: string | null }>> {
+  return runAction(async () => {
+    requireReason(p.reason);
+    await requireAdmin("SUPER_ADMIN");
+    return await rpcPayoutSetGroupKey({ id: p.id, groupKey: p.groupKey.trim(), reason: p.reason });
   });
 }
 

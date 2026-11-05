@@ -36,12 +36,15 @@ export const HOLD_REASON_LABELS: Record<HoldReason, string> = {
   DISPUTE: "분쟁",
   ACCOUNT_RESTRICTED: "모임장 정지 · 탈퇴",
   MANUAL: "운영자 보류",
-  UNCERTAIN: "결과 불명 — 페이플 확인 필요",
+  UNCERTAIN: "결과 불명 — 자동 확인 중",
 };
 
 /** 🔴 = 돈이 두 번 나갔거나 우리가 모르는 돈이 나갔을 수 있다 — 사람이 바로 본다. */
 export const PAYOUT_ALERT_LABELS: Record<string, string> = {
-  PAYOUT_REQUEST_UNCERTAIN: "🔴 이체 대기 요청 결과 불명 — 페이플에서 대기 · 이체 확인 후 해제",
+  PAYOUT_REQUEST_UNCERTAIN: "이체 대기 요청 결과 불명 — 10분 뒤부터 자동 확인(같은 키 재요청은 페이플이 거절해 안전)",
+  PAYOUT_PENDING_NEEDS_GROUP_KEY: "🔴 대기 있음(R0132) · group_key 모름 — 파트너 관리자에서 찾아 '그룹키 입력'",
+  PAYOUT_RECOVER_GROUP_KEY_NOT_FOUND: "입력한 group_key 의 대기 목록에 이 지급이 없음 — 다시 확인",
+  PAYOUT_EXECUTE_ACCOUNT_CODE: "실행 응답에 계좌 코드 — 건별 조회로 확정 대기",
   PAYOUT_UNEXPECTED_RESULT: "🔴 보내기 전 상태의 지급에 페이플 결과가 옴",
   PAYOUT_DOUBLE_RISK: "🔴 이중 지급 위험",
   PAYOUT_LATE_PAID: "🔴 끝난 지급의 늦은 성공",
@@ -158,11 +161,39 @@ export function canHold(
 }
 
 /**
- * 해제 경고. 해제하면 지급 시간(07~22시)에 1분 안에 실제 이체가 시작된다. 결과 불명은 같은 키로 다시 요청되므로 페이플에 대기가
+ * 해제 경고. 해제하면 지급 시간(07~22시)에 1분 안에 실제 이체가 시작된다. 결과 불명은 같은 키로 다시 요청된다 — 페이플이
+ * 같은 키를 R0132 로 거절하므로 두 번 나가지는 않지만(2026-11-05 답변), 대기가 있으면 다시 결과 불명이 된다. 페이플에 대기가
  * 남아 있으면 둘 다 나간다 — 확인 순서를 보인다.
  */
 export function releaseWarning(p: Pick<Payout, "hold_reason">): "uncertain" | "transfer" {
   return p.hold_reason === "UNCERTAIN" ? "uncertain" : "transfer";
+}
+
+/** group_key 형식 — 서버(143 fn_admin_payout_set_group_key)와 같다. */
+export const GROUP_KEY_RE = /^[A-Za-z0-9+/=_.-]{8,64}$/;
+
+export type UncertainState = "AUTO" | "NEEDS_GROUP_KEY" | "CHECKING_GROUP_KEY";
+
+export const UNCERTAIN_STATE_LABELS: Record<UncertainState, string> = {
+  AUTO: "10분 뒤부터 30분마다 자동 확인",
+  NEEDS_GROUP_KEY: "대기 있음(R0132) — group_key 필요",
+  CHECKING_GROUP_KEY: "입력한 group_key 확인 중",
+};
+
+/** 결과 불명 보류의 지금 단계(143). 결과 불명이 아니면 null. */
+export function uncertainState(p: Pick<Payout, "hold_reason" | "pg_code" | "recover_group_key">): UncertainState | null {
+  if (p.hold_reason !== "UNCERTAIN") return null;
+  if (p.recover_group_key) return "CHECKING_GROUP_KEY";
+  return p.pg_code === "R0132" ? "NEEDS_GROUP_KEY" : "AUTO";
+}
+
+/** group_key 입력 — 결과 불명 보류이고 잡이 쥐고 있지 않을 때. 서버가 다시 본다. */
+export function canSetGroupKey(
+  p: Pick<Payout, "status" | "hold_reason" | "lease_until">,
+  now: number = Date.now()
+): boolean {
+  if (p.status !== "HELD" || p.hold_reason !== "UNCERTAIN") return false;
+  return !(p.lease_until && Date.parse(p.lease_until) > now);
 }
 
 /** 잔액 조회 결과 — 성공(A0000)이 아니면 금액을 숫자로 보이지 않는다(오류를 0원으로 읽지 않게). */
