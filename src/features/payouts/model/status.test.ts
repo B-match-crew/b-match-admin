@@ -6,7 +6,10 @@ import {
   canHold,
   canRelease,
   canRetry,
+  canSetGroupKey,
   detailSummary,
+  GROUP_KEY_RE,
+  uncertainState,
   formatBp,
   isUrgentAlert,
   payoutAttention,
@@ -101,11 +104,38 @@ describe("조치 가능 여부", () => {
   });
 });
 
+describe("결과 불명 보류(143)", () => {
+  const u = { status: "HELD" as const, hold_reason: "UNCERTAIN" as const, lease_until: null, pg_code: null, recover_group_key: null };
+
+  it("단계 — 자동 확인 · R0132(group_key 필요) · 입력한 group_key 확인 중", () => {
+    expect(uncertainState(u)).toBe("AUTO");
+    expect(uncertainState({ ...u, pg_code: "R0132" })).toBe("NEEDS_GROUP_KEY");
+    expect(uncertainState({ ...u, pg_code: "R0132", recover_group_key: "GKADMIN0001" })).toBe("CHECKING_GROUP_KEY");
+    expect(uncertainState({ ...u, hold_reason: "MANUAL" })).toBeNull();
+  });
+
+  it("그룹키 입력은 결과 불명 보류 · 잡이 쥐지 않을 때만", () => {
+    const now = Date.parse("2026-11-05T03:00:00Z");
+    expect(canSetGroupKey(u, now)).toBe(true);
+    expect(canSetGroupKey({ ...u, lease_until: "2026-11-05T03:01:00Z" }, now)).toBe(false);
+    expect(canSetGroupKey({ ...u, hold_reason: "NO_ACCOUNT" }, now)).toBe(false);
+    expect(canSetGroupKey({ ...u, status: "SCHEDULED" }, now)).toBe(false);
+  });
+
+  it("group_key 형식 — 서버와 같다(영문 · 숫자 · +/=_.- 8~64자)", () => {
+    expect(GROUP_KEY_RE.test("QlJKZDZrNVBzbW9Yc1UzTWNIdW05dz09")).toBe(true);
+    expect(GROUP_KEY_RE.test("short")).toBe(false);
+    expect(GROUP_KEY_RE.test("bad key!")).toBe(false);
+  });
+});
+
 describe("경보 · 잔액 표시", () => {
   it("경보 라벨 — 모르는 종류는 원문, 돈이 걸린 경보는 🔴", () => {
     expect(alertLabel("PAYOUT_REQUEST_UNCERTAIN")).toContain("결과 불명");
     expect(alertLabel("PAYOUT_NEW_KIND")).toBe("PAYOUT_NEW_KIND");
-    expect(isUrgentAlert("PAYOUT_REQUEST_UNCERTAIN")).toBe(true);
+    // 143 부터 결과 불명은 자동 확인 — 긴급은 사람이 group_key 를 넣어야 할 때
+    expect(isUrgentAlert("PAYOUT_REQUEST_UNCERTAIN")).toBe(false);
+    expect(isUrgentAlert("PAYOUT_PENDING_NEEDS_GROUP_KEY")).toBe(true);
     expect(isUrgentAlert("PAYOUT_DOUBLE_RISK")).toBe(true);
     expect(isUrgentAlert("PAYOUT_WEBHOOK_ERROR")).toBe(true);
     expect(isUrgentAlert("PAYOUT_VERIFY_LIMIT")).toBe(false);
