@@ -40,7 +40,7 @@ import { PaymentStatusBadge } from "./payment-status-badge";
  * 결제 상세 — 주문 · 시도 · 상태 이력 · 환불 · 경보 + 조치(재조회 · 강제 환불 · 환불 재시도).
  *
  * 조치는 서버가 다시 판정한다(권한 · 상태 · 하루 상한). 버튼은 그 판정을 미리 보여 줄 뿐이다.
- * 돈이 움직이는 조치는 환불 큐에 넣고 끝난다 — 1분 안에 Edge 가 취소를 실행하므로 결과는 다시 열어 본다.
+ * 돈이 움직이는 조치는 환불 큐에 넣고 끝난다 — 낮 1분 · 밤 5분 안에 Edge 가 취소를 실행하므로 결과는 다시 열어 본다.
  */
 export function PaymentDetailDialog({
   orderNo,
@@ -265,8 +265,8 @@ export function PaymentDetailDialog({
           description={order ? `${orderNo} · ${won(order.amount - order.refunded_amount)}` : undefined}
           warning={
             <WarningBox>
-              환불 큐에 넣습니다. <b>1분 안에</b> 페이플 취소가 실행되고, 되돌릴 수 없습니다. 오늘 강제 환불
-              건수 · 금액 상한을 넘으면 거절됩니다.
+              환불 큐에 넣습니다. <b>낮(07~22시)에는 1분, 밤에는 5분 안에</b> 페이플 취소가 실행되고, 되돌릴 수
+              없습니다.{action === "retry" ? "" : " 오늘 강제 환불 건수 · 금액 상한을 넘으면 거절됩니다."}
             </WarningBox>
           }
           confirmLabel={action === "retry" ? "재시도" : "환불"}
@@ -281,7 +281,7 @@ export function PaymentDetailDialog({
               return false;
             }
             toast.success(
-              r.data.result === "EXISTING" ? "이미 접수된 요청입니다" : "환불을 접수했습니다 — 1분 안에 실행됩니다"
+              r.data.result === "EXISTING" ? "이미 접수된 요청입니다" : "환불을 접수했습니다 — 낮에는 1분, 밤에는 5분 안에 실행됩니다"
             );
             invalidate();
             return true;

@@ -25,7 +25,7 @@ import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
  *
  * 조회 셋은 service_role(`fn_admin_payment_*` — 결제 표는 노출 안 된 스키마라 RPC 로만) — requireAdmin() 뒤에.
  * 조치 넷은 관리자 **세션** RPC — 누가 했는지를 서버가 감사 로그에 남긴다. 돈이 움직이는 조치(강제 환불 ·
- * 재시도)는 환불 큐에 넣을 뿐이고, 페이플 취소는 Edge payple(/reconcile)이 1분 안에 실행한다.
+ * 재시도)는 환불 큐에 넣을 뿐이고, 페이플 취소는 Edge payple(/reconcile)이 낮 1분 · 밤 5분 안에 실행한다(app migration 142 — 밤에는 cron 5분).
  */
 
 export async function fetchPaymentOverview(p: {

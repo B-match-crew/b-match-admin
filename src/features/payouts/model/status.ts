@@ -158,7 +158,7 @@ export function canHold(
 }
 
 /**
- * 해제 경고. 해제하면 1분 안에 실제 이체가 시작된다. 결과 불명은 같은 키로 다시 요청되므로 페이플에 대기가
+ * 해제 경고. 해제하면 지급 시간(07~22시)에 1분 안에 실제 이체가 시작된다. 결과 불명은 같은 키로 다시 요청되므로 페이플에 대기가
  * 남아 있으면 둘 다 나간다 — 확인 순서를 보인다.
  */
 export function releaseWarning(p: Pick<Payout, "hold_reason">): "uncertain" | "transfer" {
