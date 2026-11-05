@@ -20,7 +20,7 @@ import { REASON_MIN_LENGTH } from "@/src/shared/config/constants";
  *
  * 조회 둘은 service_role(`fn_admin_payout_overview` · `fn_admin_settlement_detail`), 잔액은 Edge payple-hub(/balance —
  * 페이플 Hub 키는 Edge 에만 있다). 조치는 관리자 **세션** RPC(SUPER_ADMIN + 사유) — 감사 로그에 누가 했는지 남는다.
- * 어느 조치도 페이플을 부르지 않는다. 이체는 1분 안에 Edge(/run)가 한다.
+ * 어느 조치도 페이플을 부르지 않는다. 이체는 지급 시간(07~22시)에 1분 안에 Edge(/run)가 한다.
  */
 
 export async function fetchPayoutOverview(): Promise<ActionResult<PayoutOverview>> {
@@ -38,6 +38,19 @@ export async function fetchSettlementDetail(id: number): Promise<ActionResult<Se
     const { data, error } = await createAdminClient().rpc("fn_admin_settlement_detail", { p_id: id });
     if (error) throw error;
     return data as SettlementDetail;
+  });
+}
+
+/**
+ * 아직 회차에 안 들어간 결제 수 — 누적 결제를 훑는 집계라 개요(자동 새로고침)에서 빼고 버튼으로만 읽는다
+ * (app migration 142 `fn_admin_payout_pending_payments`).
+ */
+export async function fetchPendingPayments(): Promise<ActionResult<{ pending_payments: number; pg_env: "TEST" | "LIVE" }>> {
+  return runAction(async () => {
+    await requireAdmin();
+    const { data, error } = await createAdminClient().rpc("fn_admin_payout_pending_payments");
+    if (error) throw error;
+    return data as { pending_payments: number; pg_env: "TEST" | "LIVE" };
   });
 }
 

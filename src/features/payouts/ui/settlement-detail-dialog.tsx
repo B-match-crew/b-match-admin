@@ -50,7 +50,7 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
     queryKey: ["settlement-detail", settlementId],
     queryFn: () => unwrap(fetchSettlementDetail(settlementId!)),
     enabled: settlementId != null,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,   // 1분 — 조치 뒤에는 바로 다시 읽는다(refresh)
   });
   const isSuper = role === "SUPER_ADMIN";
   const s = data?.settlement;
@@ -259,13 +259,14 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
           warning={
             pending?.kind === "approve" ? (
               <WarningBox tone="caution">
-                승인하면 지급이 만들어지고 <b>1분 안에 실제 이체</b>가 시작됩니다(TEST 는 1,000원 고정).
+                승인하면 지급이 만들어지고 <b>지급 시간(07~22시)이면 1분 안에 실제 이체</b>가 시작됩니다. 밤에는 07시에
+                시작합니다(TEST 는 1,000원 고정).
               </WarningBox>
             ) : pending?.kind === "retry" ? (
               <WarningBox tone="caution">같은 금액으로 새 지급을 만듭니다. 앞 건은 그대로 남습니다.</WarningBox>
             ) : pending?.kind === "release" && releaseWarning(pending.payout) === "uncertain" ? (
               <WarningBox tone="danger">
-                <b>이 지급은 이체 대기 요청의 답을 받지 못했습니다.</b> 해제하면 1분 안에 <b>같은 키</b>
+                <b>이 지급은 이체 대기 요청의 답을 받지 못했습니다.</b> 해제하면 지급 시간(07~22시)의 1분 안에 <b>같은 키</b>
                 (<span className="font-mono">{pending.payout.distinct_key}</span>)로 다시 요청하고 바로 실행합니다.
                 페이플에 앞 요청의 대기가 남아 있으면 <b>같이 실행돼 두 번 나갑니다.</b>
                 <br />
@@ -274,7 +275,8 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
               </WarningBox>
             ) : pending?.kind === "release" ? (
               <WarningBox tone="caution">
-                해제하면 다시 지급 대기가 되고 <b>1분 안에 실제 이체</b>가 시작됩니다(TEST 는 1,000원 고정).
+                해제하면 다시 지급 대기가 되고 <b>지급 시간(07~22시)이면 1분 안에 실제 이체</b>가 시작됩니다(TEST 는
+                1,000원 고정).
                 보류 사유(계좌 · 정지 등)가 남아 있으면 다시 보류됩니다.
               </WarningBox>
             ) : undefined

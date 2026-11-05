@@ -17,7 +17,7 @@ import { formatDateTime } from "@/src/shared/lib/format-date";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { cn } from "@/src/shared/lib/cn";
 import { useAuth } from "@/src/app/providers/auth-provider";
-import { buildSettlementsAction, fetchPayoutBalance, fetchPayoutOverview } from "../api/actions";
+import { buildSettlementsAction, fetchPayoutBalance, fetchPayoutOverview, fetchPendingPayments } from "../api/actions";
 import {
   alertLabel,
   balanceAmount,
@@ -37,7 +37,7 @@ import { SettlementDetailDialog } from "./settlement-detail-dialog";
 
 /**
  * 정산 운영(결제 계획서 §12.8) — 정책(임시 표시) · 지급 상태 · 잔액 · 회차 만들기 · 회차 · 최근 지급 · 웹훅.
- * 회차는 만들기 → (상세에서) 승인 순서다. 승인하면 지급이 SCHEDULED 가 되고 1분 안에 Edge 가 이체한다.
+ * 회차는 만들기 → (상세에서) 승인 순서다. 승인하면 지급이 SCHEDULED 가 되고 지급 시간(07~22시)에 1분 안에 Edge 가 이체한다.
  */
 export function PayoutsClient() {
   const { role } = useAuth();
@@ -47,9 +47,11 @@ export function PayoutsClient() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["payout-overview"],
     queryFn: () => unwrap(fetchPayoutOverview()),
-    refetchInterval: 30_000,
+    // 2분 — 조치(승인 · 보류 · 재시도) 뒤에는 바로 다시 읽는다(invalidate). 숨긴 탭에서는 멈춘다(react-query 기본).
+    refetchInterval: 120_000,
   });
   const balance = useMutation({ mutationFn: () => unwrap(fetchPayoutBalance()) });
+  const pending = useMutation({ mutationFn: () => unwrap(fetchPendingPayments()) });
 
   if (isError) {
     return isPayoutsMissing(error) ? (
@@ -97,7 +99,25 @@ export function PayoutsClient() {
         <CardHeader>
           <CardTitle>지급 상태</CardTitle>
           <CardDescription>
-            승인 대기 회차 {data.drafts}건 · 아직 회차에 안 들어간 결제 {data.pending_payments}건. 30초마다 다시 읽습니다.
+            승인 대기 회차 {data.drafts}건 · 아직 회차에 안 들어간 결제{" "}
+            {data.pending_payments != null
+              ? `${data.pending_payments}건`
+              : pending.data
+                ? `${pending.data.pending_payments}건`
+                : "—"}
+            {data.pending_payments == null && (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto px-1"
+                onClick={() => pending.mutate()}
+                disabled={pending.isPending}
+              >
+                {pending.isPending ? "조회 중…" : "조회"}
+              </Button>
+            )}
+            {pending.isError && <span className="text-destructive"> 조회 실패</span>}
+            . 2분마다 다시 읽습니다.
           </CardDescription>
         </CardHeader>
         <CardContent>

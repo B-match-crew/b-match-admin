@@ -85,7 +85,8 @@ export interface PayoutOverview {
   counts: Partial<Record<PayoutStatus, number>>;
   drafts: number;
   accounts: number;
-  pending_payments: number;
+  /** 142 부터 개요에서 뺐다(누적 결제를 훑는 집계) — fetchPendingPayments 로 따로. 138 · 139 DB 에만 있다. */
+  pending_payments?: number;
   settlements: SettlementRow[];
   payouts: Payout[];
   webhooks: Array<{

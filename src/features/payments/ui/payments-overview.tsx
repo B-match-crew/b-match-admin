@@ -26,7 +26,7 @@ export function PaymentsOverview({ onOpenOrder }: { onOpenOrder: (orderNo: strin
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["payment-overview", range.from, range.to],
     queryFn: () => unwrap(fetchPaymentOverview({ dateFrom: range.from, dateTo: range.to })),
-    refetchInterval: 60_000,
+    refetchInterval: 120_000,   // 2분 — 숨긴 탭에서는 멈춘다(react-query 기본)
   });
 
   if (isError) {
@@ -66,7 +66,7 @@ export function PaymentsOverview({ onOpenOrder }: { onOpenOrder: (orderNo: strin
       <Card>
         <CardHeader>
           <CardTitle>운영 큐</CardTitle>
-          <CardDescription>정상이면 위의 여섯 칸은 0 입니다. 1분마다 다시 읽습니다.</CardDescription>
+          <CardDescription>정상이면 위의 여섯 칸은 0 입니다. 2분마다 다시 읽습니다.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-4">
