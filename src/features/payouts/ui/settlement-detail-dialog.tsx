@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/src/shared/ui/kit/button";
+import { Input } from "@/src/shared/ui/kit/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/src/shared/ui/kit/dialog";
 import { Skeleton } from "@/src/shared/ui/kit/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/shared/ui/kit/table";
@@ -14,15 +15,25 @@ import { WarningBox } from "@/src/shared/ui/warning-box";
 import { formatDateTime } from "@/src/shared/lib/format-date";
 import { unwrap } from "@/src/shared/lib/unwrap";
 import { useAuth } from "@/src/app/providers/auth-provider";
-import { approveSettlementAction, cancelSettlementAction, fetchSettlementDetail, payoutAction } from "../api/actions";
+import {
+  approveSettlementAction,
+  cancelSettlementAction,
+  fetchSettlementDetail,
+  payoutAction,
+  setGroupKeyAction,
+} from "../api/actions";
 import {
   canHold,
   canRelease,
   canRetry,
+  canSetGroupKey,
   detailSummary,
+  GROUP_KEY_RE,
   HOLD_REASON_LABELS,
   policyRows,
   releaseWarning,
+  UNCERTAIN_STATE_LABELS,
+  uncertainState,
   won,
 } from "../model/status";
 import type { HoldReason, Payout } from "../model/types";
@@ -31,7 +42,7 @@ import { PayoutStatusBadge, ProvisionalBadge, SettlementStatusBadge } from "./pa
 type Pending =
   | { kind: "approve" }
   | { kind: "cancel" }
-  | { kind: "hold" | "release" | "retry"; payout: Payout };
+  | { kind: "hold" | "release" | "retry" | "group_key"; payout: Payout };
 
 const TITLES = {
   approve: "회차 승인",
@@ -39,6 +50,7 @@ const TITLES = {
   hold: "지급 보류",
   release: "보류 해제",
   retry: "지급 재시도(새 지급)",
+  group_key: "그룹키 입력",
 } as const;
 
 /** 회차 상세 — 금액 근거(항목) · 지급 · 이력 · 계좌(마스킹) · 조치(SUPER_ADMIN). */
@@ -46,6 +58,7 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<Pending | null>(null);
+  const [groupKey, setGroupKey] = useState("");
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["settlement-detail", settlementId],
     queryFn: () => unwrap(fetchSettlementDetail(settlementId!)),
@@ -161,6 +174,12 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
                               {HOLD_REASON_LABELS[p.hold_reason as HoldReason] ?? p.hold_reason}
                             </div>
                           )}
+                          {uncertainState(p) && (
+                            <div className="text-bds-caption2 text-muted-foreground">
+                              {UNCERTAIN_STATE_LABELS[uncertainState(p)!]}
+                              {p.recover_group_key && <span className="font-mono"> · {p.recover_group_key}</span>}
+                            </div>
+                          )}
                           {p.request_inflight_at && p.hold_reason !== "UNCERTAIN" && (
                             <div className="text-bds-caption2 text-muted-foreground">
                               요청 보냄 {formatDateTime(p.request_inflight_at)} · 답 기다리는 중
@@ -189,6 +208,18 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
                           {isSuper && canRelease(p) && (
                             <Button size="sm" variant="outline" onClick={() => setPending({ kind: "release", payout: p })}>
                               해제
+                            </Button>
+                          )}
+                          {isSuper && canSetGroupKey(p) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setGroupKey("");
+                                setPending({ kind: "group_key", payout: p });
+                              }}
+                            >
+                              그룹키 입력
                             </Button>
                           )}
                           {isSuper && canRetry(p, data.payouts) && (
@@ -265,14 +296,29 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
             ) : pending?.kind === "retry" ? (
               <WarningBox tone="caution">같은 금액으로 새 지급을 만듭니다. 앞 건은 그대로 남습니다.</WarningBox>
             ) : pending?.kind === "release" && releaseWarning(pending.payout) === "uncertain" ? (
-              <WarningBox tone="danger">
-                <b>이 지급은 이체 대기 요청의 답을 받지 못했습니다.</b> 해제하면 지급 시간(07~22시)의 1분 안에 <b>같은 키</b>
-                (<span className="font-mono">{pending.payout.distinct_key}</span>)로 다시 요청하고 바로 실행합니다.
-                페이플에 앞 요청의 대기가 남아 있으면 <b>같이 실행돼 두 번 나갑니다.</b>
-                <br />
-                먼저 페이플 파트너 관리자 › 정산지급대행에서 이 키의 대기 · 이체 내역을 확인하세요. 대기가 있으면
-                거기서 취소한 뒤 해제하고, 이미 이체됐으면 해제하지 말고 웹훅 · 결과 확인을 기다리세요.
+              <WarningBox tone="caution">
+                <b>이 지급은 이체 대기 요청의 답을 받지 못했습니다.</b> 시스템이 10분 뒤부터 30분마다 자동으로 확인하므로
+                보통은 해제할 필요가 없습니다. 해제하면 지급 시간(07~22시)에 <b>같은 키</b>
+                (<span className="font-mono">{pending.payout.distinct_key}</span>)로 다시 요청합니다 — 페이플이 같은 키를
+                거절하므로(R0132) <b>두 번 나가지는 않지만</b>, 대기가 이미 있으면 다시 결과 불명이 됩니다. 그때는
+                파트너 관리자 › 지급이체 요청 내역에서 이 키로 group_key 를 찾아 &lsquo;그룹키 입력&rsquo;을 쓰세요.
               </WarningBox>
+            ) : pending?.kind === "group_key" ? (
+              <div className="space-y-2">
+                <WarningBox tone="caution">
+                  페이플 파트너 관리자 › 정산지급대행 › <b>지급이체 요청 내역</b>에서 아래 distinct_key 로 검색해 나온
+                  group_key 를 넣으세요. 넣은 값은 믿지 않고, 다음 확인(1분 안 · 지급 시간 07~22시)에서 그 그룹의 대기
+                  목록에 이 지급이 있을 때만 실행합니다.
+                  <div className="mt-1 font-mono">{pending.payout.distinct_key}</div>
+                </WarningBox>
+                <Input
+                  aria-label="group_key"
+                  placeholder="group_key"
+                  value={groupKey}
+                  onChange={(e) => setGroupKey(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
             ) : pending?.kind === "release" ? (
               <WarningBox tone="caution">
                 해제하면 다시 지급 대기가 되고 <b>지급 시간(07~22시)이면 1분 안에 실제 이체</b>가 시작됩니다(TEST 는
@@ -295,7 +341,14 @@ export function SettlementDetailDialog({ settlementId, onClose }: { settlementId
                 ? await approveSettlementAction({ id: settlementId, reason })
                 : pending.kind === "cancel"
                   ? await cancelSettlementAction({ id: settlementId, reason })
-                  : await payoutAction({ action: pending.kind, id: pending.payout.id, reason });
+                  : pending.kind === "group_key"
+                    ? await (async () => {
+                        if (!GROUP_KEY_RE.test(groupKey.trim())) {
+                          return { ok: false as const, error: { message: "group_key 형식이 맞지 않습니다 (영문 · 숫자 · +/=_.- 8~64자)" } };
+                        }
+                        return await setGroupKeyAction({ id: pending.payout.id, groupKey, reason });
+                      })()
+                    : await payoutAction({ action: pending.kind, id: pending.payout.id, reason });
             if (!r.ok) {
               toast.error(r.error.message);
               return false;
